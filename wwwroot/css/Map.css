@@ -1,0 +1,51 @@
+﻿html, body {
+    margin: 0;
+    padding: 0;
+}
+
+#map_canvas {
+    height: 100vh;
+    width: 100%;
+}
+
+#over_map {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index:auto;
+    /*float: left;*/
+    /*clear:both;*/
+}
+
+    #over_map .tipo1 {
+        /*float: left;*/
+        /*margin-top: 4px;*/
+    }
+
+
+    #over_map .dropdown {
+        float: left;
+    }
+
+.letrero {
+    font-size: large;
+}
+
+.float {
+    position: fixed;
+    width: 60px;
+    height: 60px;
+    bottom: 40px;
+    right: 40px;
+    background-color: #0C9;
+    color: #FFF;
+    border-radius: 50px;
+    text-align: center;
+    box-shadow: 2px 2px 3px #999;
+}
+
+.my-float {
+    margin-top: 23px;
+}
+
+
