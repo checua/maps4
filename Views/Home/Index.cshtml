@@ -93,45 +93,48 @@
 <div class="modal" id="modalEmpleado" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            @* <div class="container mt-5 pt-5"> *@
+            <div class="card">
+                <div class="card-header">
+                    Iniciar Sesion
+                </div>
 
-                @* <div class="row justify-content-center"> *@
-                    @* <div class="col-12 col-xl-4 col-md-6"> *@
+@*                 <form asp-controller="Inicio" asp-action="IniciarSesion" method="post">
 
-                        <div class="card">
-                            <div class="card-header">
-                                Iniciar Sesion
+                    <input class="form-control mb-3" type="text" placeholder="Correo" required name="correo" />
+                    <input class="form-control mb-3" type="password" placeholder="Contraseña" required name="clave" />
+                    <div class="d-grid gap-2 mb-3">
+                        <button class="btn btn-primary" type="submit">Iniciar Sesion</button>
+                    </div>
+                    @if (ViewData["Mensaje"] != null)
+                    {
+
+                        <div class="form-group">
+                            <div class="alert alert-danger" role="alert">
+                                @ViewData["Mensaje"]
                             </div>
-                            <div class="card-body">
-
-                                
-
-                                    <input class="form-control mb-3" type="text" placeholder="Correo" required name="correo" />
-                                    <input class="form-control mb-3" type="password" placeholder="Contraseña" required name="clave" />
-                                    <div class="d-grid gap-2 mb-3">
-                        <button class="btn btn-primary boton-iniciar-sesion" type="submit">Iniciar Sesion</button>
-                                    </div>
-                                    @if (ViewData["Mensaje"] != null)
-                                    {
-
-                                        <div class="form-group">
-                                            <div class="alert alert-danger" role="alert">
-                                                @ViewData["Mensaje"]
-                                            </div>
-                                        </div>
-                                    }
-                                    ¿No tienes una cuenta? <a href="@Url.Action("Registrarse","Inicio")"> Regístrate!</a>
-
-                                
-
-                            </div>
-
                         </div>
+                    }
+                    ¿No tienes una cuenta? <a href="@Url.Action("Registrarse","Inicio")"> Regístrate!</a>
 
-                    @* </div> *@
-                @* </div> *@
+                </form> *@
 
-            @* </div> *@
+                <div class="card-body">
+                    <input class="form-control mb-3" type="text" placeholder="Correo" required name="correo" id="correo"/>
+                    <input class="form-control mb-3" type="password" placeholder="Contraseña" required name="contra" id="contra"/>
+                    <div class="d-grid gap-2 mb-3">
+                        <button class="btn btn-primary boton-iniciar-sesion" type="submit">Iniciar Sesion</button>
+                    </div>
+                    @if (ViewData["Mensaje"] != null)
+                    {
+                        <div class="form-group">
+                            <div class="alert alert-danger" role="alert">
+                                @ViewData["Mensaje"]
+                            </div>
+                        </div>
+                    }
+                    ¿No tienes una cuenta? <a href="@Url.Action("Registrarse","Inicio")"> Regístrate!</a>
+                </div>
+            </div>
         </div>
     </div>
 </div>

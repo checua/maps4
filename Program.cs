@@ -9,7 +9,8 @@ builder.Services.AddControllersWithViews();
 
 
 builder.Services.AddScoped<IGenericRepository<TipoPropiedad>, TipoPropiedadRepository>();
-builder.Services.AddScoped<IGenericRepository<Usuario>, UsuarioRepositorio>();
+builder.Services.AddScoped<IGenericRepository<Usuario>, UsuarioRepository>();
+builder.Services.AddScoped<IUsuarioServicio<Usuario>, UsuarioRepositoryLogin>();
 
 var app = builder.Build();
 
