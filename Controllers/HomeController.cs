@@ -2,6 +2,9 @@ using maps4.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using maps4.Repositorios.Contrato;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication;
+using System.Security.Claims;
 
 namespace maps4.Controllers
 {
@@ -9,12 +12,15 @@ namespace maps4.Controllers
     {
         private readonly ILogger<HomeController> _logger;
         private readonly IGenericRepository<TipoPropiedad> _tipoPropiedadRepository;
+        private readonly IGenericRepository<Usuario> _usuarioRepository;
 
         public HomeController(ILogger<HomeController> logger,
-            IGenericRepository<TipoPropiedad> tipoPropiedadRepository)
+            IGenericRepository<TipoPropiedad> tipoPropiedadRepository,
+            IGenericRepository<Usuario> usuarioRepository)
         {
             _logger = logger;
             _tipoPropiedadRepository = tipoPropiedadRepository;
+            _usuarioRepository = usuarioRepository;
         }
 
         public IActionResult Index()
@@ -30,12 +36,43 @@ namespace maps4.Controllers
             //return View();
         }
 
-        //[HttpGet]
-        //public async Task<IActionResult> listaTipoPropiedades()
+        [HttpGet]
+        public async Task<IActionResult> listaUsuario()
+        {
+            List<Usuario> _lista = await _usuarioRepository.Lista();
+            return StatusCode(StatusCodes.Status200OK, _lista);
+            //return View();
+        }
+
+        //[HttpPost]
+        //public async Task<IActionResult> IniciarSesion(string correo, string clave)
         //{
-        //    List<TipoPropiedad> _lista = await _tipoPropiedadRepository.Lista();
-        //    return StatusCode(StatusCodes.Status200OK, _lista);
-        //    return View();
+
+        //    Usuario usuario_encontrado = await _usuarioServicio.GetUsuario(correo, Utilidades.EncriptarClave(clave));
+
+        //    if (usuario_encontrado == null)
+        //    {
+        //        ViewData["Mensaje"] = "No se encontraron coincidencias";
+        //        return View();
+        //    }
+
+        //    List<Claim> claims = new List<Claim>() {
+        //        new Claim(ClaimTypes.Name, usuario_encontrado.NombreUsuario)
+        //    };
+
+        //    ClaimsIdentity claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        //    AuthenticationProperties properties = new AuthenticationProperties()
+        //    {
+        //        AllowRefresh = true
+        //    };
+
+        //    await HttpContext.SignInAsync(
+        //        CookieAuthenticationDefaults.AuthenticationScheme,
+        //        new ClaimsPrincipal(claimsIdentity),
+        //        properties
+        //        );
+
+        //    return RedirectToAction("Index", "Home");
         //}
 
         public IActionResult Privacy()

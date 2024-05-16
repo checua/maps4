@@ -30,7 +30,7 @@ namespace maps4.Repositorios.Implementacion
                     {
                         _lista.Add(new TipoPropiedad
                         {
-                            idTipoPropiedad = Convert.ToInt32(dr["idTipoPropiedades"]),
+                            idTipoPropiedad = Convert.ToInt32(dr["idTipoPropiedad"]),
                             nombre = dr["nombre"].ToString()
                         });
                     }

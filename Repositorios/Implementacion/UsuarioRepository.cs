@@ -21,7 +21,7 @@ namespace maps4.Repositorios.Implementacion
             using (var conexion = new SqlConnection(_cadenaSQL))
             {
                 conexion.Open();
-                SqlCommand cmd = new SqlCommand("sp_ListaUsuarios", conexion);
+                SqlCommand cmd = new SqlCommand("sp_ListaUsuarioLogin", conexion);
                 cmd.CommandType = CommandType.StoredProcedure;
 
                 using (var dr = await cmd.ExecuteReaderAsync())
@@ -39,14 +39,14 @@ namespace maps4.Repositorios.Implementacion
                                 idInmobiliaria = Convert.ToInt32(dr["idInmobiliaria"]),
                                 nombres = dr["nombre"].ToString()
                             },
-                            nick = dr["nombres"].ToString(),
-                            contra = dr["nombres"].ToString(),
-                            telefono = dr["nombres"].ToString(),
-                            correo = dr["nombres"].ToString(),
-                            foto = dr["nombres"].ToString(),
-                            obs = dr["nombres"].ToString(),
-                            dob = dr["nombres"].ToString(),
-                            revisado = dr["dateofbirth"].ToString()
+                            nick = dr["nick"].ToString(),
+                            contra = dr["contra"].ToString(),
+                            telefono = dr["telefono"].ToString(),
+                            correo = dr["correo"].ToString(),
+                            foto = dr["foto"].ToString(),
+                            obs = dr["obs"].ToString(),
+                            dob = dr["dob"].ToString(),
+                            revisado = dr["revisado"].ToString()
                         });
                     }
                 }
