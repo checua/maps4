@@ -9,4 +9,5 @@ namespace maps4.Repositorios.Contrato
         //Task<bool> Editar(T modelo);
         //Task<bool> Eliminar(int id);
     }
+
 }

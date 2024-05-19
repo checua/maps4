@@ -37,7 +37,7 @@ namespace maps4.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> listaUsuario(string x, string y)
+        public async Task<IActionResult> listaUsuarios()
         {
             List<Usuario> _lista = await _usuarioRepository.Lista(x,y);
             return StatusCode(StatusCodes.Status200OK, _lista);

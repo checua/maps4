@@ -22,6 +22,8 @@ namespace maps4.Repositorios.Implementacion
             {
                 conexion.Open();
                 SqlCommand cmd = new SqlCommand("sp_ListaUsuarioLogin", conexion);
+                cmd.Parameters.AddWithValue("correo", "profesor76@hotmail.com");
+                cmd.Parameters.AddWithValue("contra", "12345");
                 cmd.CommandType = CommandType.StoredProcedure;
 
                 using (var dr = await cmd.ExecuteReaderAsync())
@@ -33,11 +35,11 @@ namespace maps4.Repositorios.Implementacion
                             idAsesor = Convert.ToInt32(dr["idAsesor"]),
                             nombres = dr["nombres"].ToString(),
                             aPaterno = dr["aPaterno"].ToString(),
-                            aMaterno = dr["nombres"].ToString(),
+                            aMaterno = dr["aMaterno"].ToString(),
                             refnmobiliaria = new Inmobiliaria()
                             {
                                 idInmobiliaria = Convert.ToInt32(dr["idInmobiliaria"]),
-                                nombres = dr["nombre"].ToString()
+                                nombre = dr["nombre"].ToString()
                             },
                             nick = dr["nick"].ToString(),
                             contra = dr["contra"].ToString(),
@@ -45,7 +47,7 @@ namespace maps4.Repositorios.Implementacion
                             correo = dr["correo"].ToString(),
                             foto = dr["foto"].ToString(),
                             obs = dr["obs"].ToString(),
-                            dob = dr["dob"].ToString(),
+                            dob = dr["fechaNacimiento"].ToString(),
                             revisado = dr["revisado"].ToString()
                         });
                     }
