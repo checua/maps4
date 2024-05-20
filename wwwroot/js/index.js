@@ -102,9 +102,12 @@ $(document).on("click", ".boton-iniciar-sesion", function () {
                     //)
                     $("#modalEmpleado").modal("hide");
 
-                    alert("Usuario loggeado");
+                    Swal.fire("Listo!", "Usuario logegado", "success");
 
                 })
+            }
+            else {
+                Swal.fire("Error!", "Usuario no encontrado", "danger");
             }
 
         })
