@@ -56,30 +56,5 @@ namespace maps4.Repositorios.Implementacion
 
             return _lista;
         }
-
-        //public async Task<bool> Guardar(Usuario modelo)
-        //{
-        //    using (var conexion = new SqlConnection(_cadenaSQL))
-        //    {
-        //        conexion.Open();
-        //        SqlCommand cmd = new SqlCommand("sp_ListaUsuarios", conexion);
-        //        cmd.CommandType = CommandType.StoredProcedure;
-
-        //    }
-        //}
-
-        //public Task<bool> Editar(Usuario modelo)
-        //{
-        //    throw new NotImplementedException();
-        //}
-
-        //public Task<bool> Eliminar(int id)
-        //{
-        //    throw new NotImplementedException();
-        //}
-
-
-
-
     }
 }
