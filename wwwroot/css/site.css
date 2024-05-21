@@ -20,3 +20,16 @@ html {
 body {
   margin-bottom: 60px;
 }
+
+.card-header #btn-close-a {
+    width:49%;
+    /*background-color: aqua;*/
+    display: inline-block;
+}
+
+.card-header #btn-close-b {
+    width:49%;
+    /*background-color: aqua;*/
+    text-align: right;
+    display: inline-block;
+}

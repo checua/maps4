@@ -18,8 +18,9 @@
 }
 
     #over_map .tipo1 {
-        /*float: left;*/
-        /*margin-top: 4px;*/
+        float: left;
+        clear: both;
+        margin-top: 4px;
     }
 
 
@@ -28,7 +29,7 @@
     }
 
 .letrero {
-    font-size: large;
+    font-size:small;
 }
 
 .float {
@@ -46,6 +47,25 @@
 
 .my-float {
     margin-top: 23px;
+}
+
+.btn-acceso {
+/*    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: auto;*/
+    /*float: left;*/
+    /*clear:both;*/
+}
+
+#contenido-superior-derecho {
+    position: absolute;
+    top: 10px; /* Ajusta la distancia desde la parte superior según tus necesidades */
+    right: 10px; /* Ajusta la distancia desde la derecha según tus necesidades */
+    background-color: rgba(255, 255, 255, 0.8); /* Color de fondo con transparencia */
+    padding: 10px; /* Espaciado interno */
+    border-radius: 5px; /* Borde redondeado */
+    z-index: 999; /* Asegúrate de que esté sobre cualquier otro contenido */
 }
 
 
