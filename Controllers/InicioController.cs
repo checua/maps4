@@ -46,15 +46,13 @@ namespace maps4.Controllers
                 AllowRefresh = true
             };
 
-            return StatusCode(StatusCodes.Status200OK, _lista);
-
             await HttpContext.SignInAsync(
                 CookieAuthenticationDefaults.AuthenticationScheme,
                 new ClaimsPrincipal(claimsIdentity),
                 properties
                 );
 
-            
+            return StatusCode(StatusCodes.Status200OK, _lista);
         }
 
 

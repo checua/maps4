@@ -8,8 +8,17 @@
 
 <div id="map_canvas">
 </div>
-<div id="contenido-superior-derecho">
+<div id="contenido-superior-derecho" class="boton-nuevo-acceso">
     <a id="lnkAcceso" class="btn-acceso boton-nuevo-acceso" data-bs-dismiss="modal">Iniciar Sesión</a>
+    @if (ViewData["Mensaje"] != null)
+    {
+
+        <div class="form-group">
+            <div class="alert alert-danger" role="alert">
+                @ViewData["Mensaje"]
+            </div>
+        </div>
+    }
 </div>
 <div id="over_map">
     

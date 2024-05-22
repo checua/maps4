@@ -50,22 +50,24 @@
 }
 
 .btn-acceso {
-/*    position: absolute;
+    /*    position: absolute;
     top: 10px;
     left: 10px;
     z-index: auto;*/
     /*float: left;*/
     /*clear:both;*/
+    cursor: pointer;
 }
 
 #contenido-superior-derecho {
     position: absolute;
     top: 10px; /* Ajusta la distancia desde la parte superior según tus necesidades */
     right: 10px; /* Ajusta la distancia desde la derecha según tus necesidades */
-    background-color: rgba(255, 255, 255, 0.8); /* Color de fondo con transparencia */
-    padding: 10px; /* Espaciado interno */
+    background-color: rgba(255, 255, 255, 0.2); /* Color de fondo con transparencia */
+    padding: 3px; /* Espaciado interno */
     border-radius: 5px; /* Borde redondeado */
     z-index: 999; /* Asegúrate de que esté sobre cualquier otro contenido */
+    cursor: pointer;
 }
 
 

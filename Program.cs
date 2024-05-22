@@ -1,6 +1,9 @@
 using maps4.Models;
 using maps4.Repositorios.Contrato;
 using maps4.Repositorios.Implementacion;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +15,13 @@ builder.Services.AddScoped<IGenericRepository<TipoPropiedad>, TipoPropiedadRepos
 builder.Services.AddScoped<IGenericRepository<Usuario>, UsuarioRepository>();
 builder.Services.AddScoped<IUsuarioServicio<Usuario>, UsuarioRepositoryLogin>();
 
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Inicio/IniciarSesion";
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(20);
+    });
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -22,7 +32,7 @@ if (!app.Environment.IsDevelopment())
 app.UseStaticFiles();
 
 app.UseRouting();
-
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(

@@ -9,6 +9,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
     //MostrarEmpleados();
 
+    $.ajax({
+        url: '/Home/GetUserClaims',
+        type: 'GET',
+        success: function (data) {
+            // Maneja los claims devueltos aquí
+            //console.log(data);
+            $("#lnkAcceso").text(data[0].value);
+        },
+        error: function () {
+            console.error('Error al obtener los claims del usuario.');
+        }
+    });
+
     fetch("/Home/listaTipoPropiedades")
         .then(response => {
             return response.ok ? response.json() : Promise.reject(response)
@@ -71,7 +84,8 @@ $(document).on("click", ".boton-iniciar-sesion", function () {
             if (responseJson.length > 0) {
                 responseJson.forEach((item) => {
                     $("#modalEmpleado").modal("hide");
-                    Swal.fire("Listo!", "Usuario logegado", "success");
+                    $("#lnkAcceso").text(item.correo);
+                    //Swal.fire("Listo! " + item.correo, "Usuario logegado", "success");
                 })
             }
             else {
