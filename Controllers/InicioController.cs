@@ -56,19 +56,19 @@ namespace maps4.Controllers
         }
 
 
-        //[HttpPost]
-        //public async Task<IActionResult> Registrarse(Usuario modelo)
-        //{
-        //    modelo.Clave = Utilidades.EncriptarClave(modelo.Clave);
+        [HttpPost]
+        public async Task<IActionResult> Registrarse(Usuario modelo)
+        {
+            modelo.contra = Utilidades.EncriptarClave(modelo.contra);
 
-        //    Usuario usuario_creado = await _usuarioServicio.SaveUsuario(modelo);
+            Usuario usuario_creado = await _usuarioRepositoryLogin.SaveUsuario(modelo);
 
-        //    if (usuario_creado.IdUsuario > 0)
-        //        return RedirectToAction("IniciarSesion", "Inicio");
+            if (usuario_creado.idAsesor > 0)
+                return RedirectToAction("IniciarSesion", "Inicio");
 
-        //    ViewData["Mensaje"] = "No se pudo crear el usuario";
-        //    return View();
-        //}
+            ViewData["Mensaje"] = "No se pudo crear el usuario";
+            return View();
+        }
 
     }
 }
