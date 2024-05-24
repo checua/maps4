@@ -93,3 +93,23 @@ $(document).on("click", ".boton-iniciar-sesion", function () {
             }
         })
 })
+
+$(document).on("click", ".boton-iniciar-sesion", function () {
+    fetch("/Inicio/IniciarSesion?correo=" + $("#correo").val() + "&contra=" + $("#contra").val())
+        .then(response => {
+            return response.ok ? response.json() : Promise.reject(response)
+        })
+        .then(responseJson => {
+            if (responseJson.length > 0) {
+                responseJson.forEach((item) => {
+                    $("#modalEmpleado").modal("hide");
+                    $("#lnkAcceso").text(item.correo);
+                    //Swal.fire("Listo! " + item.correo, "Usuario logegado", "success");
+                })
+            }
+            else {
+                Swal.fire("Error!", "Usuario no encontrado", "danger");
+            }
+        })
+})
+
