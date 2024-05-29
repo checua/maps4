@@ -93,23 +93,65 @@ $(document).on("click", ".boton-iniciar-sesion", function () {
             }
         })
 })
+                return response.ok ? response.json() : Promise.reject(response)
+            })
+            .then(responseJson => {
 
-$(document).on("click", ".boton-iniciar-sesion", function () {
-    fetch("/Inicio/IniciarSesion?correo=" + $("#correo").val() + "&contra=" + $("#contra").val())
-        .then(response => {
-            return response.ok ? response.json() : Promise.reject(response)
-        })
-        .then(responseJson => {
-            if (responseJson.length > 0) {
-                responseJson.forEach((item) => {
+                if (responseJson.valor) {
                     $("#modalEmpleado").modal("hide");
-                    $("#lnkAcceso").text(item.correo);
-                    //Swal.fire("Listo! " + item.correo, "Usuario logegado", "success");
-                })
-            }
-            else {
-                Swal.fire("Error!", "Usuario no encontrado", "danger");
-            }
-        })
-})
+                    Swal.fire("Listo!", "Empleado fue creado", "success");
+                    MostrarEmpleados();
+                }
+                else
+                    Swal.fire("Lo sentimos", "No se puedo crear", "error");
+            })
+                return response.ok ? response.json() : Promise.reject(response)
+            })
+            .then(responseJson => {
 
+                if (responseJson.valor) {
+                    $("#modalEmpleado").modal("hide");
+                    Swal.fire("Listo!", "Empleado fue creado", "success");
+                    MostrarEmpleados();
+                }
+                else
+                    Swal.fire("Lo sentimos", "No se puedo crear", "error");
+            })
+                return response.ok ? response.json() : Promise.reject(response)
+            })
+            .then(responseJson => {
+
+                if (responseJson.valor) {
+                    $("#modalEmpleado").modal("hide");
+                    Swal.fire("Listo!", "Empleado fue creado", "success");
+                    MostrarEmpleados();
+                }
+                else
+                    Swal.fire("Lo sentimos", "No se puedo crear", "error");
+            })
+
+    } else {
+
+        fetch("/Home/editarEmpleado", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json; charset=utf-8" },
+            body: JSON.stringify(modelo)
+        })
+            .then(response => {
+                return response.ok ? response.json() : Promise.reject(response)
+            })
+            .then(responseJson => {
+
+                if (responseJson.valor) {
+                    $("#modalEmpleado").modal("hide");
+                    Swal.fire("Listo!", "Empleado fue actualizado", "success");
+                    MostrarEmpleados();
+                }
+                else
+                    Swal.fire("Lo sentimos", "No se puedo actualizar", "error");
+            })
+
+    }
+
+
+})

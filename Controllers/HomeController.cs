@@ -11,11 +11,11 @@ namespace maps4.Controllers
     {
         private readonly ILogger<HomeController> _logger;
         private readonly IGenericRepository<TipoPropiedad> _tipoPropiedadRepository;
-        private readonly IGenericRepository<Usuario> _usuarioRepository;
+        private readonly IUsuarioService<Usuario> _usuarioRepository;
 
         public HomeController(ILogger<HomeController> logger,
             IGenericRepository<TipoPropiedad> tipoPropiedadRepository,
-            IGenericRepository<Usuario> usuarioRepository)
+             IUsuarioService<Usuario> usuarioRepository)
         {
             _logger = logger;
             _tipoPropiedadRepository = tipoPropiedadRepository;
@@ -52,7 +52,7 @@ namespace maps4.Controllers
         [HttpGet]
         public async Task<IActionResult> listaUsuarios()
         {
-            List<Usuario> _lista = await _usuarioRepository.Lista();
+            List<Usuario> _lista = await _usuarioRepository.Lista(x,y);
             return StatusCode(StatusCodes.Status200OK, _lista);
             //return View();
         }
