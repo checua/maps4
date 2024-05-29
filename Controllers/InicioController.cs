@@ -18,7 +18,7 @@ namespace maps4.Controllers
             _usuarioRepositoryLogin = usuarioRepositoryLogin;
         }
 
-        public IActionResult Index()
+        public IActionResult Registrarse()
         {
             return View();
         }
@@ -27,32 +27,39 @@ namespace maps4.Controllers
         [HttpGet]
         public async Task<IActionResult> IniciarSesion(String correo, String contra)
         {
-            List<Usuario> _lista = await _usuarioRepositoryLogin.GetUsuario(correo, Utilidades.EncriptarClave(contra));
-            Usuario usuario_encontrado = _lista.FirstOrDefault();
-
-            if (usuario_encontrado == null)
+            if (correo != null && contra != null)
             {
-                ViewData["Mensaje"] = "No se encontraron coincidencias";
-                return View();
-            }
+                List<Usuario> _lista = await _usuarioRepositoryLogin.GetUsuario(correo, Utilidades.EncriptarClave(contra));
+                Usuario usuario_encontrado = _lista.FirstOrDefault();
 
-            List<Claim> claims = new List<Claim>() {
+                if (usuario_encontrado == null)
+                {
+                    ViewData["Mensaje"] = "No se encontraron coincidencias";
+                    return View();
+                }
+
+                List<Claim> claims = new List<Claim>() {
                 new Claim(ClaimTypes.Name, usuario_encontrado.correo)
             };
 
-            ClaimsIdentity claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            AuthenticationProperties properties = new AuthenticationProperties()
+                ClaimsIdentity claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                AuthenticationProperties properties = new AuthenticationProperties()
+                {
+                    AllowRefresh = true
+                };
+
+                await HttpContext.SignInAsync(
+                    CookieAuthenticationDefaults.AuthenticationScheme,
+                    new ClaimsPrincipal(claimsIdentity),
+                    properties
+                    );
+
+                return StatusCode(StatusCodes.Status200OK, _lista);
+            }
+            else
             {
-                AllowRefresh = true
-            };
-
-            await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(claimsIdentity),
-                properties
-                );
-
-            return StatusCode(StatusCodes.Status200OK, _lista);
+                return RedirectToAction("Index", "Home");
+            }
         }
 
 
