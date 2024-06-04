@@ -19,7 +19,8 @@ namespace maps4.Controllers
         public HomeController(ILogger<HomeController> logger,
             IGenericRepository<TipoPropiedad> tipoPropiedadRepository,
             IGenericRepository<Usuario> usuarioRepository,
-            IGenericRepository<Inmueble> inmuebleRepository)
+            IGenericRepository<Inmueble> inmuebleRepository
+            )
         {
             _logger = logger;
             _tipoPropiedadRepository = tipoPropiedadRepository;

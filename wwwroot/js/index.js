@@ -95,6 +95,9 @@ $(document).on("click", ".boton-iniciar-sesion", function () {
             }
         })
 })
+                return response.ok ? response.json() : Promise.reject(response)
+            })
+            .then(responseJson => {
 
 //$(document).on("click", ".boton-iniciar-sesion", function () {
 //    fetch("/Inicio/IniciarSesion?correo=" + $("#correo").val() + "&contra=" + $("#contra").val())
@@ -115,3 +118,7 @@ $(document).on("click", ".boton-iniciar-sesion", function () {
 //        })
 //})
 
+    }
+
+
+})

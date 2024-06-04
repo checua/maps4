@@ -9,4 +9,10 @@ namespace maps4.Repositorios.Contrato
         //Task<bool> Editar(T modelo);
         //Task<bool> Eliminar(int id);
     }
+    public interface IUsuarioService
+    {
+        Task<Usuario> GetUsuario(string correo, string clave);
+        Task<Usuario> SaveUsuario(Usuario modelo);
+
+    }
 }

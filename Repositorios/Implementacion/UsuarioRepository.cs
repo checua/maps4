@@ -22,8 +22,6 @@ namespace maps4.Repositorios.Implementacion
             {
                 conexion.Open();
                 SqlCommand cmd = new SqlCommand("sp_ListaUsuarioLogin", conexion);
-                //cmd.Parameters.AddWithValue("correo", "profesor76@hotmail.com");
-                //cmd.Parameters.AddWithValue("contra", "12345");
                 cmd.CommandType = CommandType.StoredProcedure;
 
                 using (var dr = await cmd.ExecuteReaderAsync())
