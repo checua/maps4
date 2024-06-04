@@ -7,6 +7,26 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="wwwroot\images\icon\apartment1.png" />
+    <None Include="wwwroot\images\icon\apartment2.png" />
+    <None Include="wwwroot\images\icon\building.png" />
+    <None Include="wwwroot\images\icon\building2.png" />
+    <None Include="wwwroot\images\icon\casa.png" />
+    <None Include="wwwroot\images\icon\casa_che.png" />
+    <None Include="wwwroot\images\icon\desk.png" />
+    <None Include="wwwroot\images\icon\desk2.png" />
+    <None Include="wwwroot\images\icon\local.png" />
+    <None Include="wwwroot\images\icon\local2.png" />
+    <None Include="wwwroot\images\icon\montacargas.png" />
+    <None Include="wwwroot\images\icon\montacargas2.png" />
+    <None Include="wwwroot\images\icon\packages.png" />
+    <None Include="wwwroot\images\icon\terreno1b.png" />
+    <None Include="wwwroot\images\icon\terreno2.png" />
+    <None Include="wwwroot\images\icon\tractor2.png" />
+    <None Include="wwwroot\images\icon\tractor3.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.1.4" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="7.0.12" />
   </ItemGroup>

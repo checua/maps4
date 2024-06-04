@@ -1,40 +1,70 @@
-﻿
+﻿@model maps4.Models.Usuario;
 @{
-    ViewData["Title"] = "Registrarse";
-    Layout = "~/Views/Shared/_Layout.cshtml";
+    Layout = null;
 }
 
-<h1>Registrarse</h1>
-<form asp-controller="Inicio" asp-action="Registrarse" method="post">
-    <input class="form-control mb-3" type="text" placeholder="Correo" required name="correo" id="correo" />
-    <input class="form-control mb-3" type="text" placeholder="Nombres" required name="nombres" />
-    <input class="form-control mb-3" type="text" placeholder="Apellido paterno" required name="aPaterno" />
-    <input class="form-control mb-3" type="text" placeholder="Apellido materno" required name="aMaterno" />
-    <input class="form-control mb-3" type="text" placeholder="Apellido paterno" required name="aPaterno" />
-    <div class="dropdown">
-        <select class="form-control" id="cboInmobiliaria"></select>
-    </div>
-    <input class="form-control mb-3" type="text" placeholder="nick" required name="nick" />
-    <input class="form-control mb-3" type="password" placeholder="Contraseña" required name="contra" />
-    <input class="form-control mb-3" type="password" placeholder="Repetir contraseña" />
-    <input class="form-control mb-3" type="text" placeholder="Teléfono" required name="telefono" />
-    <input class="form-control mb-3" type="text" placeholder="Correo" required name="correo" />
-    <input class="form-control mb-3" type="text" placeholder="Foto" required name="foto" />
-    <input class="form-control mb-3" type="text" placeholder="Fecha de nacimiento" required name="dob" />
-    <input class="form-control mb-3" type="text" placeholder="Revisado" required name="revisado" />
-    <div class="d-grid gap-2 mb-3">
-        <button class="btn btn-primary" type="submit">Registrate</button>
-    </div>
-    @if (ViewData["Mensaje"] != null)
-    {
+<!DOCTYPE html>
 
-        <div class="form-group">
-            <div class="alert alert-danger" role="alert">
-                @ViewData["Mensaje"]
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Registrarse</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+</head>
+<body>
+
+    <div class="container mt-5 pt-5">
+
+        <div class="row justify-content-center">
+            <div class="col-12 col-xl-4 col-md-6">
+
+                <div class="card">
+                    <div class="card-header">
+                        Iniciar Sesion
+                    </div>
+                    <div class="card-body">
+
+                        <form asp-controller="Inicio" asp-action="Registrarse" method="post">
+
+                            <input class="form-control mb-3" type="text" placeholder="Nombres" asp-for="nombres" required />
+                            <input class="form-control mb-3" type="text" placeholder="Apellido paterno" required asp-for="aPaterno" />
+@*                             <input class="form-control mb-3" type="text" placeholder="Apellido materno" required asp-for="AMaterno" /> *@
+@*                             <div class="dropdown">
+                                <select class="form-control" id="cboInmobiliaria"></select>
+                            </div> *@
+@*                             <input class="form-control mb-3" type="text" placeholder="nick" required asp-for="Nick" /> *@
+                            <input class="form-control mb-3" type="password" placeholder="Contraseña" required asp-for="contra" />
+                            <input class="form-control mb-3" type="password" placeholder="Repetir contraseña" />
+                            <input class="form-control mb-3" type="text" placeholder="Teléfono" required asp-for="telefono" />
+                            <input class="form-control mb-3" type="text" placeholder="Correo" required asp-for="correo" />
+@*                             <input class="form-control mb-3" type="text" placeholder="Foto" required asp-for="Foto" />
+                            <input class="form-control mb-3" type="text" placeholder="Fecha de nacimiento" required asp-for="Dob" />
+                            <input class="form-control mb-3" type="text" placeholder="Revisado" required asp-for="Revisado" /> *@
+                            <div class="d-grid gap-2 mb-3">
+                                <button class="btn btn-primary" type="submit">Registrate</button>
+                            </div>
+                            @if (ViewData["Mensaje"] != null)
+                            {
+
+                                <div class="form-group">
+                                    <div class="alert alert-danger" role="alert">
+                                        @ViewData["Mensaje"]
+                                    </div>
+                                </div>
+                            }
+                            ¿Ya tienes una cuenta? <a href="@Url.Action("Index","Home")">Iniciar Sesion</a>
+
+                        </form>
+
+                    </div>
+
+                </div>
+
             </div>
         </div>
-    }
-    ¿Ya tienes una cuenta? <a href="@Url.Action("IniciarSesion","Inicio")"> Iniciar Sesion</a>
 
-</form>
-
+    </div>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -36,7 +36,7 @@ namespace maps4.Repositorios.Implementacion
                             nombres = dr["nombres"].ToString(),
                             aPaterno = dr["aPaterno"].ToString(),
                             aMaterno = dr["aMaterno"].ToString(),
-                            refnmobiliaria = new Inmobiliaria()
+                            refInmobiliaria = new Inmobiliaria()
                             {
                                 idInmobiliaria = Convert.ToInt32(dr["idInmobiliaria"]),
                                 nombre = dr["nombre"].ToString()

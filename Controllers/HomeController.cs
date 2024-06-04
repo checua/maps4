@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using maps4.Repositorios.Contrato;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 
 namespace maps4.Controllers
@@ -12,15 +14,18 @@ namespace maps4.Controllers
         private readonly ILogger<HomeController> _logger;
         private readonly IGenericRepository<TipoPropiedad> _tipoPropiedadRepository;
         private readonly IGenericRepository<Usuario> _usuarioRepository;
+        private readonly IGenericRepository<Inmueble> _inmuebleRepository;
 
         public HomeController(ILogger<HomeController> logger,
             IGenericRepository<TipoPropiedad> tipoPropiedadRepository,
-            IGenericRepository<Usuario> usuarioRepository)
+            IGenericRepository<Usuario> usuarioRepository,
+            IGenericRepository<Inmueble> inmuebleRepository)
         {
             _logger = logger;
             _tipoPropiedadRepository = tipoPropiedadRepository;
             _usuarioRepository = usuarioRepository;
-        }
+            _inmuebleRepository = inmuebleRepository;
+    }
 
         public IActionResult Index()
         {
@@ -72,7 +77,7 @@ namespace maps4.Controllers
         {
             var user = HttpContext.User.Identity as ClaimsIdentity;
 
-            if (user != null)
+            if (user != null && user.Claims.Count() != 0)
             {
                 var claims = user.Claims.Select(c => new { Type = c.Type, Value = c.Value });
                 return new JsonResult(claims);
@@ -81,6 +86,21 @@ namespace maps4.Controllers
             {
                 return new JsonResult(null);
             }
+        }
+
+        public async Task<IActionResult> CerrarSesion()
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return RedirectToAction("IniciarSesion", "Inicio");
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> listaInmuebles()
+        {
+
+            List<Inmueble> _lista = await _inmuebleRepository.Lista();
+            return StatusCode(StatusCodes.Status200OK, _lista);
+            //return View();
         }
     }
 }

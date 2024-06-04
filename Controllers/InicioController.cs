@@ -6,12 +6,14 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using maps4.Recursos;
 using maps4.Repositorios.Implementacion;
+using NuGet.Protocol.Core.Types;
 
 namespace maps4.Controllers
 {
     public class InicioController : Controller
     {
         private readonly IUsuarioServicio<Usuario> _usuarioRepositoryLogin;
+        private readonly IInmuebleServicio<Inmueble> _inmuebleRepository;
 
         public InicioController(IUsuarioServicio<Usuario> usuarioRepositoryLogin)
         {
@@ -29,7 +31,18 @@ namespace maps4.Controllers
         {
             if (correo != null && contra != null)
             {
-                List<Usuario> _lista = await _usuarioRepositoryLogin.GetUsuario(correo, Utilidades.EncriptarClave(contra));
+                List<Usuario> _lista = new List<Usuario>();
+
+                if (contra.Length < 20)
+                {
+
+                    _lista = await _usuarioRepositoryLogin.GetUsuario(correo, Utilidades.EncriptarClave(contra));
+                }
+                else
+                {
+                    _lista = await _usuarioRepositoryLogin.GetUsuario(correo, contra);
+                }
+
                 Usuario usuario_encontrado = _lista.FirstOrDefault();
 
                 if (usuario_encontrado == null)
@@ -54,7 +67,17 @@ namespace maps4.Controllers
                     properties
                     );
 
-                return StatusCode(StatusCodes.Status200OK, _lista);
+
+                if (contra.Length < 20)
+                {
+
+                    return StatusCode(StatusCodes.Status200OK, _lista);
+                }
+                else
+                {
+                    return RedirectToAction("Index", "Home");
+                }
+                
             }
             else
             {
@@ -70,12 +93,15 @@ namespace maps4.Controllers
 
             Usuario usuario_creado = await _usuarioRepositoryLogin.SaveUsuario(modelo);
 
-            if (usuario_creado.idAsesor > 0)
-                return RedirectToAction("IniciarSesion", "Inicio");
-
-            ViewData["Mensaje"] = "No se pudo crear el usuario";
+            if (usuario_creado.correo != "")
+            {
+                //return RedirectToAction("IniciarSesion", "Inicio");
+                return RedirectToAction("IniciarSesion", "Inicio", new { correo = modelo.correo, contra = modelo.contra }); //Para cuando quiere loguearse después de registrarse
+                ViewData["Mensaje"] = modelo.correo;
+            }
+            else
+                ViewData["Mensaje"] = "No se pudo crear el usuario";
             return View();
         }
-
     }
 }

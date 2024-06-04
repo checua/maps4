@@ -70,4 +70,34 @@
     cursor: pointer;
 }
 
+.card-header #btn-close-a {
+    width: 49%;
+    /*background-color: aqua;*/
+    display: inline-block;
+}
+
+.card-header #btn-close-b {
+    width: 49%;
+    /*background-color: aqua;*/
+    text-align: right;
+    display: inline-block;
+}
+
+#closes-a {
+    width: 99%;
+    /*background-color: aqua;*/
+    display: inline-block;
+}
+#closes-b {
+    width: 30%;
+    /*background-color: aqua;*/
+    text-align: left;
+    display: inline-block;
+}
+#closes-c {
+    width: 32%;
+    /*background-color: aqua;*/
+    text-align: right;
+    display: inline-block;
+}
 

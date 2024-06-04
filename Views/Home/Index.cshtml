@@ -10,18 +10,16 @@
 </div>
 <div id="contenido-superior-derecho" class="boton-nuevo-acceso">
     <a id="lnkAcceso" class="btn-acceso boton-nuevo-acceso" data-bs-dismiss="modal">Iniciar Sesión</a>
-@*     @if (ViewData["Mensaje"] != null)
+    @if (ViewData["Mensaje"] != null)
     {
 
-        <div class="form-group">
-            <div class="alert alert-danger" role="alert">
-                @ViewData["Mensaje"]
-            </div>
-        </div>
-    } *@
+        <a id="lnkAcceso" class="btn-acceso boton-nuevo-acceso" data-bs-dismiss="modal">
+            @ViewData["Mensaje"]
+        </a>
+    }
 </div>
 <div id="over_map">
-    
+
     <a href="#" id="btnModal" class="float boton-nuevo-acceso"><i class="fa fa-plus my-float"></i></a>
 
     <div class="tipo1">
@@ -119,27 +117,27 @@
 
                 @*<form asp-controller="Inicio" asp-action="IniciarSesion" method="post">
 
-                    <input class="form-control mb-3" type="text" placeholder="Correo" required name="correo" />
-                    <input class="form-control mb-3" type="password" placeholder="Contraseña" required name="clave" />
-                    <div class="d-grid gap-2 mb-3">
-                        <button class="btn btn-primary" type="submit">Iniciar Sesion</button>
-                    </div>
-                    @if (ViewData["Mensaje"] != null)
-                    {
+                <input class="form-control mb-3" type="text" placeholder="Correo" required name="correo" />
+                <input class="form-control mb-3" type="password" placeholder="Contraseña" required name="clave" />
+                <div class="d-grid gap-2 mb-3">
+                <button class="btn btn-primary" type="submit">Iniciar Sesion</button>
+                </div>
+                @if (ViewData["Mensaje"] != null)
+                {
 
-                        <div class="form-group">
-                            <div class="alert alert-danger" role="alert">
-                                @ViewData["Mensaje"]
-                            </div>
-                        </div>
-                    }
-                    ¿No tienes una cuenta? <a href="@Url.Action("Registrarse","Inicio")"> Regístrate!</a>
+                <div class="form-group">
+                <div class="alert alert-danger" role="alert">
+                @ViewData["Mensaje"]
+                </div>
+                </div>
+                }
+                ¿No tienes una cuenta? <a href="@Url.Action("Registrarse","Inicio")"> Regístrate!</a>
 
                 </form> *@
 
                 <div class="card-body">
-                    <input class="form-control mb-3" type="text" placeholder="Correo" required name="correo" id="correo"/>
-                    <input class="form-control mb-3" type="password" placeholder="Contraseña" required name="contra" id="contra"/>
+                    <input class="form-control mb-3" type="text" placeholder="Correo" required name="correo" id="correo" />
+                    <input class="form-control mb-3" type="password" placeholder="Contraseña" required name="contra" id="contra" />
                     <div class="d-grid gap-2 mb-3">
                         <button class="btn btn-primary boton-iniciar-sesion" type="submit">Iniciar Sesion</button>
                     </div>
@@ -151,7 +149,15 @@
                             </div>
                         </div>
                     }
-                    ¿No tienes una cuenta? <a href="@Url.Action("Registrarse","Inicio")"> Regístrate!</a>
+                    <div id="closes-a"> ¿No tienes una cuenta? 
+                        <div id="closes-b">
+                            <a href="@Url.Action("Registrarse","Inicio")"> Regístrate!</a>
+                        </div>
+                        <div id="closes-c">
+                            <a href="@Url.Action("CerrarSesion","hoME")">Cerrar Sesión</a>
+                        
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

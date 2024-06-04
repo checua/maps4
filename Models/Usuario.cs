@@ -6,7 +6,7 @@
         public string? nombres { get; set; }
         public string? aPaterno { get; set; }
         public string? aMaterno { get; set; }
-        public Inmobiliaria? refnmobiliaria { get; set; } //Referencia al Modelo Inmobiliaria
+        public Inmobiliaria? refInmobiliaria { get; set; } //Referencia al Modelo Inmobiliaria
         public string? nick { get; set; }
         public string? contra { get; set; }
         public string? telefono { get; set; }

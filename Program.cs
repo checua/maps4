@@ -14,6 +14,9 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<IGenericRepository<TipoPropiedad>, TipoPropiedadRepository>();
 builder.Services.AddScoped<IGenericRepository<Usuario>, UsuarioRepository>();
 builder.Services.AddScoped<IUsuarioServicio<Usuario>, UsuarioRepositoryLogin>();
+builder.Services.AddScoped<IGenericRepository<Inmueble>, InmuebleRepository>();
+
+
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
