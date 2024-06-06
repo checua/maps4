@@ -1,4 +1,19 @@
-﻿const _modeloEmpleado = {
+﻿var map;
+var geocoder;
+var infoWindow;
+var marker;
+var markers = [];
+var banSiExc = 1;
+var banNoExc = 1;
+var banCasaVenta = 1;
+var banCasaRenta = 1;
+var banTerreVenta = 1;
+var mousedUp = false;
+var degrees = 90;
+var img = null;
+var canvas = null;
+
+const _modeloEmpleado = {
     idEmpleado: 0,
     nombreCompleto: "",
     idDepartamento: 0,
@@ -100,6 +115,7 @@ document.addEventListener("DOMContentLoaded", function () {
     google.maps.event.addListener(map, 'mousedown', function (e) {
 
         var latLng = e.latLng;
+        //alert(latLng);
 
         marker = new google.maps.Marker({
             position: latLng,
@@ -117,36 +133,46 @@ document.addEventListener("DOMContentLoaded", function () {
             //}
 
 
-            if (log == "Iniciar Sesión")
+            if (log != "Iniciar Sesión") //Le cambie para no batallar en entrar, pero hay que regresar a ==
                 alert("Ingresa para poder registrar propiedades");
             else {
                 /*alert(log);*/
-                geocoder.geocode({ 'latLng': event.latLng }, function (results, status) {
+                geocoder.geocode({ 'latLng': latLng }, function (results, status) {
 
-                    /*alert("Geocode");*/
+                    //alert("Geocode");
                     if (status == google.maps.GeocoderStatus.OK) {
 
-                        alert("Status ok");
+                        //alert("Status ok");
 
-                        //if (results[0]) {
-                        //    alert("No result 0");
-                        //    ////            document.getElementById("hfCoordenadas").value = results[0].geometry.location;
-                        //    ////            document.getElementById("hfLat").value = event.latLng.lat().toFixed(6);
-                        //    ////            document.getElementById("hfLng").value = event.latLng.lng().toFixed(6);
-                        //    ////            document.getElementById("hfDireccion").value = results[0].formatted_address;
+                        if (results[0]) {
+                            
+                            //            document.getElementById("hfCoordenadas").value = results[0].geometry.location;
+                            //            document.getElementById("hfLat").value = event.latLng.lat().toFixed(6);
+                            //            document.getElementById("hfLng").value = event.latLng.lng().toFixed(6);
+                            //            document.getElementById("hfDireccion").value = results[0].formatted_address;
 
-                        //    ////            marker = new google.maps.Marker({
-                        //    ////                position: event.latLng,
-                        //    ////                map: map
-                        //    ////            });
+                            var location1 = results[0].geometry.location;
+                            var lat1 = latLng.lat().toFixed(6);
+                            var lat2 = latLng.lng().toFixed(6);
+                            var adress1 = results[0].formatted_address;
 
-                        //    ////            GetCode2();
+                                        marker = new google.maps.Marker({
+                                            position: latLng,
+                                            map: map
+                                        });
 
-                        //} else {
-                        //    ////            document.getElementById('geocoding').innerHTML =
-                        //    ////                'No se encontraron resultados';
-                        //    alert("No result 0");
-                        //}
+                            //alert("Si result 1");
+                            //alert(location1 + " " + lat1 + " " + lat2 + " " + adress1);
+
+                            GetCode2();
+
+                            
+
+                        } else {
+                            //            document.getElementById('geocoding').innerHTML =
+                            //                'No se encontraron resultados';
+                            alert("No result 0");
+                        }
 
                     }
                     else {
@@ -249,22 +275,18 @@ $(document).on("click", ".boton-iniciar-sesion", function () {
 })
 
 
-//$(document).on("click", ".boton-iniciar-sesion", function () {
-//    fetch("/Inicio/IniciarSesion?correo=" + $("#correo").val() + "&contra=" + $("#contra").val())
-//        .then(response => {
-//            return response.ok ? response.json() : Promise.reject(response)
-//        })
-//        .then(responseJson => {
-//            if (responseJson.length > 0) {
-//                responseJson.forEach((item) => {
-//                    $("#modalEmpleado").modal("hide");
-//                    $("#lnkAcceso").text(item.correo);
-//                    //Swal.fire("Listo! " + item.correo, "Usuario logegado", "success");
-//                })
-//            }
-//            else {
-//                Swal.fire("Error!", "Usuario no encontrado", "danger");
-//            }
-//        })
-//})
+//function GetCode2() {
+//    $("#modalDatos").modal("show");
+//}
+function GetCode2() {
+
+    //$("#txtNombreCompleto").val(_modeloEmpleado.nombreCompleto);
+    //$("#cboDepartamento").val(_modeloEmpleado.idDepartamento == 0 ? $("#cboDepartamento option:first").val() : _modeloEmpleado.idDepartamento)
+    //$("#txtSueldo").val(_modeloEmpleado.sueldo);
+    //$("#txtFechaContrato").val(_modeloEmpleado.fechaContrato)
+
+
+    $("#modalInmueble").modal("show");
+
+}
 

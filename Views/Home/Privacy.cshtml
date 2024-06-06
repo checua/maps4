@@ -4,3 +4,84 @@
 <h1>@ViewData["Title"]</h1>
 
 <p>Use this page to detail your site's privacy policy.</p>
+
+
+        <!-- Modal2 -->
+        @* <div class="modal fade overM" id="myModal2" role="dialog">
+            <div class="modal-dialog">
+
+                <!-- Modal content-->
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                        <div class="modalheader1">
+                            <h4 class="modal-title">Guardar Inmueble</h4>
+                        </div>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <div class="form-group" style="float: right;">
+                                <label class="btn btn-primary" for="FileUpload1">
+                                    <asp:FileUpload ID="FileUpload1" runat="server" AllowMultiple="True" MaximumNumberOfFiles="6" onchange="ShowImagePreview(this);" Style="display: none" />
+                                    Upload images...
+                                </label>
+                            </div>
+                            <div id="test1">
+                                <div id="imgViewer">
+                                </div>
+                            </div>
+                            <div class="form-group" style="clear: both;">
+                                <label for="name">Tipo:</label>
+                                <div class="required" style="float: right !important;">
+                                    <asp:RequiredFieldValidator runat="server" CssClass="text-danger" ErrorMessage="Se requiere tipo" ControlToValidate="selTipo" InitialValue="0" ValidationGroup="Group2" />
+                                </div>
+                                <asp:DropDownList ID="selTipo" runat="server" class="form-control">
+                                    <asp:ListItem Text=" " Value="0" Selected="true"></asp:ListItem>
+                                    <asp:ListItem Text="Casa en Venta" Value="1"></asp:ListItem>
+                                    <asp:ListItem Text="Casa en Renta" Value="2"></asp:ListItem>
+                                    <asp:ListItem Text="Edificio en Venta" Value="3"></asp:ListItem>
+                                    <asp:ListItem Text="Edificio en Renta" Value="4"></asp:ListItem>
+                                    <asp:ListItem Text="Terreno en Venta" Value="5"></asp:ListItem>
+                                    <asp:ListItem Text="Terreno en Renta" Value="6"></asp:ListItem>
+                                    <asp:ListItem Text="Local en Venta" Value="7"></asp:ListItem>
+                                    <asp:ListItem Text="Local en Renta" Value="8"></asp:ListItem>
+                                    <asp:ListItem Text="Bodega en Venta" Value="9"></asp:ListItem>
+                                    <asp:ListItem Text="Bodega en Renta" Value="10"></asp:ListItem>
+                                </asp:DropDownList>
+                            </div>
+                            <div class="form-group">
+                                <label for="name">Terreno:</label><div class="required" style="float: right !important;">
+                                    <asp:RequiredFieldValidator runat="server" CssClass="text-danger" ErrorMessage="Se requiere superficie del terreno" ControlToValidate="txtTerreno" ValidationGroup="Group2" ValidationExpression="^[0-9]+$" />
+                                </div>
+                                <asp:TextBox Type="money" ID="txtTerreno" runat="server" placeholder="Cantidad de metros cuadrados de terreno" class="form-control"></asp:TextBox>
+                            </div>
+                            <div class="form-group">
+                                <label for="phone">Construcción:</label><div class="required" style="float: right !important;">
+                                    <asp:RequiredFieldValidator runat="server" CssClass="text-danger" ErrorMessage="Se requiere metros de construcción" ControlToValidate="txtConstruccion" ValidationGroup="Group2" ValidationExpression="^[0-9]+$" />
+                                </div>
+                                <asp:TextBox type="money" ID="txtConstruccion" runat="server" placeholder="Cantidad de metros cuadrados de contrucción" class="form-control" MaxLength="10"></asp:TextBox>
+                            </div>
+                            <div class="form-group">
+                                <label for="newemail">Precio:</label><div class="required" style="float: right !important;">
+                                    <asp:RequiredFieldValidator runat="server" CssClass="text-danger" ErrorMessage="Se requiere  precio" ControlToValidate="txtPrecio" ValidationGroup="Group2" />
+                                </div>
+                                <asp:TextBox type="money" ID="txtPrecio" runat="server" placeholder="Ingresa el precio de la propiedad" class="form-control"></asp:TextBox>
+                            </div>
+                            <div class="form-group">
+                                <label for="newpwd">Descripción:</label><div class="required" style="float: right !important;">
+                                    <asp:RequiredFieldValidator runat="server" CssClass="text-danger" ErrorMessage="Se requiere descripción" ControlToValidate="txtDescripcion" ValidationGroup="Group2" />
+                                </div>
+                                <asp:TextBox ID="txtDescripcion" type="text" class="form-control" placeholder="Describa la propiedad" runat="server"></asp:TextBox>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+
+                            <asp:Button ID="btnRegistrarInmueble" class="btn btn-success" OnClick="btnRegistrarInmueble_Click" runat="server" Text="Guardar" ValidationGroup="Group2" />
+                            <button type="button" class="btn btn-default" data-dismiss="modal" onclick="clearAll();">Cancelar</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div> *@
+
