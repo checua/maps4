@@ -101,3 +101,8 @@
     display: inline-block;
 }
 
+.btn-fileupload {
+    float: right;
+    margin-bottom:5px;
+    margin-top: -10px;
+}

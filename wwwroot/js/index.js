@@ -290,3 +290,185 @@ function GetCode2() {
 
 }
 
+//function ShowImagePreview(evt) {
+
+//    var i;
+//    var files = evt.files.length;
+//    var count = 0;
+//    //alert(files);
+
+//    if (files) {
+//        //alert(files);
+//        $('#imgViewer').remove();
+//        $('div#test1').append('<div id="imgViewer" style="height:50px; margin-bottom:2px;"></div>');
+//        $('#child').remove();
+//        $('div#parent').append('<div id="child" style="height:50px; margin-bottom:2px;"></div>');
+//        //alert(evt.files[0]);
+//        for (var i = 0, f; f = evt.files[i]; i++) {
+//            //alert(i);
+//            var r = new FileReader();
+//            //alert("4");
+//            r.onload = (function (f) {
+//                //alert("4");
+//                return function (e) { // WOOHOO!
+
+//                    var dataUri = e.target.result;
+//                    var img = document.createElement("img");
+
+//                    img.src = dataUri;
+//                    img.style.height = "50px";  // Ajustar tamaño de miniatura
+//                    img.style.marginBottom = "2px";
+//                    img.style.marginRight = "2px";
+//                    img.onclick = function () {
+//                        fixExifOrientation(this);
+//                    };
+
+//                    // Agregar imagen al contenedor de vista previa
+//                    $('#imgViewer').append(img);
+
+//                    count++;
+
+//                    //alert("5");
+//                    //var dataUri = e.target.result,
+//                    //    img = document.createElement("img");
+
+//                    //img.src = dataUri;
+//                    //document.body.appendChild(img);
+
+//                    //$('#imgViewer').append($('<img>', { src: e.target.result, onclick: 'fixExifOrientation(this);', id: 'preview_image_' + count, name: f.name }));
+
+//                    //count++;
+
+//                    //var inputHidden = document.createElement("input");
+//                    //inputHidden.setAttribute("type", "hidden");
+//                    //inputHidden.setAttribute("id", "HiddenField" + f.name);
+//                    //inputHidden.setAttribute("ClientIDMode", "Static");
+//                    //inputHidden.setAttribute("name", "HiddenField" + f.name);
+//                    //document.getElementById("hfx").appendChild(inputHidden);
+
+//                };
+//            })(f);
+
+//            r.readAsDataURL(f);
+//        }
+//    } else {
+//        alert("Failed to load files");
+//    }
+//}
+
+
+//function ShowImagePreview(evt) {
+//    var count = document.querySelectorAll('#imgViewer img').length; // Contar imágenes existentes
+//    var files = evt.files;
+
+//    if (files.length) {
+//        for (var i = 0, f; f = files[i]; i++) {
+//            var r = new FileReader();
+//            r.onload = (function (f) {
+//                return function (e) {
+//                    var dataUri = e.target.result;
+//                    var img = document.createElement("img");
+
+//                    img.src = dataUri;
+//                    img.style.height = "50px";  // Ajustar tamaño de miniatura
+//                    img.style.marginBottom = "2px";
+//                    img.style.marginRight = "2px";
+//                    img.onclick = function () {
+//                        fixExifOrientation(this);
+//                    };
+
+//                    // Agregar imagen al contenedor de vista previa
+//                    document.getElementById('imgViewer').appendChild(img);
+
+//                    count++;
+//                };
+//            })(f);
+
+//            r.readAsDataURL(f);
+//        }
+//    } else {
+//        alert("Failed to load files");
+//    }
+//}
+
+function ShowImagePreview(evt) {
+    var files = evt.files;
+    if (files.length) {
+        for (var i = 0, f; f = files[i]; i++) {
+            var r = new FileReader();
+            r.onload = (function (f) {
+                return function (e) {
+                    var img = new Image();
+                    img.onload = function () {
+                        // Crear un canvas para redimensionar la imagen
+                        var canvas = document.createElement('canvas');
+                        var ctx = canvas.getContext('2d');
+                        var maxWidth = 100;  // Ajustar tamaño de miniatura
+                        var maxHeight = 100; // Ajustar tamaño de miniatura
+                        var width = img.width;
+                        var height = img.height;
+
+                        // Calcular las nuevas dimensiones manteniendo la relación de aspecto
+                        if (width > height) {
+                            if (width > maxWidth) {
+                                height = Math.round(height * maxWidth / width);
+                                width = maxWidth;
+                            }
+                        } else {
+                            if (height > maxHeight) {
+                                width = Math.round(width * maxHeight / height);
+                                height = maxHeight;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        var dataUri = canvas.toDataURL('image/jpeg', 0.7);  // Calidad ajustada a 0.7
+
+                        var imgElement = document.createElement("img");
+                        imgElement.src = dataUri;
+                        imgElement.style.height = "100px";
+                        imgElement.style.marginBottom = "2px";
+                        imgElement.style.marginRight = "2px";
+                        imgElement.style.display = "inline-block";
+                        imgElement.onclick = function () {
+                            fixExifOrientation(this);
+                        };
+
+                        // Agregar imagen al contenedor de vista previa
+                        document.getElementById('imgViewer').appendChild(imgElement);
+
+                        // Mostrar el botón "Limpiar"
+                        document.getElementById('btnClear').style.display = 'inline-block';
+                    };
+                    img.src = e.target.result;
+                };
+            })(f);
+
+            r.readAsDataURL(f);
+        }
+    } else {
+        alert("Failed to load files");
+    }
+}
+
+function clearPreviewAndFields() {
+    // Limpiar imágenes del contenedor de vista previa
+    document.getElementById('imgViewer').innerHTML = '';
+
+    // Limpiar campos de entrada
+    document.getElementById('tipo').value = '';
+    document.getElementById('terreno').value = '';
+    document.getElementById('construccion').value = '';
+
+    // Ocultar el botón "Limpiar"
+    document.getElementById('btnClear').style.display = 'none';
+}
+
+// Limpia el modal cuando se cierra
+document.getElementById('modalInmueble').addEventListener('hidden.bs.modal', function () {
+    clearPreviewAndFields();
+});
+
