@@ -21,6 +21,7 @@ const _modeloEmpleado = {
     fechaContrato: ""
 }
 document.addEventListener("DOMContentLoaded", function () {
+    var i = 0;
 
     var latLng = new google.maps.LatLng(24.02, -104.62);
     var opciones = {
@@ -122,6 +123,9 @@ document.addEventListener("DOMContentLoaded", function () {
             map: map,
             draggable: false
         });
+
+        markers[i] = marker;
+        i++;
 
         if (mousedUp === false) {
             var log = document.getElementById("lnkAcceso").innerText;
@@ -472,3 +476,16 @@ document.getElementById('modalInmueble').addEventListener('hidden.bs.modal', fun
     clearPreviewAndFields();
 });
 
+
+function clearAll() {
+
+    alert(markers.length);
+    marker.setMap(null);
+    alert("limpiando");
+    //myClear();
+
+    //for (let i = 0; i < markers.length; i++) {
+    //    markers[i].setMap(map);
+    //}
+
+}
