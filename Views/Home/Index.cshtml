@@ -26,7 +26,7 @@
         <div class="letrero">Tipo: </div>
 
         <div class="dropdown">
-            <select class="form-control" id="cboTipoPropiedad"></select>
+            <select class="form-control" id="cboTipoPropiedad" onchange="showMan(this)"></select>
         </div>
     </div>
     <div class="tipo1">
@@ -145,72 +145,6 @@
 </div>
 
 
-@* <div class="modal" id="modalInmueble" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h1 class="modal-title fs-5" id="exampleModalLabel">Registrar inmueble</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-
-            <div class="modal-body">
-         
-            <div id="test1">
-                <div id="imgViewer">
-                </div>
-            </div>
-
-
-
-                    <label class="btn btn-primary btn-fileupload" for="FileUpload1">
-                        <input type="file" multiple="multiple" name="FileUpload1" id="FileUpload1" maximumnumberoffiles="20" onchange="ShowImagePreview(this);" style="display: none">
-                                    Upload images...
-                    </label>
-
-                <input class="form-control mb-3" type="text" placeholder="Tipo" required name="tipo" id="tipo" />
-                <input class="form-control mb-3" type="text" placeholder="Terreno" required name="terreno" id="terreno" />
-                <input class="form-control mb-3" type="text" placeholder="Construcción" required name="construccion" id="construccion" />
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-success">Guardar</button>
-            </div>
-        </div>
-    </div>
-</div> *@
-
-@* <div class="modal" id="modalInmueble" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h1 class="modal-title fs-5" id="exampleModalLabel">Registrar inmueble</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-
-            <div class="modal-body">
-                <div id="test1">
-                    <div id="imgViewer">
-                        <!-- Aquí se mostrarán las miniaturas de las imágenes -->
-                    </div>
-                </div>
-
-                <label class="btn btn-primary btn-fileupload" for="FileUpload1">
-                    <input type="file" multiple="multiple" name="FileUpload1" id="FileUpload1" maximumnumberoffiles="20" onchange="ShowImagePreview(this);" style="display: none">
-                    Upload images...
-                </label>
-
-                <input class="form-control mb-3" type="text" placeholder="Tipo" required name="tipo" id="tipo" />
-                <input class="form-control mb-3" type="text" placeholder="Terreno" required name="terreno" id="terreno" />
-                <input class="form-control mb-3" type="text" placeholder="Construcción" required name="construccion" id="construccion" />
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-success">Guardar</button>
-            </div>
-        </div>
-    </div>
-</div> *@
-
 <div class="modal" id="modalInmueble" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -228,7 +162,7 @@
                     </div>
                 </div>
 
-                <label class="btn btn-primary btn-fileupload" for="FileUpload1">
+                <label id="lblFileUpload" class="btn btn-primary btn-fileupload" for="FileUpload1">
                     <input type="file" multiple="multiple" name="FileUpload1" id="FileUpload1" maximumnumberoffiles="20" onchange="ShowImagePreview(this);" style="display: none">
                     Upload images...
                 </label>
@@ -238,7 +172,7 @@
                 <input class="form-control mb-3" type="text" placeholder="Construcción" required name="construccion" id="construccion" />
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-default" onclick="clearAll();" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-default" data-bs-dismiss="modal">Close</button>
                 <button type="button" class="btn btn-danger" id="btnClear" style="display: none;" onclick="clearPreviewAndFields()">Limpiar</button>
                 <button type="button" class="btn btn-success">Guardar</button>
             </div>
@@ -246,12 +180,7 @@
     </div>
 </div>
 
-
-
-
-
-
-
 @section Scripts {
     <script src="~/js/index.js"></script>
+    <script src="~/js/javascriptx.js"></script>
 }

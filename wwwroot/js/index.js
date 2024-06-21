@@ -2,6 +2,7 @@
 var geocoder;
 var infoWindow;
 var marker;
+var markerx;
 var markers = [];
 var banSiExc = 1;
 var banNoExc = 1;
@@ -13,13 +14,13 @@ var degrees = 90;
 var img = null;
 var canvas = null;
 
-const _modeloEmpleado = {
-    idEmpleado: 0,
-    nombreCompleto: "",
-    idDepartamento: 0,
-    sueldo: 0,
-    fechaContrato: ""
-}
+//const _modeloEmpleado = {
+//    idEmpleado: 0,
+//    nombreCompleto: "",
+//    idDepartamento: 0,
+//    sueldo: 0,
+//    fechaContrato: ""
+//}
 document.addEventListener("DOMContentLoaded", function () {
     var i = 0;
 
@@ -34,6 +35,7 @@ document.addEventListener("DOMContentLoaded", function () {
     var map = new google.maps.Map(document.getElementById('map_canvas'), opciones);
     geocoder = new google.maps.Geocoder();
     infowindow = new google.maps.InfoWindow();
+
 
     fetch("/Home/listaInmuebles")
         .then(response => {
@@ -114,82 +116,79 @@ document.addEventListener("DOMContentLoaded", function () {
         })
 
     google.maps.event.addListener(map, 'mousedown', function (e) {
+        mousedUp = false;
+        setTimeout(function () {
 
-        var latLng = e.latLng;
-        //alert(latLng);
+            var latLng = e.latLng;
 
-        marker = new google.maps.Marker({
-            position: latLng,
-            map: map,
-            draggable: false
-        });
-
-        markers[i] = marker;
-        i++;
-
-        if (mousedUp === false) {
+            if (mousedUp === false) {
             var log = document.getElementById("lnkAcceso").innerText;
 
-            //if (log == "Iniciar Sesión")
-            //    alert("Ingresa para poder registrar propiedades");
-            //else {
-            //    alert("Bienvenido");
-            //}
+                if (log != "Iniciar Sesión") //Le cambie para no batallar en entrar, pero hay que regresar a ==
+                    alert("Ingresa para poder registrar propiedades");
+                else {
+                    //alert(log);
+                    geocoder.geocode({ 'latLng': latLng }, function (results, status) {
+
+                        //alert("Geocode");
+                        if (status == google.maps.GeocoderStatus.OK) {
+
+                            //alert("Status ok");
+
+                            if (results[0]) {
+
+                                //            document.getElementById("hfCoordenadas").value = results[0].geometry.location;
+                                //            document.getElementById("hfLat").value = event.latLng.lat().toFixed(6);
+                                //            document.getElementById("hfLng").value = event.latLng.lng().toFixed(6);
+                                //            document.getElementById("hfDireccion").value = results[0].formatted_address;
+
+                                var location1 = results[0].geometry.location;
+                                var lat1 = latLng.lat().toFixed(6);
+                                var lat2 = latLng.lng().toFixed(6);
+                                var adress1 = results[0].formatted_address;
+
+                                marker = new google.maps.Marker({
+                                    position: latLng,
+                                    map: map
+                                });
+
+                                markers[i] = marker;
+                                i++;
+
+                                //alert("Si result 1");
+                                //alert(location1 + " " + lat1 + " " + lat2 + " " + adress1);
+
+                                GetCode2();
 
 
-            if (log != "Iniciar Sesión") //Le cambie para no batallar en entrar, pero hay que regresar a ==
-                alert("Ingresa para poder registrar propiedades");
-            else {
-                /*alert(log);*/
-                geocoder.geocode({ 'latLng': latLng }, function (results, status) {
 
-                    //alert("Geocode");
-                    if (status == google.maps.GeocoderStatus.OK) {
+                            } else {
+                                //            document.getElementById('geocoding').innerHTML =
+                                //                'No se encontraron resultados';
+                                alert("No result 0");
+                            }
 
-                        //alert("Status ok");
-
-                        if (results[0]) {
-                            
-                            //            document.getElementById("hfCoordenadas").value = results[0].geometry.location;
-                            //            document.getElementById("hfLat").value = event.latLng.lat().toFixed(6);
-                            //            document.getElementById("hfLng").value = event.latLng.lng().toFixed(6);
-                            //            document.getElementById("hfDireccion").value = results[0].formatted_address;
-
-                            var location1 = results[0].geometry.location;
-                            var lat1 = latLng.lat().toFixed(6);
-                            var lat2 = latLng.lng().toFixed(6);
-                            var adress1 = results[0].formatted_address;
-
-                                        marker = new google.maps.Marker({
-                                            position: latLng,
-                                            map: map
-                                        });
-
-                            //alert("Si result 1");
-                            //alert(location1 + " " + lat1 + " " + lat2 + " " + adress1);
-
-                            GetCode2();
-
-                            
-
-                        } else {
-                            //            document.getElementById('geocoding').innerHTML =
-                            //                'No se encontraron resultados';
-                            alert("No result 0");
                         }
+                        else {
+                            document.getElementById("lnkAcceso").innerHTML = 'Geocodificación  ha fallado debido a: ' + status;
+                        }
+                    });
+                }
 
-                    }
-                    else {
-                        document.getElementById("lnkAcceso").innerHTML = 'Geocodificación  ha fallado debido a: ' + status;
-                    }
-                });
             }
-
-        }
+        }, 500);
 
     });
 
-    //MostrarEmpleados();
+    google.maps.event.addListener(map, 'mouseup', function (event) {
+        mousedUp = true;
+    });
+    google.maps.event.addListener(map, 'dragstart', function (event) {
+        mousedUp = true;
+    });
+    google.maps.event.addListener(map, 'touchstart', function (event) {
+        mousedUp = true;
+    });
 
     $.ajax({
         url: '/Home/GetUserClaims',
@@ -231,7 +230,7 @@ document.addEventListener("DOMContentLoaded", function () {
     //})
 
 
-}, false)
+}, false);
 
 
 
@@ -293,107 +292,6 @@ function GetCode2() {
     $("#modalInmueble").modal("show");
 
 }
-
-//function ShowImagePreview(evt) {
-
-//    var i;
-//    var files = evt.files.length;
-//    var count = 0;
-//    //alert(files);
-
-//    if (files) {
-//        //alert(files);
-//        $('#imgViewer').remove();
-//        $('div#test1').append('<div id="imgViewer" style="height:50px; margin-bottom:2px;"></div>');
-//        $('#child').remove();
-//        $('div#parent').append('<div id="child" style="height:50px; margin-bottom:2px;"></div>');
-//        //alert(evt.files[0]);
-//        for (var i = 0, f; f = evt.files[i]; i++) {
-//            //alert(i);
-//            var r = new FileReader();
-//            //alert("4");
-//            r.onload = (function (f) {
-//                //alert("4");
-//                return function (e) { // WOOHOO!
-
-//                    var dataUri = e.target.result;
-//                    var img = document.createElement("img");
-
-//                    img.src = dataUri;
-//                    img.style.height = "50px";  // Ajustar tamaño de miniatura
-//                    img.style.marginBottom = "2px";
-//                    img.style.marginRight = "2px";
-//                    img.onclick = function () {
-//                        fixExifOrientation(this);
-//                    };
-
-//                    // Agregar imagen al contenedor de vista previa
-//                    $('#imgViewer').append(img);
-
-//                    count++;
-
-//                    //alert("5");
-//                    //var dataUri = e.target.result,
-//                    //    img = document.createElement("img");
-
-//                    //img.src = dataUri;
-//                    //document.body.appendChild(img);
-
-//                    //$('#imgViewer').append($('<img>', { src: e.target.result, onclick: 'fixExifOrientation(this);', id: 'preview_image_' + count, name: f.name }));
-
-//                    //count++;
-
-//                    //var inputHidden = document.createElement("input");
-//                    //inputHidden.setAttribute("type", "hidden");
-//                    //inputHidden.setAttribute("id", "HiddenField" + f.name);
-//                    //inputHidden.setAttribute("ClientIDMode", "Static");
-//                    //inputHidden.setAttribute("name", "HiddenField" + f.name);
-//                    //document.getElementById("hfx").appendChild(inputHidden);
-
-//                };
-//            })(f);
-
-//            r.readAsDataURL(f);
-//        }
-//    } else {
-//        alert("Failed to load files");
-//    }
-//}
-
-
-//function ShowImagePreview(evt) {
-//    var count = document.querySelectorAll('#imgViewer img').length; // Contar imágenes existentes
-//    var files = evt.files;
-
-//    if (files.length) {
-//        for (var i = 0, f; f = files[i]; i++) {
-//            var r = new FileReader();
-//            r.onload = (function (f) {
-//                return function (e) {
-//                    var dataUri = e.target.result;
-//                    var img = document.createElement("img");
-
-//                    img.src = dataUri;
-//                    img.style.height = "50px";  // Ajustar tamaño de miniatura
-//                    img.style.marginBottom = "2px";
-//                    img.style.marginRight = "2px";
-//                    img.onclick = function () {
-//                        fixExifOrientation(this);
-//                    };
-
-//                    // Agregar imagen al contenedor de vista previa
-//                    document.getElementById('imgViewer').appendChild(img);
-
-//                    count++;
-//                };
-//            })(f);
-
-//            r.readAsDataURL(f);
-//        }
-//    } else {
-//        alert("Failed to load files");
-//    }
-//}
 
 function ShowImagePreview(evt) {
     var files = evt.files;
@@ -478,14 +376,15 @@ document.getElementById('modalInmueble').addEventListener('hidden.bs.modal', fun
 
 
 function clearAll() {
+    markers.forEach(function (marker) {
+        marker.setMap(null); 
+    });
 
-    alert(markers.length);
-    marker.setMap(null);
-    alert("limpiando");
-    //myClear();
+    markers = [];
 
-    //for (let i = 0; i < markers.length; i++) {
-    //    markers[i].setMap(map);
-    //}
-
+    // Opcional: También podrías limpiar cualquier otro estado o realizar otras acciones necesarias
 }
+
+document.getElementById('modalInmueble').addEventListener('hidden.bs.modal', function () {
+    clearAll();
+});

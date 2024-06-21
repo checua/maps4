@@ -106,3 +106,17 @@
     margin-bottom:5px;
     margin-top: -10px;
 }
+
+#imgViewerContainer {
+    max-height: 200px; /* Ajusta la altura máxima según sea necesario */
+    overflow-y: auto; /* Añade scroll vertical si es necesario */
+}
+
+#imgViewerContainer img {
+    display: block; /* Asegura que cada imagen sea un bloque independiente */
+    margin-bottom: 10px; /* Espacio entre cada imagen */
+}
+
+#lblFileUpload{
+    margin-top:3px;
+}
