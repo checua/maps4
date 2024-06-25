@@ -151,9 +151,12 @@ function showMan() {
     var e = document.getElementById("cboTipoPropiedad");
     var strUser = e.options[e.selectedIndex].value;
 
-    alert(strUser);
+    //alert(strUser);
 
     switch (strUser) {
+        //case "0":
+        //    Todos();
+        //    break;
         case "1":
             Todos();
             break;
@@ -162,9 +165,6 @@ function showMan() {
             break;
         case "3":
             jsMov(3);
-            break;
-        case "4":
-            jsMov(4);
             break;
         case "5":
             jsMov(5);
@@ -213,28 +213,33 @@ function Todos() {
     var test = $("#ddlViewBy").val().toString();
     test = test.replace(/,/g, '');
     var test2 = parseInt(test);
-    alert(test2);
+    //alert(test2);
 
     var test3 = $("#ddlViewBy2").val().toString();
     test3 = test3.replace(/,/g, '');
     var test4 = parseInt(test3);
-    alert(test4);
+    //alert(test4);
 
     var e = document.getElementById("cboTipoPropiedad");
     var strUser = e.options[e.selectedIndex].value;
 
     /*alert(strUser);*/
 
-    alert(markerx.length);
+    //alert(markersx.length);
 
-    for (i = 0; i < markerx.length; i++) {
+    for (i = 0; i < markersx.length; i++) {
 
-        alert(markerx.length);
+        //alert(markersx[i].title);
 
-        if (markerx[i].customInfo >= test2 && markers[i].customInfo <= test4)
-            markerx[i].setVisible(true);
-        else
-            markerx[i].setVisible(false);
+        if (markersx[i].customInfo >= test2 && markersx[i].customInfo <= test4) {
+            markersx[i].setVisible(true);
+            //alert("Visible");
+        }
+        else {
+            markersx[i].setVisible(false);
+            //alert("No visible");
+        }
+            
     }
 
 }
@@ -244,18 +249,21 @@ function jsMov(x) {
     var test = $("#ddlViewBy").val().toString();
     test = test.replace(/,/g, '');
     var test2 = parseInt(test);
-    alert(test2);
+    //alert(test2);
 
     var test3 = $("#ddlViewBy2").val().toString();
     test3 = test3.replace(/,/g, '');
     var test4 = parseInt(test3);
-    alert(test4);
+    //alert(test4);
 
-    for (i = 0; i < markers.length; i++) {
-        if (markers[i].title == x && markers[i].customInfo >= test2 && markers[i].customInfo <= test4)
-            markers[i].setVisible(true);
+    for (i = 0; i < markersx.length; i++) {
+        //alert(markersx[i].title);
+        //alert(x);
+
+        if (markersx[i].title == x && markersx[i].customInfo >= test2 && markersx[i].customInfo <= test4)
+            markersx[i].setVisible(true);
         else
-            markers[i].setVisible(false);
+            markersx[i].setVisible(false);
     }
 }
 

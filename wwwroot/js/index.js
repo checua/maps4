@@ -4,6 +4,7 @@ var infoWindow;
 var marker;
 var markerx;
 var markers = [];
+var markersx = [];
 var banSiExc = 1;
 var banNoExc = 1;
 var banCasaVenta = 1;
@@ -47,61 +48,61 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 responseJson.forEach((item) => {
                     switch (item.idTipo) {
-                        case 0:
-                            imageIcon = "images/icon/casa_che.png";
-                            break;
-                        case 1:
-                            imageIcon = "images/icon/casa_che.png";
-                            break;
+                        //case 0:
+                        //    imageIcon = "images/icon/casa_che.png";
+                        //    break;
                         case 2:
-                            imageIcon = "images/icon/casa.png";
+                            imageIcon = "images/icon/casa_che.png";
                             break;
                         case 3:
-                            imageIcon = "images/icon/apartment1.png";
+                            imageIcon = "images/icon/casa.png";
                             break;
                         case 4:
-                            imageIcon = "images/icon/apartment2.png";
+                            imageIcon = "images/icon/apartment1.png";
                             break;
                         case 5:
-                            imageIcon = "images/icon/terreno1b.png";
+                            imageIcon = "images/icon/apartment2.png";
                             break;
                         case 6:
+                            imageIcon = "images/icon/terreno1b.png";
+                            break;
+                        case 7:
                             imageIcon = "images/icon/terreno2.png";
                             break
-                        case 7:
+                        case 8:
                             imageIcon = "images/icon/local.png";
                             break
-                        case 8:
+                        case 9:
                             imageIcon = "images/icon/local2.png";
                             break
-                        case 9:
+                        case 10:
                             imageIcon = "images/icon/building.png";
                             break
-                        case 10:
+                        case 11:
                             imageIcon = "images/icon/building2.png";
                             break
-                        case 11:
+                        case 12:
                             imageIcon = "images/icon/montacargas2.png";
                             break
-                        case 12:
+                        case 13:
                             imageIcon = "images/icon/montacargas.png";
                             break
-                        case 13:
+                        case 14:
                             imageIcon = "images/icon/desk.png";
                             break
-                        case 14:
+                        case 15:
                             imageIcon = "images/icon/desk2.png";
                             break
-                        case 15:
+                        case 16:
                             imageIcon = "images/icon/tractor2.png";
                             break
-                        case 16:
+                        case 17:
                             imageIcon = "images/icon/tractor3.png";
                             break
                     }
 
                     var latLng = new google.maps.LatLng(item.lat, item.lng);
-                    new google.maps.Marker({
+                    markerx = new google.maps.Marker({
                         position: latLng,
                         map,
                         title: String(item.idTipo),
@@ -110,6 +111,15 @@ document.addEventListener("DOMContentLoaded", function () {
                             scaledSize: new google.maps.Size(32, 32)
                         },
                     });
+
+                    markerx.customInfo = item.precio;
+
+                    markersx[i] = markerx;
+                    i++;
+
+
+
+
                 })
                 map.setCenter(latLng);
             }
