@@ -303,68 +303,155 @@ function GetCode2() {
 
 }
 
+//function ShowImagePreview(evt) {
+//    var files = evt.files;
+//    if (files.length) {
+//        for (var i = 0, f; f = files[i]; i++) {
+//            var r = new FileReader();
+//            r.onload = (function (f) {
+//                return function (e) {
+//                    var img = new Image();
+//                    img.onload = function () {
+//                        // Crear un canvas para redimensionar la imagen
+//                        var canvas = document.createElement('canvas');
+//                        var ctx = canvas.getContext('2d');
+//                        var maxWidth = 100;  // Ajustar tamaño de miniatura
+//                        var maxHeight = 100; // Ajustar tamaño de miniatura
+//                        var width = img.width;
+//                        var height = img.height;
+
+//                        // Calcular las nuevas dimensiones manteniendo la relación de aspecto
+//                        if (width > height) {
+//                            if (width > maxWidth) {
+//                                height = Math.round(height * maxWidth / width);
+//                                width = maxWidth;
+//                            }
+//                        } else {
+//                            if (height > maxHeight) {
+//                                width = Math.round(width * maxHeight / height);
+//                                height = maxHeight;
+//                            }
+//                        }
+
+//                        canvas.width = width;
+//                        canvas.height = height;
+//                        ctx.drawImage(img, 0, 0, width, height);
+
+//                        var dataUri = canvas.toDataURL('image/jpeg', 0.7);  // Calidad ajustada a 0.7
+
+//                        var imgElement = document.createElement("img");
+//                        imgElement.src = dataUri;
+//                        imgElement.style.height = "100px";
+//                        imgElement.style.marginBottom = "2px";
+//                        imgElement.style.marginRight = "2px";
+//                        imgElement.style.display = "inline-block";
+//                        imgElement.onclick = function () {
+//                            fixExifOrientation(this);
+//                        };
+
+//                        // Agregar imagen al contenedor de vista previa
+//                        document.getElementById('imgViewer').appendChild(imgElement);
+
+//                        // Mostrar el botón "Limpiar"
+//                        document.getElementById('btnClear').style.display = 'inline-block';
+//                    };
+//                    img.src = e.target.result;
+//                };
+//            })(f);
+
+//            r.readAsDataURL(f);
+//        }
+//    } else {
+//        alert("Failed to load files");
+//    }
+//}
+
+async function UploadImage(imageData, idInmueble) {
+    const formData = new FormData();
+    formData.append('file', imageData, `inmueble_${idInmueble}.jpg`);
+
+    try {
+        const response = await fetch('/Home/UploadImage', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (response.ok) {
+            console.log('Imagen subida correctamente.');
+            // Aquí puedes manejar la respuesta del servidor si es necesario
+        } else {
+            console.error('Error al subir la imagen al servidor.');
+        }
+    } catch (error) {
+        console.error('Error en la solicitud de subida de imagen:', error);
+    }
+}
+
 function ShowImagePreview(evt) {
     var files = evt.files;
     if (files.length) {
         for (var i = 0, f; f = files[i]; i++) {
             var r = new FileReader();
-            r.onload = (function (f) {
-                return function (e) {
-                    var img = new Image();
-                    img.onload = function () {
-                        // Crear un canvas para redimensionar la imagen
-                        var canvas = document.createElement('canvas');
-                        var ctx = canvas.getContext('2d');
-                        var maxWidth = 100;  // Ajustar tamaño de miniatura
-                        var maxHeight = 100; // Ajustar tamaño de miniatura
-                        var width = img.width;
-                        var height = img.height;
+            r.onload = async function (e) {
+                var img = new Image();
+                img.onload = async function () {
+                    // Mostrar la imagen en miniatura
+                    var imgElement = document.createElement("img");
+                    imgElement.src = e.target.result;
+                    imgElement.style.height = "100px";  // Estilo opcional para fijar altura
+                    imgElement.style.marginBottom = "2px";  // Margen inferior opcional
+                    imgElement.style.marginRight = "2px";  // Margen derecho opcional
+                    imgElement.style.display = "inline-block";  // Mostrar como bloque en línea
 
-                        // Calcular las nuevas dimensiones manteniendo la relación de aspecto
+                    // Agregar la imagen al contenedor de vista previa
+                    document.getElementById('imgViewer').appendChild(imgElement);
+
+                    // Redimensionar y subir la imagen al servidor
+                    var maxWidth = 1000;  // Tamaño máximo deseado
+                    var maxHeight = 1000;
+                    var width = img.width;
+                    var height = img.height;
+
+                    // Redimensionar la imagen si es necesario
+                    if (width > maxWidth || height > maxHeight) {
                         if (width > height) {
-                            if (width > maxWidth) {
-                                height = Math.round(height * maxWidth / width);
-                                width = maxWidth;
-                            }
+                            height *= maxWidth / width;
+                            width = maxWidth;
                         } else {
-                            if (height > maxHeight) {
-                                width = Math.round(width * maxHeight / height);
-                                height = maxHeight;
-                            }
+                            width *= maxHeight / height;
+                            height = maxHeight;
                         }
+                    }
 
-                        canvas.width = width;
-                        canvas.height = height;
-                        ctx.drawImage(img, 0, 0, width, height);
+                    // Crear un canvas para redimensionar la imagen
+                    var canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    var ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
 
-                        var dataUri = canvas.toDataURL('image/jpeg', 0.7);  // Calidad ajustada a 0.7
+                    // Obtener el data URI de la imagen redimensionada
+                    var dataUri = canvas.toDataURL('image/jpeg', 0.7);  // Calidad ajustada a 0.7
 
-                        var imgElement = document.createElement("img");
-                        imgElement.src = dataUri;
-                        imgElement.style.height = "100px";
-                        imgElement.style.marginBottom = "2px";
-                        imgElement.style.marginRight = "2px";
-                        imgElement.style.display = "inline-block";
-                        imgElement.onclick = function () {
-                            fixExifOrientation(this);
-                        };
+                    // Convertir data URI a Blob para enviarlo al servidor
+                    var blob = await fetch(dataUri).then(res => res.blob());
 
-                        // Agregar imagen al contenedor de vista previa
-                        document.getElementById('imgViewer').appendChild(imgElement);
+                    // Obtener el idInmueble desde donde corresponda en tu aplicación
+                    var idInmueble = obtenerIdInmueble(); // Debes implementar esta función
 
-                        // Mostrar el botón "Limpiar"
-                        document.getElementById('btnClear').style.display = 'inline-block';
-                    };
-                    img.src = e.target.result;
+                    // Subir la imagen al servidor
+                    await UploadImage(blob, idInmueble);
                 };
-            })(f);
-
+                img.src = e.target.result;
+            };
             r.readAsDataURL(f);
         }
     } else {
         alert("Failed to load files");
     }
 }
+
+
 
 function clearPreviewAndFields() {
     // Limpiar imágenes del contenedor de vista previa
@@ -398,3 +485,22 @@ function clearAll() {
 document.getElementById('modalInmueble').addEventListener('hidden.bs.modal', function () {
     clearAll();
 });
+
+$(document).on("click", ".boton-guardar-inmueble", function () {
+    //fetch("/Inicio/GuardarInmueble?tipo=" + $("#tipo").val() + "&terreno=" + $("#terreno").val() + "&construccion=" + $("#construccion").val()) 
+    //    .then(response => {
+    //        return response.ok ? response.json() : Promise.reject(response)
+    //    })
+    //    .then(responseJson => {
+    //        if (responseJson.length > 0) {
+    //            responseJson.forEach((item) => {
+    //                $("#modalEmpleado").modal("hide");
+    //                $("#lnkAcceso").text(item.correo);
+    //                //Swal.fire("Listo! " + item.correo, "Usuario logegado", "success");
+    //            })
+    //        }
+    //        else {
+    //            Swal.fire("Error!", "Usuario no encontrado", "danger");
+    //        }
+    //    })
+})

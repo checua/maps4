@@ -59,82 +59,7 @@
 
 });
 
-//function resize() {
-//    if ($('#background').height() < $('#background').width()) //BackGround más alto
-//    {
-//        //alert("Imagen cuadrada, background width más ancho");
-//        //alert("y");
-//        var bh = parseFloat($('#background').css("height")); //alert(bh);
 
-//        $('#content img').css('height', bh - 10);
-//        $('#content img').css('width', 'auto');
-//        //$('#content img').css('display', 'block');
-//        //$('#content img').css('max-width', 'auto');
-//        //$('#content img').css('max-height', 'auto');
-
-//        $('#preview').css('height', 'auto');
-//        $('#preview').css('width', 'auto');
-//        //$('#preview').css('display', 'block');
-//        $('#preview').css('max-width', 'auto');
-//        $('#preview').css('max-height', 'auto');
-
-//        $('#content').css('height', 'auto');
-//        $('#content').css('width', 'auto');     
-
-
-//    }
-//    else    //BackGround más ancho
-//    {
-//        //alert("Imagen cuadrada, background height más alto");
-//        //alert("x");
-//        var bw = parseFloat($('#background').css("width")); //alert(bh);
-
-//        $('#content img').css('height', 'auto');
-//        $('#content img').css('width', bw - 10);
-
-//        $('#preview').css('max-height', 'auto');
-//        $('#preview').css('max-width', 'auto');
-
-//        $('#content').css('height', 'auto');
-//        $('#content').css('width', 'auto');
-//    }
-//}
-
-//function resize2() {
-//    if ($('#background').height() < $('#background').width()) //BackGround más alto
-//    {
-//        //alert("Imagen cuadrada, background width más ancho");
-//        //alert("y");
-//        var bh = parseFloat($('#background').css("height")); //alert(bh);
-
-//        $('#content img').css('height', bh - 10);
-//        $('#content img').css('width', 'auto');
-
-//        $('#preview').css('max-height', 'auto');
-//        $('#preview').css('max-width', 'auto');
-
-//        $('#content').css('height', 'auto');
-//        $('#content').css('width', 'auto');
-
-
-
-//    }
-//    else    //BackGround más ancho
-//    {
-//        //alert("Imagen cuadrada, background height más alto");
-//        //alert("x");
-//        var bw = parseFloat($('#background').css("width")); //alert(bh);
-
-//        $('#content img').css('height', 'auto');
-//        $('#content img').css('width', bw - 10);
-
-//        $('#preview').css('max-height', 'auto');
-//        $('#preview').css('max-width', 'auto');
-
-//        $('#content').css('height', 'auto');
-//        $('#content').css('width', 'auto');
-//    }
-//}
 
 function scheduleA(event) {
     showMan();
@@ -165,6 +90,9 @@ function showMan() {
             break;
         case "3":
             jsMov(3);
+            break;
+        case "4":
+            jsMov(4);
             break;
         case "5":
             jsMov(5);
