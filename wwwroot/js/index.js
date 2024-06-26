@@ -228,6 +228,12 @@ document.addEventListener("DOMContentLoaded", function () {
                         $("<option>").val(item.idTipoPropiedad).text(item.nombre)
                     )
 
+                    if ($("#cboTipoPropiedad option").length > 1) {
+                        $("#tipo").append(
+                            $("<option>").val(item.idTipoPropiedad).text(item.nombre)
+                        );
+                    }
+
                 })
             }
 
@@ -486,21 +492,29 @@ document.getElementById('modalInmueble').addEventListener('hidden.bs.modal', fun
     clearAll();
 });
 
+
+function clearPreviewAndFields() {
+    document.getElementById('tipo').value = '';
+    document.getElementById('terreno').value = '';
+    document.getElementById('construccion').value = '';
+    document.getElementById('imgViewer').innerHTML = '';
+}
+
 $(document).on("click", ".boton-guardar-inmueble", function () {
-    //fetch("/Inicio/GuardarInmueble?tipo=" + $("#tipo").val() + "&terreno=" + $("#terreno").val() + "&construccion=" + $("#construccion").val()) 
-    //    .then(response => {
-    //        return response.ok ? response.json() : Promise.reject(response)
-    //    })
-    //    .then(responseJson => {
-    //        if (responseJson.length > 0) {
-    //            responseJson.forEach((item) => {
-    //                $("#modalEmpleado").modal("hide");
-    //                $("#lnkAcceso").text(item.correo);
-    //                //Swal.fire("Listo! " + item.correo, "Usuario logegado", "success");
-    //            })
-    //        }
-    //        else {
-    //            Swal.fire("Error!", "Usuario no encontrado", "danger");
-    //        }
-    //    })
+    fetch("/Inicio/GuardarInmueble?tipo=" + $("#tipo").val() + "&terreno=" + $("#terreno").val() + "&construccion=" + $("#construccion").val()) 
+        .then(response => {
+            return response.ok ? response.json() : Promise.reject(response)
+        })
+        .then(responseJson => {
+            if (responseJson.length > 0) {
+                responseJson.forEach((item) => {
+                    $("#modalEmpleado").modal("hide");
+                    $("#lnkAcceso").text(item.correo);
+                    //Swal.fire("Listo! " + item.correo, "Usuario logegado", "success");
+                })
+            }
+            else {
+                Swal.fire("Error!", "Usuario no encontrado", "danger");
+            }
+        })
 })

@@ -103,5 +103,40 @@ namespace maps4.Controllers
                 ViewData["Mensaje"] = "No se pudo crear el usuario";
             return View();
         }
+
+        [HttpPost]
+        public async Task<IActionResult> GuardarInmueble(IFormCollection formCollection)
+        {
+            try
+            {
+                var tipo = formCollection["tipo"];
+                var terreno = formCollection["terreno"];
+                var construccion = formCollection["construccion"];
+                var files = formCollection.Files;
+
+                // Aquí puedes procesar y guardar la información del inmueble (tipo, terreno, construccion)
+                // Guardar las imágenes
+                foreach (var file in files)
+                {
+                    if (file.Length > 0)
+                    {
+                        var filePath = Path.Combine("wwwroot/cargas", file.FileName);
+                        using (var stream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await file.CopyToAsync(stream);
+                        }
+                    }
+                }
+
+                return Json(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                // Manejo de errores
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+
     }
 }
