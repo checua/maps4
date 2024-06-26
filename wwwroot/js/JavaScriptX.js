@@ -12,7 +12,11 @@
         $('#map_canvas').css('height', hheight); // - headerheight);
     });
 
-    $("#amount").keyup(function () {
+    function numberWithCommas(x) {
+        return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
+    $("#terreno").keyup(function () {
         if (event.which >= 37 && event.which <= 40) {
             event.preventDefault();
         }
@@ -20,14 +24,8 @@
             value = value.replace(/,/g, '');
             return numberWithCommas(value);
         });
-        var test = $("#amount").val().toString();
-        test = test.replace(/,/g, '');
-        var test2 = parseInt(test);
-        $("#slider-range").slider('values', 0, test2);
-        show();
     });
-
-    $("#amount").keyup(function () {
+    $("#construccion").keyup(function () {
         if (event.which >= 37 && event.which <= 40) {
             event.preventDefault();
         }
@@ -35,28 +33,23 @@
             value = value.replace(/,/g, '');
             return numberWithCommas(value);
         });
-        var test = $("#amount").val().toString();
-        test = test.replace(/,/g, '');
-        var test2 = parseInt(test);
-        $("#slider-range").slider('values', 0, test2);
-        show();
+    });
+    $("#precio").keyup(function () {
+        if (event.which >= 37 && event.which <= 40) {
+            event.preventDefault();
+        }
+        $(this).val(function (index, value) {
+            value = value.replace(/,/g, '');
+            return numberWithCommas(value);
+        });
     });
 
-
-
-    $("#txtPhone").keypress(function (e) {
-        this.value = this.value.replace(/[^0-9]/g, '');
+    document.getElementById('contacto_a').addEventListener('keypress', function (e) {
+        // Utiliza la expresión regular para permitir solo números
+        if (!/^\d+$/.test(e.key) && e.key !== 'Backspace') {
+            e.preventDefault();  // Previene la acción por defecto si no es un número
+        }
     });
-
-    //.on("cut copy paste", function (e) {
-    //    this.value = this.value.replace(/[^0-9]/g, '');
-    //});
-
-    //$(window).resize(function () {
-    //    resize();
-    //});
-
-
 });
 
 

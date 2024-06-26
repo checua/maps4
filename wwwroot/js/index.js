@@ -157,6 +157,10 @@ document.addEventListener("DOMContentLoaded", function () {
                                 var lat2 = latLng.lng().toFixed(6);
                                 var adress1 = results[0].formatted_address;
 
+                                
+
+
+
                                 marker = new google.maps.Marker({
                                     position: latLng,
                                     map: map
@@ -164,6 +168,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                 markers[i] = marker;
                                 i++;
+
+                                var label = document.getElementById('ubicacion');
+                                label.textContent = location1;
 
                                 //alert("Si result 1");
                                 //alert(location1 + " " + lat1 + " " + lat2 + " " + adress1);
