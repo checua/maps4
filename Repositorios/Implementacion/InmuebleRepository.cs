@@ -60,6 +60,44 @@ namespace maps4.Repositorios.Implementacion
 
             return _lista;
         }
+
+        public async Task<Data> SaveInmueble(Data data, int files, string correo)
+        {
+            //List<Usuario> _lista = new List<Usuario>();
+
+            using (var conexion = new SqlConnection(_cadenaSQL))
+            {
+                conexion.Open();
+                SqlCommand cmd = new SqlCommand("sp_RSMAPS_insertar_coordenadas", conexion);
+                cmd.Parameters.AddWithValue("@correo", correo);
+                cmd.Parameters.AddWithValue("@idInmobiliaria", "1");
+                cmd.Parameters.AddWithValue("@lat", data.Lat);
+                cmd.Parameters.AddWithValue("@lng", data.Lng);
+                cmd.Parameters.AddWithValue("@idTipo", data.IdTipo);
+                cmd.Parameters.AddWithValue("@terreno", data.Terreno);
+                cmd.Parameters.AddWithValue("@construccion", data.Construccion);
+                cmd.Parameters.AddWithValue("@precio", data.Precio);
+                cmd.Parameters.AddWithValue("@observaciones", data.Observaciones);
+                cmd.Parameters.AddWithValue("@contacto", data.Contacto);
+                cmd.Parameters.AddWithValue("@numImagenes", files); 
+
+
+
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                int filas_afectadas = await cmd.ExecuteNonQueryAsync();
+                if (filas_afectadas > 0)
+                {
+                    return data;
+                }
+                else
+                {
+                    //Correo = "";
+                    return data;
+                }
+            }
+
+        }
     }
 
 }

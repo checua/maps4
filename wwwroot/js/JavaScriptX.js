@@ -1,6 +1,4 @@
 ﻿$(document).ready(function (e) {
-    //$(window).load(function() {
-
 
     var headerheight = $('#headerTop').height();
     var hheight = $(window).height();

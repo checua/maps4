@@ -5,7 +5,7 @@
         public int IdInmueble { get; set; }
         public Inmobiliaria? refInmobiliaria { get; set; } //Referencia al Modelo Inmobiliaria
         public Usuario? refUsuario { get; set; } //Referencia al Modelo Usuario
-        public string Direccion { get; set; }
+        public string? Direccion { get; set; }
         public decimal? Lat { get; set; }
         public decimal? Lng { get; set; }
         public int? IdTipo { get; set; }

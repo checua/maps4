@@ -153,7 +153,8 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
-            <form id="inmuebleForm">
+            <div id="inmuebleForm">
+            @* <form asp-controller="Inicio" asp-action="GuardarInmueble" method="post" id="inmuebleForm"> *@
                 <div class="modal-body">
                     <div id="test1">
                         <div id="imgViewerContainer" style="overflow-x: auto; white-space: nowrap; max-width: 100%;">
@@ -176,7 +177,7 @@
                     <input class="form-control mb-3" type="text" placeholder="Precio" name="precio" id="precio" required />
                     <input class="form-control mb-3" type="text" placeholder="Descripción" name="descripcion" id="descripcion" />
                     <input class="form-control mb-3" type="text" placeholder="Contacto alterno" name="contacto_a" id="contacto_a" required />
-                    <label id="ubicacion"></label>
+                    <label id="ubicacion"></label> 
 
                 </div>
                 <div class="modal-footer">
@@ -184,7 +185,7 @@
                     <button type="button" class="btn btn-danger" id="btnClear" style="display: none;" onclick="clearPreviewAndFields()">Limpiar</button>
                     <button type="submit" class="btn btn-success boton-guardar-inmueble">Guardar</button>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>

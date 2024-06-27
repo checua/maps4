@@ -507,46 +507,151 @@ function clearPreviewAndFields() {
     document.getElementById('imgViewer').innerHTML = '';
 }
 
+//$(document).on("click", ".boton-guardar-inmueble", function () {
+//    const ubicacionTexto = document.getElementById('ubicacion').textContent;
+//    const { lat, lng } = extractLatLon(ubicacionTexto);
+
+//    const data = {
+//        tipo: $("#tipo").val(),
+//        terreno: $("#terreno").val(),
+//        construccion: $("#construccion").val(),
+//        precio: $("#precio").val(),
+//        descripcion: $("#descripcion").val(),
+//        contacto: $("#contacto_a").val(),
+//        lat: lat,  // Añade latitud al objeto data
+//        lng: lng   // Añade longitud al objeto data
+//    };
+
+//    fetch("/Inicio/GuardarInmueble", {
+//        method: 'POST',
+//        headers: {
+//            'Content-Type': 'application/json'
+//        },
+//        body: JSON.stringify(data)
+//    })
+//        .then(response => {
+//            return response.ok ? response.json() : Promise.reject(response);
+//        })
+//        .then(data => {
+//            Swal.fire("¡Listo!", "Inmueble guardado con ID: " + data.idInmueble, "success");
+//            handleImageUpload(data.idInmueble);
+//        })
+//        .catch(error => {
+//            Swal.fire("Error!", "No se pudo guardar el inmueble", "error");
+//        });
+//});
+
+//$(document).on("click", ".boton-guardar-inmueble", function () {
+//    const formData = new FormData();
+
+//        const ubicacionTexto = document.getElementById('ubicacion').textContent;
+//        const { lat, lng } = extractLatLon(ubicacionTexto);
+
+//    // Agrega datos del modelo al FormData
+//    formData.append('Inmueble.IdTipo', $("#tipo").val());
+//    formData.append('Inmueble.IdTipo', "");
+//    formData.append('Inmueble.Terreno', $("#terreno").val());
+//    formData.append('Inmueble.Construccion', $("#construccion").val());
+//    formData.append('Inmueble.Precio', $("#precio").val());
+//    formData.append('Inmueble.Observaciones', $("#descripcion").val());
+//    formData.append('Inmueble.Contacto', $("#contacto_a").val());
+//    formData.append('Inmueble.Lat', lat);
+//    formData.append('Inmueble.Lng', lng);
+//    formData.append('Correo', document.getElementById("lnkAcceso").innerText); // $("#lnkAcceso").val());
+
+//    // Agrega los archivos
+//    const files = document.getElementById("FileUpload1").files;
+//    for (let i = 0; i < files.length; i++) {
+//        formData.append('Files', files[i]);
+//    }
+
+//    fetch("/Inicio/GuardarInmueble", {
+//        method: 'POST',
+//        body: formData  // Nota que no establecemos Content-Type. FormData lo hará automáticamente.
+
+//        //body: JSON.stringify(formData)
+//    })
+//        .then(response => response.json())
+//        .then(response => {
+//            if (response.success) {
+//                alert(response.message);
+//            } else {
+//                alert("Error al guardar el inmueble y las imágenes");
+//            }
+//        })
+//        .catch(error => {
+//            console.error('Error al enviar datos:', error);
+//            alert("Error en la red o servidor");
+//        });
+//});
+
 $(document).on("click", ".boton-guardar-inmueble", function () {
+    const formData = new FormData();
+
     const ubicacionTexto = document.getElementById('ubicacion').textContent;
     const { lat, lng } = extractLatLon(ubicacionTexto);
 
-    const data = {
-        tipo: $("#tipo").val(),
-        terreno: $("#terreno").val(),
-        construccion: $("#construccion").val(),
-        precio: $("#precio").val(),
-        descripcion: $("#descripcion").val(),
-        contacto: $("#contacto_a").val(),
-        lat: lat,  // Añade latitud al objeto data
-        lng: lng   // Añade longitud al objeto data
-    };
+    // Agrega datos del modelo al FormData
+    formData.append('Datax.Lat', lat.toFixed(6));  // Asegúrate de que tenga 6 decimales
+    formData.append('Datax.Lng', lng.toFixed(6));  // Asegúrate de que tenga 6 decimales
+    formData.append('Datax.IdTipo', $("#tipo").val());
+    formData.append('Datax.Terreno', $("#terreno").val());
+    formData.append('Datax.Construccion', $("#construccion").val());
+    formData.append('Datax.Precio', $("#precio").val());
+    formData.append('Datax.Observaciones', $("#descripcion").val());
+    formData.append('Datax.Contacto', $("#contacto_a").val());
+
+    formData.append('Correo', document.getElementById("lnkAcceso").innerText);
+
+    //formData.append('Inmueble.IdTipo', $("#tipo").val());
+
+    //formData.append('Inmueble.Direccion', "Dir");
+    //formData.append('Inmueble.Exclusiva', 1);
+    //formData.append('Inmueble.Link', "Lnk");
+    //formData.append('Inmueble.Telefono', "Tel");
+
+
+    //formData.append('Inmueble.Terreno', $("#terreno").val());
+    //formData.append('Inmueble.Construccion', $("#construccion").val());
+    //formData.append('Inmueble.Precio', $("#precio").val());
+    //formData.append('Inmueble.Observaciones', $("#descripcion").val());
+    //formData.append('Inmueble.Contacto', $("#contacto_a").val());
+    //formData.append('Inmueble.Lat', lat.toFixed(6));  // Asegúrate de que tenga 6 decimales
+    //formData.append('Inmueble.Lng', lng.toFixed(6));  // Asegúrate de que tenga 6 decimales
+    //formData.append('Correo', document.getElementById("lnkAcceso").innerText);
+
+    // Agrega los archivos
+    const files = document.getElementById("FileUpload1").files;
+    for (let i = 0; i < files.length; i++) {
+        formData.append('Files', files[i]);
+    }
 
     fetch("/Inicio/GuardarInmueble", {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
+        body: formData  // Nota que no establecemos Content-Type. FormData lo hará automáticamente.
     })
+        .then(response => response.json())
         .then(response => {
-            return response.ok ? response.json() : Promise.reject(response);
-        })
-        .then(data => {
-            Swal.fire("¡Listo!", "Inmueble guardado con ID: " + data.idInmueble, "success");
-            handleImageUpload(data.idInmueble);
+            if (response.success) {
+                alert(response.message);
+            } else {
+                alert("Error al guardar el inmueble y las imágenes");
+            }
         })
         .catch(error => {
-            Swal.fire("Error!", "No se pudo guardar el inmueble", "error");
+            console.error('Error al enviar datos:', error);
+            alert("Error en la red o servidor");
         });
 });
 
 // Función para extraer latitud y longitud del texto del label
 function extractLatLon(text) {
-    const parts = text.match(/Lat: ([\d.-]+), Lng: ([\d.-]+)/);
+    const parts = text.match(/\(([\d.-]+),\s*([\d.-]+)\)/);
     if (parts) {
-        return { lat: parseFloat(parts[1]), lng: parseFloat(parts[2]) };
+        let lat = parseFloat(parts[1]).toFixed(6);
+        let lng = parseFloat(parts[2]).toFixed(6);
+        return { lat: parseFloat(lat), lng: parseFloat(lng) };
     }
-    return { lat: null, lng: null }; // Devuelve null si no se encuentran los valores
+    return { lat: null, lng: null }; 
 }
 
