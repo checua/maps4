@@ -15,6 +15,7 @@
         public string? Precio { get; set; }
         public string? Observaciones { get; set; }
         public int? Exclusiva { get; set; }
-        public string Link { get; set; }
+        public string? Link { get; set; }
+        public string? Contacto { get; set; }
     }
 }

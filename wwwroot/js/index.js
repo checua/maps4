@@ -508,20 +508,45 @@ function clearPreviewAndFields() {
 }
 
 $(document).on("click", ".boton-guardar-inmueble", function () {
-    fetch("/Inicio/GuardarInmueble?tipo=" + $("#tipo").val() + "&terreno=" + $("#terreno").val() + "&construccion=" + $("#construccion").val()) 
+    const ubicacionTexto = document.getElementById('ubicacion').textContent;
+    const { lat, lng } = extractLatLon(ubicacionTexto);
+
+    const data = {
+        tipo: $("#tipo").val(),
+        terreno: $("#terreno").val(),
+        construccion: $("#construccion").val(),
+        precio: $("#precio").val(),
+        descripcion: $("#descripcion").val(),
+        contacto: $("#contacto_a").val(),
+        lat: lat,  // Añade latitud al objeto data
+        lng: lng   // Añade longitud al objeto data
+    };
+
+    fetch("/Inicio/GuardarInmueble", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
         .then(response => {
-            return response.ok ? response.json() : Promise.reject(response)
+            return response.ok ? response.json() : Promise.reject(response);
         })
-        .then(responseJson => {
-            if (responseJson.length > 0) {
-                responseJson.forEach((item) => {
-                    $("#modalEmpleado").modal("hide");
-                    $("#lnkAcceso").text(item.correo);
-                    //Swal.fire("Listo! " + item.correo, "Usuario logegado", "success");
-                })
-            }
-            else {
-                Swal.fire("Error!", "Usuario no encontrado", "danger");
-            }
+        .then(data => {
+            Swal.fire("¡Listo!", "Inmueble guardado con ID: " + data.idInmueble, "success");
+            handleImageUpload(data.idInmueble);
         })
-})
+        .catch(error => {
+            Swal.fire("Error!", "No se pudo guardar el inmueble", "error");
+        });
+});
+
+// Función para extraer latitud y longitud del texto del label
+function extractLatLon(text) {
+    const parts = text.match(/Lat: ([\d.-]+), Lng: ([\d.-]+)/);
+    if (parts) {
+        return { lat: parseFloat(parts[1]), lng: parseFloat(parts[2]) };
+    }
+    return { lat: null, lng: null }; // Devuelve null si no se encuentran los valores
+}
+

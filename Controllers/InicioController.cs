@@ -112,6 +112,7 @@ namespace maps4.Controllers
                 var tipo = formCollection["tipo"];
                 var terreno = formCollection["terreno"];
                 var construccion = formCollection["construccion"];
+                var descripcion = formCollection["descripcion"];
                 var files = formCollection.Files;
 
                 // Aquí puedes procesar y guardar la información del inmueble (tipo, terreno, construccion)
