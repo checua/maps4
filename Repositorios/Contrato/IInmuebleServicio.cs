@@ -6,6 +6,6 @@ namespace maps4.Repositorios.Contrato
     {
         Task<List<T>> GetInmuebles();
 
-        Task<Data> SaveInmueble(Data datax, int files, string correo);
+        Task<Data> SaveInmueble(Data datax);//, int files, string correo);
     }
 }

@@ -13,7 +13,8 @@ namespace maps4.Controllers
     public class InicioController : Controller
     {
         private readonly IUsuarioServicio<Usuario> _usuarioRepositoryLogin;
-        private readonly IInmuebleServicio<Inmueble> _inmuebleRepository;
+        private readonly IInmuebleServicio<InmuebleData> _inmuebleRepository;
+        //private readonly IInmuebleServicio<Inmueble> _inmuebleRepository;
 
         public InicioController(IUsuarioServicio<Usuario> usuarioRepositoryLogin)
         {
@@ -156,11 +157,11 @@ namespace maps4.Controllers
             // Aquí procesamos el modelo del inmueble y el correo
 
             // Procesa los datos del inmueble
-            var inmueble = data.Datax;
-            var files = data.Files.Count;
-            var correo = data.Correo;
+            Data inmueble = data.Datax;
+            //var files = data.Files.Count;
+            //var correo = data.Correo;
 
-            Data inmueble_creado = await _inmuebleRepository.SaveInmueble(inmueble, files, correo ); 
+            Data inmueble_creado = await _inmuebleRepository.SaveInmueble(inmueble); //, files, correo ); 
 
             // Aquí procesamos los archivos
             var archivos = data.Files;

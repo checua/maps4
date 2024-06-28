@@ -601,7 +601,7 @@ $(document).on("click", ".boton-guardar-inmueble", function () {
     formData.append('Datax.Observaciones', $("#descripcion").val());
     formData.append('Datax.Contacto', $("#contacto_a").val());
 
-    formData.append('Correo', document.getElementById("lnkAcceso").innerText);
+    //formData.append('Correo', document.getElementById("lnkAcceso").innerText);
 
     //formData.append('Inmueble.IdTipo', $("#tipo").val());
 
@@ -621,10 +621,10 @@ $(document).on("click", ".boton-guardar-inmueble", function () {
     //formData.append('Correo', document.getElementById("lnkAcceso").innerText);
 
     // Agrega los archivos
-    const files = document.getElementById("FileUpload1").files;
-    for (let i = 0; i < files.length; i++) {
-        formData.append('Files', files[i]);
-    }
+    //const files = document.getElementById("FileUpload1").files;
+    //for (let i = 0; i < files.length; i++) {
+    //    formData.append('Files', files[i]);
+    //}
 
     fetch("/Inicio/GuardarInmueble", {
         method: 'POST',
