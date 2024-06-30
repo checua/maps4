@@ -626,7 +626,7 @@ $(document).on("click", ".boton-guardar-inmueble", function () {
     //    formData.append('Files', files[i]);
     //}
 
-    fetch("/Inicio/GuardarInmueble", {
+    fetch("/Inmueble/RegistrarInmueble", {
         method: 'POST',
         body: formData  // Nota que no establecemos Content-Type. FormData lo hará automáticamente.
     })
