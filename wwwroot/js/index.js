@@ -119,7 +119,55 @@ document.addEventListener("DOMContentLoaded", function () {
                     markersx[i] = markerx;
                     i++;
 
+                    //var content = '<div id="iw-container">' +
+                    //    '<div id="iw-title">' + item.idTipo + '</div>' +
+                    //    '<div id="iw-laterales">' +
+                    //          '<div id="iw-lateral-izquierda">' +
+                    //              '<a href="' + item.observaciones + '">www.myvistaalegre.com</a><img src="http://maps.marnoto.com/en/5wayscustomizeinfowindow/images/vistalegre.jpg" alt="Imagen">' +
+                    //    '<a title="fotos" href="' + item.link + '" target="blank"><img src="images/Collage-Casas.jpg" alt="Imágenes"/></a>' +
+                    //          '</div>' + //iw-lateral-izquierda
+                    //          '<div id="iw-lateral-derecha">' +
+                    //    '<p>' + item.observaciones + '</p>' +
+                    //              '</div>' + //iw-lateral-derecha
+                    //    '</div>' + //iw-laterales
+                    //          '<div id="iw-abajo">' +
+                    //    '<div class="iw-subTitle2">Asesor: <b>' + item.nombreCompleto + '</b></div>' +
+                    //    '<div class="iw-subTitle2">Teléfono: <b>' + item.telefono + '</b></div>' +
+                    //    '<div class="iw-subTitle2">Terreno: <b>' + item.terreno + '</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Construcción: <b>' + item.construccion + '</b></div>' +
+                    //    '<div class="iw-subTitle2">Precio: <b>' + item.precio + '</b></div>' +
+                    //              //'<p>VISTA ALEGRE ATLANTIS, SA<br>3830-292 Ílhavo - Portugal<br>' +
+                    //              '<br>Tel. +52 (618) 81800181<br>e-mail: geral@vaa.pt<br><a href="http://www.google.com">www.myvistaalegre.com</a></p></div>' +
+                    //              '<div class="iw-bottom-gradient"></div>' +
+                    //         '</div>' + //iw-abajo
+                    //    '</div>'; //iw-container
 
+                    //var infowindow = new google.maps.InfoWindow({
+                    //    content: content, //maxWidth: 350
+                    //});
+
+                    markerx.addListener('click', function () {
+
+                        //document.getElementById("hfidInmueble").value = val.idInmueble;
+
+                        //var str = String(document.getElementById("hfCorreo").value);
+                        //var res = str.toUpperCase();
+
+
+                        //var str2 = String(val.correo);
+                        //var res2 = str2.toUpperCase();
+
+                        //alert(res + " -  " + res2);
+
+                        //if (res == res2) {
+                        //    $("#btnEliminar").show();
+                        //}
+                        //else {
+                        //    $('#btnEliminar').css('display', "none");
+                        //}
+
+                        GetCode1(item.idTipo, item.idInmueble, item.nombreCompleto, item.telefono, item.terreno, item.construccion, item.precio, item.observaciones, item.imagenes);
+
+                    });
 
 
                 })
@@ -296,6 +344,38 @@ $(document).on("click", ".boton-iniciar-sesion", function () {
         })
 })
 
+function GetCode1(a, b, c, d, e, f, g, h, i) {
+    $('#tipo').val(a);
+    //$('#lblidInmueble').text(b + "_" + 1 + ".jpg");
+    //$('#lblAsesor').text(c);
+    //$('#lblTelefono').text(d);
+    //$('#lblTerreno').text(numberWithCommas(e));
+    //$('#lblConstruccion').text(numberWithCommas(f));
+    //$('#lblPrecio').text("$ " + numberWithCommas(g));
+    //$('#lblDescripcion').text(h);
+    //$('#hfNumImgs').val(i);
+
+
+    //$('#imgViewer2').remove();
+
+    //$('div#test').append('<div id="imgViewer2" class="slider" style="height:50px; margin-bottom:2px;"></div>');
+    //if (i > 0) {
+    //    for (var x = 1; x <= i; x++) {
+    //        $('#imgViewer2').append($('<img>', { src: "Cargas/b + "_" + x + ".jpg", onclick: 'panel(this);', id: '_' + b + '_' + x, style: "margin-left:2px;" }));
+    //        //var text = "<div id=imagesx class=item><img src=\"Cargas/_" + b + "_" + x + ".jpg\"  onclick= \"panel(this);\" id=\"_" + b + "_" + x + "\" style= \"margin-left:2px; max-height:50px !important;\"> </div>";
+    //        //$('#imgViewer2').append(text);
+    //    }
+    //}
+    //else {
+    //    $('#imgViewer2').append($('<img>', { src: "images/nouser.jpg", width: '50px', height: '50px' }));
+    //}
+
+
+
+    //$("#modalInmueble").modal("show");
+
+    $("#modalInmueble").modal("show");
+}
 function GetCode2() {
 
     //$("#txtNombreCompleto").val(_modeloEmpleado.nombreCompleto);
@@ -306,89 +386,86 @@ function GetCode2() {
     $("#modalInmueble").modal("show");
 
 }
-async function UploadImage(imageData, idInmueble) {
-    const formData = new FormData();
-    formData.append('file', imageData, `inmueble_${idInmueble}.jpg`);
-
-    try {
-        const response = await fetch('/Home/UploadImage', {
-            method: 'POST',
-            body: formData
-        });
-
-        if (response.ok) {
-            console.log('Imagen subida correctamente.');
-            // Aquí puedes manejar la respuesta del servidor si es necesario
-        } else {
-            console.error('Error al subir la imagen al servidor.');
-        }
-    } catch (error) {
-        console.error('Error en la solicitud de subida de imagen:', error);
-    }
-}
-
 function ShowImagePreview(evt) {
     var files = evt.files;
     if (files.length) {
+        var filePromises = [];
         for (var i = 0, f; f = files[i]; i++) {
-            var r = new FileReader();
-            r.onload = async function (e) {
-                var img = new Image();
-                img.onload = async function () {
-                    // Mostrar la imagen en miniatura
+            filePromises.push(resizeImageFile(f));
+        }
+
+        Promise.all(filePromises).then(function (resizedFiles) {
+            // Crear un nuevo DataTransfer para actualizar el input file
+            var dataTransfer = new DataTransfer();
+            resizedFiles.forEach(function (file) {
+                dataTransfer.items.add(file);
+            });
+
+            // Reemplazar los archivos en el input file con los archivos redimensionados
+            evt.files = dataTransfer.files;
+
+            // Mostrar miniaturas
+            for (var file of resizedFiles) {
+                var reader = new FileReader();
+                reader.onload = function (e) {
                     var imgElement = document.createElement("img");
                     imgElement.src = e.target.result;
                     imgElement.style.height = "100px";  // Estilo opcional para fijar altura
                     imgElement.style.marginBottom = "2px";  // Margen inferior opcional
                     imgElement.style.marginRight = "2px";  // Margen derecho opcional
                     imgElement.style.display = "inline-block";  // Mostrar como bloque en línea
-
-                    // Agregar la imagen al contenedor de vista previa
                     document.getElementById('imgViewer').appendChild(imgElement);
-
-                    // Redimensionar y subir la imagen al servidor
-                    var maxWidth = 1000;  // Tamaño máximo deseado
-                    var maxHeight = 1000;
-                    var width = img.width;
-                    var height = img.height;
-
-                    // Redimensionar la imagen si es necesario
-                    if (width > maxWidth || height > maxHeight) {
-                        if (width > height) {
-                            height *= maxWidth / width;
-                            width = maxWidth;
-                        } else {
-                            width *= maxHeight / height;
-                            height = maxHeight;
-                        }
-                    }
-
-                    // Crear un canvas para redimensionar la imagen
-                    var canvas = document.createElement('canvas');
-                    canvas.width = width;
-                    canvas.height = height;
-                    var ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-
-                    // Obtener el data URI de la imagen redimensionada
-                    var dataUri = canvas.toDataURL('image/jpeg', 0.7);  // Calidad ajustada a 0.7
-
-                    // Convertir data URI a Blob para enviarlo al servidor
-                    var blob = await fetch(dataUri).then(res => res.blob());
-
-                    // Obtener el idInmueble desde donde corresponda en tu aplicación
-                    var idInmueble = obtenerIdInmueble(); // Debes implementar esta función
-
-                    // Subir la imagen al servidor
-                    await UploadImage(blob, idInmueble);
                 };
-                img.src = e.target.result;
-            };
-            r.readAsDataURL(f);
-        }
+                reader.readAsDataURL(file);
+            }
+        });
     } else {
         alert("Failed to load files");
     }
+}
+
+async function resizeImageFile(file) {
+    return new Promise(function (resolve) {
+        var reader = new FileReader();
+        reader.onload = function (e) {
+            var img = new Image();
+            img.onload = function () {
+                var maxWidth = 1000;  // Tamaño máximo deseado
+                var maxHeight = 1000;
+                var width = img.width;
+                var height = img.height;
+
+                // Redimensionar la imagen si es necesario
+                if (width > maxWidth || height > maxHeight) {
+                    if (width > height) {
+                        height *= maxWidth / width;
+                        width = maxWidth;
+                    } else {
+                        width *= maxHeight / height;
+                        height = maxHeight;
+                    }
+                }
+
+                // Crear un canvas para redimensionar la imagen
+                var canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                var ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // Obtener el data URI de la imagen redimensionada
+                var dataUri = canvas.toDataURL('image/jpeg', 0.7);  // Calidad ajustada a 0.7
+
+                // Convertir data URI a Blob y luego a File
+                fetch(dataUri).then(res => res.blob()).then(function (blob) {
+                    var resizedFile = new File([blob], file.name, { type: 'image/jpeg' });
+                    resolve(resizedFile);
+                });
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
 }
 
 
