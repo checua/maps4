@@ -168,7 +168,10 @@ document.addEventListener("DOMContentLoaded", function () {
                                 //alert("Si result 1");
                                 //alert(location1 + " " + lat1 + " " + lat2 + " " + adress1);
 
+
+
                                 GetCode2();
+
 
 
 
@@ -447,6 +450,14 @@ $(document).on("click", ".boton-guardar-inmueble", function () {
     formData.append('Datax.Observaciones', $("#descripcion").val());
     formData.append('Datax.Contacto', $("#contacto_a").val());
 
+    // Agrega los archivos al FormData
+    const files = document.getElementById("FileUpload1").files;
+    for (let i = 0; i < files.length; i++) {
+        formData.append('Files', files[i]);
+    }
+
+    formData.append('Correo', document.getElementById("lnkAcceso").innerText);
+
     fetch("/Inmueble/RegistrarInmueble", {
         method: 'POST',
         body: formData  // Nota que no establecemos Content-Type. FormData lo hará automáticamente.
@@ -454,7 +465,7 @@ $(document).on("click", ".boton-guardar-inmueble", function () {
         .then(response => response.json())
         .then(response => {
             if (response.success) {
-                alert(response.message);
+                //alert(response.message);
                 location.reload();
             } else {
                 alert("Error al guardar el inmueble y las imágenes");

@@ -187,25 +187,25 @@ window.onload = function () {
             i++;
 
             var content = '<div id="iw-container">' +
-                              '<div id="iw-title">' + val.nombreTipo + '</div>' +
-                              '<div id="iw-laterales">' +
-                                    '<div id="iw-lateral-izquierda">' +
-                                        //'<a href="' + val.observaciones + '">www.myvistaalegre.com</a><img src="http://maps.marnoto.com/en/5wayscustomizeinfowindow/images/vistalegre.jpg" alt="Imagen">' +
-                                        '<a title="fotos" href="' + val.link + '" target="blank"><img src="images/Collage-Casas.jpg" alt="Imágenes"/></a>' +
-                                    '</div>' + //iw-lateral-izquierda
-                                    '<div id="iw-lateral-derecha">' +
-                                        '<p>' + val.observaciones + '</p>' +
-                                        '</div>' + //iw-lateral-derecha
-                              '</div>' + //iw-laterales
-                                    '<div id="iw-abajo">' +
-                                        '<div class="iw-subTitle2">Asesor: <b>' + val.nombreCompleto + '</b></div>' +
-                                        '<div class="iw-subTitle2">Teléfono: <b>' + val.telefono + '</b></div>' +
-                                        '<div class="iw-subTitle2">Terreno: <b>' + val.terreno + '</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Construcción: <b>' + val.construccion + '</b></div>' +
-                                        '<div class="iw-subTitle2">Precio: <b>' + val.precio + '</b></div>' +
-                                        //'<p>VISTA ALEGRE ATLANTIS, SA<br>3830-292 Ílhavo - Portugal<br>' +
-                                        //'<br>Tel. +52 (618) 81800181<br>e-mail: geral@vaa.pt<br><a href="http://www.google.com">www.myvistaalegre.com</a></p>'</div>' +
-                                        //'<div class="iw-bottom-gradient"></div>' +
-                                   '</div>' + //iw-abajo
+                              //'<div id="iw-title">' + val.nombreTipo + '</div>' +
+                              //'<div id="iw-laterales">' +
+                              //      '<div id="iw-lateral-izquierda">' +
+                              //          //'<a href="' + val.observaciones + '">www.myvistaalegre.com</a><img src="http://maps.marnoto.com/en/5wayscustomizeinfowindow/images/vistalegre.jpg" alt="Imagen">' +
+                              //          '<a title="fotos" href="' + val.link + '" target="blank"><img src="images/Collage-Casas.jpg" alt="Imágenes"/></a>' +
+                              //      '</div>' + //iw-lateral-izquierda
+                              //      '<div id="iw-lateral-derecha">' +
+                              //          '<p>' + val.observaciones + '</p>' +
+                              //          '</div>' + //iw-lateral-derecha
+                              //'</div>' + //iw-laterales
+                              //      '<div id="iw-abajo">' +
+                              //          '<div class="iw-subTitle2">Asesor: <b>' + val.nombreCompleto + '</b></div>' +
+                              //          '<div class="iw-subTitle2">Teléfono: <b>' + val.telefono + '</b></div>' +
+                              //          '<div class="iw-subTitle2">Terreno: <b>' + val.terreno + '</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Construcción: <b>' + val.construccion + '</b></div>' +
+                              //          '<div class="iw-subTitle2">Precio: <b>' + val.precio + '</b></div>' +
+                              //          //'<p>VISTA ALEGRE ATLANTIS, SA<br>3830-292 Ílhavo - Portugal<br>' +
+                              //          //'<br>Tel. +52 (618) 81800181<br>e-mail: geral@vaa.pt<br><a href="http://www.google.com">www.myvistaalegre.com</a></p>'</div>' +
+                              //          //'<div class="iw-bottom-gradient"></div>' +
+                              //     '</div>' + //iw-abajo
                             '</div>'; //iw-container
 
 

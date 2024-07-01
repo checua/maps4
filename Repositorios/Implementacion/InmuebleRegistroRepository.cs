@@ -14,43 +14,45 @@ namespace maps4.Repositorios.Implementacion
             _cadenaSQL = configuration.GetConnectionString("cadenaSQL");
         }
 
-        public async Task<Inmueble> SaveInmueble(Inmueble data)//, int files, string correo)
+        public async Task<Inmueble> SaveInmueble(Inmueble data)
         {
-            //List<Usuario> _lista = new List<Usuario>();
-
             using (var conexion = new SqlConnection(_cadenaSQL))
             {
-                conexion.Open();
-                SqlCommand cmd = new SqlCommand("sp_RSMAPS_insertar_coordenadas", conexion);
-                cmd.Parameters.AddWithValue("@correo", "profesor76@hotmail.com");
-                cmd.Parameters.AddWithValue("@idInmobiliaria", 1);
-                cmd.Parameters.AddWithValue("@lat", data.Lat);
-                //cmd.Parameters.AddWithValue("@direccion", "");
-                cmd.Parameters.AddWithValue("@lng", data.Lng);
-                cmd.Parameters.AddWithValue("@idTipo", data.IdTipo);
-                cmd.Parameters.AddWithValue("@terreno", data.Terreno);
-                cmd.Parameters.AddWithValue("@construccion", data.Construccion);
-                cmd.Parameters.AddWithValue("@precio", data.Precio);
-                cmd.Parameters.AddWithValue("@observaciones", data.Observaciones);
-                cmd.Parameters.AddWithValue("@contacto", data.Contacto);
-                cmd.Parameters.AddWithValue("@numImagenes", 3);
-
-
-
-                cmd.CommandType = CommandType.StoredProcedure;
-
-                int filas_afectadas = await cmd.ExecuteNonQueryAsync();
-                if (filas_afectadas > 0)
+                await conexion.OpenAsync();
+                using (var cmd = new SqlCommand("sp_RSMAPS_insertar_coordenadas", conexion))
                 {
-                    return data;
-                }
-                else
-                {
-                    //Correo = "";
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    // Agregar los parámetros de entrada
+                    cmd.Parameters.AddWithValue("@correo", "profesor76@hotmail.com");
+                    cmd.Parameters.AddWithValue("@idInmobiliaria", 1);
+                    cmd.Parameters.AddWithValue("@lat", data.Lat);
+                    cmd.Parameters.AddWithValue("@lng", data.Lng);
+                    cmd.Parameters.AddWithValue("@idTipo", data.IdTipo);
+                    cmd.Parameters.AddWithValue("@terreno", data.Terreno);
+                    cmd.Parameters.AddWithValue("@construccion", data.Construccion);
+                    cmd.Parameters.AddWithValue("@precio", data.Precio);
+                    cmd.Parameters.AddWithValue("@observaciones", data.Observaciones);
+                    cmd.Parameters.AddWithValue("@contacto", data.Contacto);
+                    cmd.Parameters.AddWithValue("@numImagenes", 3);
+
+                    // Agregar el parámetro de salida para obtener el idInmueble
+                    var idInmuebleParam = new SqlParameter("@idInmueble", SqlDbType.Int)
+                    {
+                        Direction = ParameterDirection.Output
+                    };
+                    cmd.Parameters.Add(idInmuebleParam);
+
+                    // Ejecutar el comando
+                    await cmd.ExecuteNonQueryAsync();
+
+                    // Recuperar el idInmueble generado
+                    data.IdInmueble = (int)idInmuebleParam.Value;
+
                     return data;
                 }
             }
-
         }
+
     }
 }

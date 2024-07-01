@@ -3,7 +3,6 @@ using maps4.Models;
 using maps4.Repositorios.Contrato;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using maps4.Recursos;
 using maps4.Repositorios.Implementacion;
@@ -29,8 +28,6 @@ namespace maps4.Controllers
         [HttpPost]
         public async Task<IActionResult> RegistrarInmueble(InmuebleData data)
         {
-            // Procesa los datos del inmueble
-            //Inmueble modelo = data.Datax;
             Inmueble modelo = new Inmueble();
             modelo.IdInmueble = 1;
             modelo.Direccion = "";
@@ -45,8 +42,6 @@ namespace maps4.Controllers
             modelo.Exclusiva = 1;
             modelo.Link = "";
             modelo.Contacto = data.Datax.Contacto;
-
-
             var correo = data.Correo;
             var archivos = data.Files;
 
@@ -57,33 +52,37 @@ namespace maps4.Controllers
 
             try
             {
-
-
                 // Guarda el inmueble en la base de datos
                 Inmueble inmueble_creado = await _inmuebleRepository.SaveInmueble(modelo);
 
                 // Guarda los archivos
-                //if (archivos != null)
-                //{
-                //    foreach (var file in archivos)
-                //    {
-                //        if (file.Length > 0)
-                //        {
-                //            var filePath = Path.Combine("wwwroot/cargas", file.FileName);
-                //            using (var stream = new FileStream(filePath, FileMode.Create))
-                //            {
-                //                await file.CopyToAsync(stream);
-                //            }
-                //        }
-                //    }
-                //}
+                if (inmueble_creado != null)
+                {
+                    int fileCounter = 1;
+                    foreach (var file in archivos)
+                    {
+                        if (file.Length > 0)
+                        {
+                            // Obtener la extensión del archivo
+                            var extension = Path.GetExtension(file.FileName);
+                            // Generar el nombre del archivo
+                            var fileName = $"{inmueble_creado.IdInmueble}_{fileCounter}{extension}";
+                            var filePath = Path.Combine("wwwroot/cargas", fileName);
+
+                            using (var stream = new FileStream(filePath, FileMode.Create))
+                            {
+                                await file.CopyToAsync(stream);
+                            }
+                            fileCounter++;
+                        }
+                    }
+                }
 
                 return Json(new { success = true, message = "Inmueble y imágenes guardados correctamente!" });
             }
             catch (Exception ex)
             {
-                // Registra el error
-                Console.Error.WriteLine($"Error en GuardarInmueble: {ex.Message}");
+                Console.Error.WriteLine($"Error en RegistrarInmueble: {ex.Message}");
                 return Json(new { success = false, message = ex.Message });
             }
         }
