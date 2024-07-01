@@ -108,7 +108,9 @@ document.addEventListener("DOMContentLoaded", function () {
                         title: String(item.idTipo),
                         icon: {
                             url: imageIcon,
-                            scaledSize: new google.maps.Size(32, 32)
+                            scaledSize: new google.maps.Size(32, 32),
+                            origin: new google.maps.Point(0, 0), // Origen de la imagen (0, 0)
+                            anchor: new google.maps.Point(16, 16) // Punto de anclaje de la imagen (centrado)
                         },
                     });
 
@@ -147,19 +149,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
                             if (results[0]) {
 
-                                //            document.getElementById("hfCoordenadas").value = results[0].geometry.location;
-                                //            document.getElementById("hfLat").value = event.latLng.lat().toFixed(6);
-                                //            document.getElementById("hfLng").value = event.latLng.lng().toFixed(6);
-                                //            document.getElementById("hfDireccion").value = results[0].formatted_address;
-
                                 var location1 = results[0].geometry.location;
                                 var lat1 = latLng.lat().toFixed(6);
-                                var lat2 = latLng.lng().toFixed(6);
+                                var lng1 = latLng.lng().toFixed(6);
                                 var adress1 = results[0].formatted_address;
-
-                                
-
-
 
                                 marker = new google.maps.Marker({
                                     position: latLng,
@@ -170,7 +163,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 i++;
 
                                 var label = document.getElementById('ubicacion');
-                                label.textContent = location1;
+                                label.textContent = "(" + lat1 + "," + lng1 + ")";
 
                                 //alert("Si result 1");
                                 //alert(location1 + " " + lat1 + " " + lat2 + " " + adress1);
@@ -300,10 +293,6 @@ $(document).on("click", ".boton-iniciar-sesion", function () {
         })
 })
 
-
-//function GetCode2() {
-//    $("#modalDatos").modal("show");
-//}
 function GetCode2() {
 
     //$("#txtNombreCompleto").val(_modeloEmpleado.nombreCompleto);
@@ -311,74 +300,9 @@ function GetCode2() {
     //$("#txtSueldo").val(_modeloEmpleado.sueldo);
     //$("#txtFechaContrato").val(_modeloEmpleado.fechaContrato)
 
-
     $("#modalInmueble").modal("show");
 
 }
-
-//function ShowImagePreview(evt) {
-//    var files = evt.files;
-//    if (files.length) {
-//        for (var i = 0, f; f = files[i]; i++) {
-//            var r = new FileReader();
-//            r.onload = (function (f) {
-//                return function (e) {
-//                    var img = new Image();
-//                    img.onload = function () {
-//                        // Crear un canvas para redimensionar la imagen
-//                        var canvas = document.createElement('canvas');
-//                        var ctx = canvas.getContext('2d');
-//                        var maxWidth = 100;  // Ajustar tamaño de miniatura
-//                        var maxHeight = 100; // Ajustar tamaño de miniatura
-//                        var width = img.width;
-//                        var height = img.height;
-
-//                        // Calcular las nuevas dimensiones manteniendo la relación de aspecto
-//                        if (width > height) {
-//                            if (width > maxWidth) {
-//                                height = Math.round(height * maxWidth / width);
-//                                width = maxWidth;
-//                            }
-//                        } else {
-//                            if (height > maxHeight) {
-//                                width = Math.round(width * maxHeight / height);
-//                                height = maxHeight;
-//                            }
-//                        }
-
-//                        canvas.width = width;
-//                        canvas.height = height;
-//                        ctx.drawImage(img, 0, 0, width, height);
-
-//                        var dataUri = canvas.toDataURL('image/jpeg', 0.7);  // Calidad ajustada a 0.7
-
-//                        var imgElement = document.createElement("img");
-//                        imgElement.src = dataUri;
-//                        imgElement.style.height = "100px";
-//                        imgElement.style.marginBottom = "2px";
-//                        imgElement.style.marginRight = "2px";
-//                        imgElement.style.display = "inline-block";
-//                        imgElement.onclick = function () {
-//                            fixExifOrientation(this);
-//                        };
-
-//                        // Agregar imagen al contenedor de vista previa
-//                        document.getElementById('imgViewer').appendChild(imgElement);
-
-//                        // Mostrar el botón "Limpiar"
-//                        document.getElementById('btnClear').style.display = 'inline-block';
-//                    };
-//                    img.src = e.target.result;
-//                };
-//            })(f);
-
-//            r.readAsDataURL(f);
-//        }
-//    } else {
-//        alert("Failed to load files");
-//    }
-//}
-
 async function UploadImage(imageData, idInmueble) {
     const formData = new FormData();
     formData.append('file', imageData, `inmueble_${idInmueble}.jpg`);
@@ -507,84 +431,6 @@ function clearPreviewAndFields() {
     document.getElementById('imgViewer').innerHTML = '';
 }
 
-//$(document).on("click", ".boton-guardar-inmueble", function () {
-//    const ubicacionTexto = document.getElementById('ubicacion').textContent;
-//    const { lat, lng } = extractLatLon(ubicacionTexto);
-
-//    const data = {
-//        tipo: $("#tipo").val(),
-//        terreno: $("#terreno").val(),
-//        construccion: $("#construccion").val(),
-//        precio: $("#precio").val(),
-//        descripcion: $("#descripcion").val(),
-//        contacto: $("#contacto_a").val(),
-//        lat: lat,  // Añade latitud al objeto data
-//        lng: lng   // Añade longitud al objeto data
-//    };
-
-//    fetch("/Inicio/GuardarInmueble", {
-//        method: 'POST',
-//        headers: {
-//            'Content-Type': 'application/json'
-//        },
-//        body: JSON.stringify(data)
-//    })
-//        .then(response => {
-//            return response.ok ? response.json() : Promise.reject(response);
-//        })
-//        .then(data => {
-//            Swal.fire("¡Listo!", "Inmueble guardado con ID: " + data.idInmueble, "success");
-//            handleImageUpload(data.idInmueble);
-//        })
-//        .catch(error => {
-//            Swal.fire("Error!", "No se pudo guardar el inmueble", "error");
-//        });
-//});
-
-//$(document).on("click", ".boton-guardar-inmueble", function () {
-//    const formData = new FormData();
-
-//        const ubicacionTexto = document.getElementById('ubicacion').textContent;
-//        const { lat, lng } = extractLatLon(ubicacionTexto);
-
-//    // Agrega datos del modelo al FormData
-//    formData.append('Inmueble.IdTipo', $("#tipo").val());
-//    formData.append('Inmueble.IdTipo', "");
-//    formData.append('Inmueble.Terreno', $("#terreno").val());
-//    formData.append('Inmueble.Construccion', $("#construccion").val());
-//    formData.append('Inmueble.Precio', $("#precio").val());
-//    formData.append('Inmueble.Observaciones', $("#descripcion").val());
-//    formData.append('Inmueble.Contacto', $("#contacto_a").val());
-//    formData.append('Inmueble.Lat', lat);
-//    formData.append('Inmueble.Lng', lng);
-//    formData.append('Correo', document.getElementById("lnkAcceso").innerText); // $("#lnkAcceso").val());
-
-//    // Agrega los archivos
-//    const files = document.getElementById("FileUpload1").files;
-//    for (let i = 0; i < files.length; i++) {
-//        formData.append('Files', files[i]);
-//    }
-
-//    fetch("/Inicio/GuardarInmueble", {
-//        method: 'POST',
-//        body: formData  // Nota que no establecemos Content-Type. FormData lo hará automáticamente.
-
-//        //body: JSON.stringify(formData)
-//    })
-//        .then(response => response.json())
-//        .then(response => {
-//            if (response.success) {
-//                alert(response.message);
-//            } else {
-//                alert("Error al guardar el inmueble y las imágenes");
-//            }
-//        })
-//        .catch(error => {
-//            console.error('Error al enviar datos:', error);
-//            alert("Error en la red o servidor");
-//        });
-//});
-
 $(document).on("click", ".boton-guardar-inmueble", function () {
     const formData = new FormData();
 
@@ -601,31 +447,6 @@ $(document).on("click", ".boton-guardar-inmueble", function () {
     formData.append('Datax.Observaciones', $("#descripcion").val());
     formData.append('Datax.Contacto', $("#contacto_a").val());
 
-    //formData.append('Correo', document.getElementById("lnkAcceso").innerText);
-
-    //formData.append('Inmueble.IdTipo', $("#tipo").val());
-
-    //formData.append('Inmueble.Direccion', "Dir");
-    //formData.append('Inmueble.Exclusiva', 1);
-    //formData.append('Inmueble.Link', "Lnk");
-    //formData.append('Inmueble.Telefono', "Tel");
-
-
-    //formData.append('Inmueble.Terreno', $("#terreno").val());
-    //formData.append('Inmueble.Construccion', $("#construccion").val());
-    //formData.append('Inmueble.Precio', $("#precio").val());
-    //formData.append('Inmueble.Observaciones', $("#descripcion").val());
-    //formData.append('Inmueble.Contacto', $("#contacto_a").val());
-    //formData.append('Inmueble.Lat', lat.toFixed(6));  // Asegúrate de que tenga 6 decimales
-    //formData.append('Inmueble.Lng', lng.toFixed(6));  // Asegúrate de que tenga 6 decimales
-    //formData.append('Correo', document.getElementById("lnkAcceso").innerText);
-
-    // Agrega los archivos
-    //const files = document.getElementById("FileUpload1").files;
-    //for (let i = 0; i < files.length; i++) {
-    //    formData.append('Files', files[i]);
-    //}
-
     fetch("/Inmueble/RegistrarInmueble", {
         method: 'POST',
         body: formData  // Nota que no establecemos Content-Type. FormData lo hará automáticamente.
@@ -634,6 +455,7 @@ $(document).on("click", ".boton-guardar-inmueble", function () {
         .then(response => {
             if (response.success) {
                 alert(response.message);
+                location.reload();
             } else {
                 alert("Error al guardar el inmueble y las imágenes");
             }
