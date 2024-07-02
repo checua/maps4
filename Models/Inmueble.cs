@@ -17,5 +17,6 @@
         public int? Exclusiva { get; set; }
         public string? Link { get; set; }
         public string? Contacto { get; set; }
+        public int Imagenes { get; set; }
     }
 }

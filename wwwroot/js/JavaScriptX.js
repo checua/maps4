@@ -10,9 +10,18 @@
         $('#map_canvas').css('height', hheight); // - headerheight);
     });
 
-    function numberWithCommas(x) {
-        return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    }
+    //function numberWithCommas(x) {
+    //    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    //}
+
+    //function numberWithCommas(x) {
+    //    if (typeof x !== 'number' && typeof x !== 'string') {
+    //        return x;  // Devuelve el valor sin cambios si no es un número o una cadena
+    //    }
+    //    var parts = x.toString().split('.');
+    //    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    //    return parts.join('.');
+    //}
 
     $("#terreno").keyup(function () {
         if (event.which >= 37 && event.which <= 40) {

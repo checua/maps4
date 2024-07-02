@@ -42,6 +42,7 @@ namespace maps4.Controllers
             modelo.Exclusiva = 1;
             modelo.Link = "";
             modelo.Contacto = data.Datax.Contacto;
+            modelo.Imagenes = data.Files.Count;
             var correo = data.Correo;
             var archivos = data.Files;
 

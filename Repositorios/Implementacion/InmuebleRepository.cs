@@ -52,7 +52,9 @@ namespace maps4.Repositorios.Implementacion
                             Precio = float.Parse(dr["precio"].ToString()),
                             Observaciones = dr["observaciones"].ToString(),
                             Exclusiva = dr["exclusiva"] as int?,
-                            Link = dr["link"].ToString()
+                            Link = dr["link"].ToString(),
+                            Contacto = dr["contacto_a"].ToString(),
+                            Imagenes = Convert.ToInt32(dr["imagenes"]),
                         });
                     }
                 }

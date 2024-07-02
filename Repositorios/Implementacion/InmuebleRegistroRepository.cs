@@ -34,7 +34,7 @@ namespace maps4.Repositorios.Implementacion
                     cmd.Parameters.AddWithValue("@precio", data.Precio);
                     cmd.Parameters.AddWithValue("@observaciones", data.Observaciones);
                     cmd.Parameters.AddWithValue("@contacto", data.Contacto);
-                    cmd.Parameters.AddWithValue("@numImagenes", 3);
+                    cmd.Parameters.AddWithValue("@numImagenes", data.Imagenes);
 
                     // Agregar el parámetro de salida para obtener el idInmueble
                     var idInmuebleParam = new SqlParameter("@idInmueble", SqlDbType.Int)

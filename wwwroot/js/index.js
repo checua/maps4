@@ -119,32 +119,6 @@ document.addEventListener("DOMContentLoaded", function () {
                     markersx[i] = markerx;
                     i++;
 
-                    //var content = '<div id="iw-container">' +
-                    //    '<div id="iw-title">' + item.idTipo + '</div>' +
-                    //    '<div id="iw-laterales">' +
-                    //          '<div id="iw-lateral-izquierda">' +
-                    //              '<a href="' + item.observaciones + '">www.myvistaalegre.com</a><img src="http://maps.marnoto.com/en/5wayscustomizeinfowindow/images/vistalegre.jpg" alt="Imagen">' +
-                    //    '<a title="fotos" href="' + item.link + '" target="blank"><img src="images/Collage-Casas.jpg" alt="Imágenes"/></a>' +
-                    //          '</div>' + //iw-lateral-izquierda
-                    //          '<div id="iw-lateral-derecha">' +
-                    //    '<p>' + item.observaciones + '</p>' +
-                    //              '</div>' + //iw-lateral-derecha
-                    //    '</div>' + //iw-laterales
-                    //          '<div id="iw-abajo">' +
-                    //    '<div class="iw-subTitle2">Asesor: <b>' + item.nombreCompleto + '</b></div>' +
-                    //    '<div class="iw-subTitle2">Teléfono: <b>' + item.telefono + '</b></div>' +
-                    //    '<div class="iw-subTitle2">Terreno: <b>' + item.terreno + '</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Construcción: <b>' + item.construccion + '</b></div>' +
-                    //    '<div class="iw-subTitle2">Precio: <b>' + item.precio + '</b></div>' +
-                    //              //'<p>VISTA ALEGRE ATLANTIS, SA<br>3830-292 Ílhavo - Portugal<br>' +
-                    //              '<br>Tel. +52 (618) 81800181<br>e-mail: geral@vaa.pt<br><a href="http://www.google.com">www.myvistaalegre.com</a></p></div>' +
-                    //              '<div class="iw-bottom-gradient"></div>' +
-                    //         '</div>' + //iw-abajo
-                    //    '</div>'; //iw-container
-
-                    //var infowindow = new google.maps.InfoWindow({
-                    //    content: content, //maxWidth: 350
-                    //});
-
                     markerx.addListener('click', function () {
 
                         //document.getElementById("hfidInmueble").value = val.idInmueble;
@@ -165,7 +139,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         //    $('#btnEliminar').css('display', "none");
                         //}
 
-                        GetCode1(item.idTipo, item.idInmueble, item.nombreCompleto, item.telefono, item.terreno, item.construccion, item.precio, item.observaciones, item.imagenes);
+                        GetCode1(item.idTipo, item.idInmueble, item.nombreCompleto, item.telefono, item.terreno, item.construccion, item.precio, item.observaciones, item.contacto, item.imagenes);
 
                     });
 
@@ -344,31 +318,59 @@ $(document).on("click", ".boton-iniciar-sesion", function () {
         })
 })
 
-function GetCode1(a, b, c, d, e, f, g, h, i) {
+function numberWithCommas(x) {
+    if (typeof x !== 'number' && typeof x !== 'string') {
+        return x;  // Devuelve el valor sin cambios si no es un número o una cadena
+    }
+    var parts = x.toString().split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return parts.join('.');
+}
+
+//GetCode1(item.idTipo, item.idInmueble, item.nombreCompleto, item.telefono, item.terreno, item.construccion, item.precio, item.observaciones, item.imagenes);
+function GetCode1(a, b, c, d, e, f, g, h, i, j) {
     $('#tipo').val(a);
     //$('#lblidInmueble').text(b + "_" + 1 + ".jpg");
     //$('#lblAsesor').text(c);
     //$('#lblTelefono').text(d);
-    //$('#lblTerreno').text(numberWithCommas(e));
-    //$('#lblConstruccion').text(numberWithCommas(f));
-    //$('#lblPrecio').text("$ " + numberWithCommas(g));
-    //$('#lblDescripcion').text(h);
-    //$('#hfNumImgs').val(i);
+    
+    $('#terreno').val(numberWithCommas(e));
+    $('#construccion').val(numberWithCommas(f));
+    $('#precio').val("$ " + numberWithCommas(g));
+    $('#descripcion').val(h);
+    $('#contacto_a').val(i);
 
+    //$("#ubicacion").val(j);
 
-    //$('#imgViewer2').remove();
+    document.getElementById("ubicacion").innerHTML = j;
 
-    //$('div#test').append('<div id="imgViewer2" class="slider" style="height:50px; margin-bottom:2px;"></div>');
-    //if (i > 0) {
-    //    for (var x = 1; x <= i; x++) {
-    //        $('#imgViewer2').append($('<img>', { src: "Cargas/b + "_" + x + ".jpg", onclick: 'panel(this);', id: '_' + b + '_' + x, style: "margin-left:2px;" }));
-    //        //var text = "<div id=imagesx class=item><img src=\"Cargas/_" + b + "_" + x + ".jpg\"  onclick= \"panel(this);\" id=\"_" + b + "_" + x + "\" style= \"margin-left:2px; max-height:50px !important;\"> </div>";
-    //        //$('#imgViewer2').append(text);
-    //    }
-    //}
-    //else {
-    //    $('#imgViewer2').append($('<img>', { src: "images/nouser.jpg", width: '50px', height: '50px' }));
-    //}
+    $('#imgViewer').remove();
+
+    $('div#test1').append('<div id="imgViewer" class="slider" style="height:50px; margin-bottom:2px;"></div>');
+    if (i > 0) {
+        for (var x = 1; x <= j; x++) {
+            var imgSrc = `Cargas/${b}_${x}.jpg`;
+            //var imgElement = $('<img>', {
+            //    src: imgSrc,
+            //    onclick: 'panel(this);',
+            //    id: `_${b}_${x}`,
+            //    style: "margin-left:2px;"
+            //});
+
+            //$('#imgViewer').append(imgElement);
+
+            var text = `
+        <div id="images${x}" class="item">
+            <img src="${imgSrc}" onclick="panel(this);" id="_${b}_${x}" style="margin-left:2px; max-height:50px !important;">
+        </div>
+    `;
+            $('#imgViewer').append(text);
+        }
+
+    }
+    else {
+        $('#imgViewer').append($('<img>', { src: "images/nouser.jpg", width: '50px', height: '50px' }));
+    }
 
 
 
