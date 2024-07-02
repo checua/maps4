@@ -327,57 +327,48 @@ function numberWithCommas(x) {
     return parts.join('.');
 }
 
-//GetCode1(item.idTipo, item.idInmueble, item.nombreCompleto, item.telefono, item.terreno, item.construccion, item.precio, item.observaciones, item.imagenes);
+function panel(imgElement) {
+    // Mostrar el modal de imagen completa
+    $('#modalImagenCompleta').modal('show');
+}
+
 function GetCode1(a, b, c, d, e, f, g, h, i, j) {
     $('#tipo').val(a);
-    //$('#lblidInmueble').text(b + "_" + 1 + ".jpg");
-    //$('#lblAsesor').text(c);
-    //$('#lblTelefono').text(d);
-    
     $('#terreno').val(numberWithCommas(e));
     $('#construccion').val(numberWithCommas(f));
     $('#precio').val("$ " + numberWithCommas(g));
     $('#descripcion').val(h);
     $('#contacto_a').val(i);
-
-    //$("#ubicacion").val(j);
-
     document.getElementById("ubicacion").innerHTML = j;
 
     $('#imgViewer').remove();
+    $('#carouselInner').empty(); // Limpiar el carrusel antes de añadir nuevas imágenes
 
-    $('div#test1').append('<div id="imgViewer" class="slider" style="height:50px; margin-bottom:2px;"></div>');
+    $('div#test1').append('<div id="imgViewer" class="slider"></div>');
     if (i > 0) {
         for (var x = 1; x <= j; x++) {
             var imgSrc = `Cargas/${b}_${x}.jpg`;
-            //var imgElement = $('<img>', {
-            //    src: imgSrc,
-            //    onclick: 'panel(this);',
-            //    id: `_${b}_${x}`,
-            //    style: "margin-left:2px;"
-            //});
+            var imgElement = `
+                <div id="images${x}" class="item">
+                    <img src="${imgSrc}" onclick="panel(this);" id="_${b}_${x}" style="margin-left:2px; max-height:50px !important;">
+                </div>
+            `;
+            $('#imgViewer').append(imgElement);
 
-            //$('#imgViewer').append(imgElement);
-
-            var text = `
-        <div id="images${x}" class="item">
-            <img src="${imgSrc}" onclick="panel(this);" id="_${b}_${x}" style="margin-left:2px; max-height:50px !important;">
-        </div>
-    `;
-            $('#imgViewer').append(text);
+            // Añadir la imagen al carrusel
+            var carouselItem = `
+                <div class="carousel-item ${x === 1 ? 'active' : ''}">
+                    <img src="${imgSrc}" class="d-block w-100" style="max-height:500px; margin:auto;">
+                </div>
+            `;
+            $('#carouselInner').append(carouselItem);
         }
-
-    }
-    else {
+    } else {
         $('#imgViewer').append($('<img>', { src: "images/nouser.jpg", width: '50px', height: '50px' }));
     }
-
-
-
-    //$("#modalInmueble").modal("show");
-
     $("#modalInmueble").modal("show");
 }
+
 function GetCode2() {
 
     //$("#txtNombreCompleto").val(_modeloEmpleado.nombreCompleto);
@@ -567,3 +558,7 @@ function extractLatLon(text) {
     return { lat: null, lng: null }; 
 }
 
+
+$(document).on("click", "#cerrarmodalImagenCompleta", function () {
+    $("#modalImagenCompleta").modal("hide");
+});

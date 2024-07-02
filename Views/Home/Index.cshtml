@@ -192,7 +192,44 @@
     </div>
 </div>
 
+<div class="modal" id="modalImagenCompleta" tabindex="-1" role="dialog" aria-labelledby="modalImagenCompletaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalImagenCompletaLabel">Imagen Completa</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" id="cerrarmodalImagenCompleta">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body text-center">
+                <div id="carouselImagenes" class="carousel slide" data-ride="carousel">
+                    <div class="carousel-inner" id="carouselInner">
+                        <!-- Las imágenes se insertarán dinámicamente aquí -->
+                    </div>
+                    <a class="carousel-control-prev" href="#carouselImagenes" role="button" data-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="sr-only">Anterior</span>
+                    </a>
+                    <a class="carousel-control-next" href="#carouselImagenes" role="button" data-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="sr-only">Siguiente</span>
+                    </a>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" id="cerrarmodalImagenCompleta">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
 @section Scripts {
     <script src="~/js/index.js"></script>
     <script src="~/js/javascriptx.js"></script>
+    <!-- Scripts de Bootstrap -->
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.bundle.min.js"></script>
+
 }
