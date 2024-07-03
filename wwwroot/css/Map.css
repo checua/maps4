@@ -137,3 +137,14 @@
         max-height: 50px;
         margin-left: 2px;
     }
+
+#imageStrip {
+    display: flex;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+    #imageStrip img {
+        max-height: 500px;
+        margin-right: 10px;
+    }

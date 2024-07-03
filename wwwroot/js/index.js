@@ -342,7 +342,7 @@ function GetCode1(a, b, c, d, e, f, g, h, i, j) {
     document.getElementById("ubicacion").innerHTML = j;
 
     $('#imgViewer').remove();
-    $('#carouselInner').empty(); // Limpiar el carrusel antes de añadir nuevas imágenes
+    $('#imageStrip').empty(); // Limpiar el contenedor antes de añadir nuevas imágenes
 
     $('div#test1').append('<div id="imgViewer" class="slider"></div>');
     if (i > 0) {
@@ -355,13 +355,11 @@ function GetCode1(a, b, c, d, e, f, g, h, i, j) {
             `;
             $('#imgViewer').append(imgElement);
 
-            // Añadir la imagen al carrusel
-            var carouselItem = `
-                <div class="carousel-item ${x === 1 ? 'active' : ''}">
-                    <img src="${imgSrc}" class="d-block w-100" style="max-height:500px; margin:auto;">
-                </div>
+            // Añadir la imagen a la tira horizontal
+            var stripItem = `
+                <img src="${imgSrc}" class="d-block" style="max-height:500px; margin:auto;">
             `;
-            $('#carouselInner').append(carouselItem);
+            $('#imageStrip').append(stripItem);
         }
     } else {
         $('#imgViewer').append($('<img>', { src: "images/nouser.jpg", width: '50px', height: '50px' }));
