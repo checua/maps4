@@ -41,6 +41,7 @@ namespace maps4.Repositorios.Implementacion
                                 idAsesor = Convert.ToInt32(dr["idAsesor"]),
                                 nombres = dr["nombres"].ToString(),
                                 aPaterno = dr["aPaterno"].ToString(),
+                                correo = dr["correo"].ToString(),
                             },
                             Direccion = dr["direccion"].ToString(),
                             Lat = dr["lat"] as decimal?,

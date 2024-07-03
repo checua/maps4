@@ -148,3 +148,18 @@
         max-height: 500px;
         margin-right: 10px;
     }
+
+
+.modal-footer .left-buttons,
+.modal-footer .right-buttons {
+    display: flex;
+    gap: 10px; /* Ajusta el espacio entre los botones según sea necesario */
+}
+
+.modal-footer .left-buttons {
+    margin-right: auto;
+}
+
+.modal-footer .right-buttons {
+    margin-left: auto;
+}

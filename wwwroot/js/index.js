@@ -14,6 +14,7 @@ var mousedUp = false;
 var degrees = 90;
 var img = null;
 var canvas = null;
+var access = null;
 
 //const _modeloEmpleado = {
 //    idEmpleado: 0,
@@ -119,28 +120,28 @@ document.addEventListener("DOMContentLoaded", function () {
                     markersx[i] = markerx;
                     i++;
 
+
+
                     markerx.addListener('click', function () {
 
-                        //document.getElementById("hfidInmueble").value = val.idInmueble;
+                        $('#btnClear').css('display', "none"); 
+                        $('.btn-fileupload').css('display', "none"); 
+                        $('.boton-guardar-inmueble').css('display', "none");
 
-                        //var str = String(document.getElementById("hfCorreo").value);
-                        //var res = str.toUpperCase();
+                        var str = document.getElementById("lnkAcceso").innerText;
+                        var str2 = item.refUsuario.correo.toString();
 
+                        var res = str.toUpperCase();
+                        var res2 = str2.toUpperCase();
 
-                        //var str2 = String(val.correo);
-                        //var res2 = str2.toUpperCase();
-
-                        //alert(res + " -  " + res2);
-
-                        //if (res == res2) {
-                        //    $("#btnEliminar").show();
-                        //}
-                        //else {
-                        //    $('#btnEliminar').css('display', "none");
-                        //}
+                        if (res != res2) {
+                            $('.boton-eliminar-inmueble').css('display', "none");
+                        }
+                        else {
+                            $(".boton-eliminar-inmueble").show();
+                        }
 
                         GetCode1(item.idTipo, item.idInmueble, item.nombreCompleto, item.telefono, item.terreno, item.construccion, item.precio, item.observaciones, item.contacto, item.imagenes);
-
                     });
 
 
@@ -159,8 +160,6 @@ document.addEventListener("DOMContentLoaded", function () {
             var log = document.getElementById("lnkAcceso").innerText;
 
                 if (log != "Iniciar Sesión") //Le cambie para no batallar en entrar, pero hay que regresar a ==
-                    alert("Ingresa para poder registrar propiedades");
-                else {
                     //alert(log);
                     geocoder.geocode({ 'latLng': latLng }, function (results, status) {
 
@@ -190,7 +189,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                 //alert("Si result 1");
                                 //alert(location1 + " " + lat1 + " " + lat2 + " " + adress1);
 
+                                $('#btnClear').show();
+                                $('.btn-fileupload').show();
+                                $('.boton-guardar-inmueble').show();
 
+                                $(".boton-eliminar-inmueble").hide();
 
                                 GetCode2();
 
@@ -208,6 +211,8 @@ document.addEventListener("DOMContentLoaded", function () {
                             document.getElementById("lnkAcceso").innerHTML = 'Geocodificación  ha fallado debido a: ' + status;
                         }
                     });
+                else {
+                    alert("Ingresa para poder registrar propiedades");
                 }
 
             }
@@ -232,6 +237,7 @@ document.addEventListener("DOMContentLoaded", function () {
             // Maneja los claims devueltos aquí
             //console.log(data);
             $("#lnkAcceso").text(data[0].value);
+            var access = data[0].value;
         },
         error: function () {
             console.error('Error al obtener los claims del usuario.');
@@ -559,4 +565,9 @@ function extractLatLon(text) {
 
 $(document).on("click", "#cerrarmodalImagenCompleta", function () {
     $("#modalImagenCompleta").modal("hide");
+});
+
+
+$(document).on("click", ".boton-eliminar-inmueble", function () {
+
 });
