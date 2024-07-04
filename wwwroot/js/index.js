@@ -24,6 +24,7 @@ var access = null;
 //    fechaContrato: ""
 //}
 document.addEventListener("DOMContentLoaded", function () {
+
     var i = 0;
 
     var latLng = new google.maps.LatLng(24.02, -104.62);

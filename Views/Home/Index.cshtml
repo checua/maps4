@@ -151,7 +151,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h1 class="modal-title fs-5" id="exampleModalLabel">Registrar inmueble</h1>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" onclick="clearAll();" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
             <div id="inmuebleForm">
@@ -199,11 +199,11 @@
     </div>
 </div>
 
-<div class="modal" id="modalImagenCompleta" tabindex="-1" role="dialog" aria-labelledby="modalImagenCompletaLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
+<div class="modal modal-dialog-centered" id="modalImagenCompleta" tabindex="-1" role="dialog" aria-labelledby="modalImagenCompletaLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="modalImagenCompletaLabel">Imagen Completa</h5>
+            <div class="modal-header d-flex justify-content-end" id="modal-header-modalImagenCompleta">
+                @* <h5 class="modal-title" id="modalImagenCompletaLabel">Imagen Completa</h5> *@
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close" id="cerrarmodalImagenCompleta">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -213,9 +213,9 @@
                     <!-- Las imágenes se insertarán dinámicamente aquí -->
                 </div>
             </div>
-            <div class="modal-footer">
+            @*<div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal" id="cerrarmodalImagenCompleta">Cerrar</button>
-            </div>
+             </div> *@
         </div>
     </div>
 </div>

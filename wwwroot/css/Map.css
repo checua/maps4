@@ -1,6 +1,7 @@
 ﻿html, body {
     margin: 0;
     padding: 0;
+    overflow-y: hidden !important;
 }
 
 #map_canvas {
@@ -163,3 +164,9 @@
 .modal-footer .right-buttons {
     margin-left: auto;
 }
+
+
+.modal-content {
+    margin: 0 auto; /* Asegura que los modales no se traslapen */
+}
+

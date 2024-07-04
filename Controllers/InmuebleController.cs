@@ -64,10 +64,8 @@ namespace maps4.Controllers
                     {
                         if (file.Length > 0)
                         {
-                            // Obtener la extensión del archivo
-                            var extension = Path.GetExtension(file.FileName);
-                            // Generar el nombre del archivo
-                            var fileName = $"{inmueble_creado.IdInmueble}_{fileCounter}{extension}";
+                            // Generar el nombre del archivo con la extensión .jpg
+                            var fileName = $"{inmueble_creado.IdInmueble}_{fileCounter}.jpg";
                             var filePath = Path.Combine("wwwroot/cargas", fileName);
 
                             using (var stream = new FileStream(filePath, FileMode.Create))
