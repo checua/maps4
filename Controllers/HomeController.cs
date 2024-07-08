@@ -85,7 +85,7 @@ namespace maps4.Controllers
             }
             else
             {
-                return new JsonResult(null);
+                return new JsonResult(0);
             }
         }
 

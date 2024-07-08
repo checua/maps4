@@ -1,6 +1,6 @@
 ﻿var map;
 var geocoder;
-var infowindow;
+var infoWindow;
 var marker;
 var markerx;
 var markers = [];
@@ -15,239 +15,30 @@ var degrees = 90;
 var img = null;
 var canvas = null;
 var access = null;
-var i = 0;
-var latLng;
 
-// Función para cargar la API de Google Maps de manera asincrónica
-function loadGoogleMapsAPI(apiKey) {
-    return new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=initMap&libraries=&v=weekly&channel=2&loading=async`;
-        script.async = true;
-        script.defer = true;
-        script.onerror = () => reject(new Error('Error loading Google Maps API'));
-        window.initMap = () => {
-            resolve();
-            initializeMap(); // Inicializar el mapa una vez que la API se haya cargado
-        };
-        document.head.appendChild(script);
-    });
-}
+//const _modeloEmpleado = {
+//    idEmpleado: 0,
+//    nombreCompleto: "",
+//    idDepartamento: 0,
+//    sueldo: 0,
+//    fechaContrato: ""
+//}
+document.addEventListener("DOMContentLoaded", function () {
 
-// Función para inicializar el mapa
-function initializeMap() {
-    const latLng = new google.maps.LatLng(24.02, -104.62);
-    const opciones = {
+    var i = 0;
+
+    var latLng = new google.maps.LatLng(24.02, -104.62);
+    var opciones = {
         center: latLng,
         zoom: 12,
         mapTypeId: google.maps.MapTypeId.roadmap,
         disableDefaultUI: true
     };
 
-    map = new google.maps.Map(document.getElementById('map_canvas'), opciones);
+    var map = new google.maps.Map(document.getElementById('map_canvas'), opciones);
     geocoder = new google.maps.Geocoder();
     infowindow = new google.maps.InfoWindow();
 
-    google.maps.event.addListener(map, 'mousedown', function (e) {
-        mousedUp = false;
-        setTimeout(function () {
-
-            var latLng = e.latLng;
-
-            if (mousedUp === false) {
-                var log = document.getElementById("lnkAcceso").innerText;
-
-                if (log != "Iniciar Sesión") //Le cambie para no batallar en entrar, pero hay que regresar a ==
-                    //alert(log);
-                    geocoder.geocode({ 'latLng': latLng }, function (results, status) {
-
-                        //alert("Geocode");
-                        if (status == google.maps.GeocoderStatus.OK) {
-
-                            //alert("Status ok");
-
-                            if (results[0]) {
-
-                                var location1 = results[0].geometry.location;
-                                var lat1 = latLng.lat().toFixed(6);
-                                var lng1 = latLng.lng().toFixed(6);
-                                var adress1 = results[0].formatted_address;
-
-                                marker = new google.maps.Marker({
-                                    position: latLng,
-                                    map: map
-                                });
-
-                                markers[i] = marker;
-                                i++;
-
-                                var label = document.getElementById('ubicacion');
-                                label.textContent = "(" + lat1 + "," + lng1 + ")";
-
-                                //alert("Si result 1");
-                                //alert(location1 + " " + lat1 + " " + lat2 + " " + adress1);
-
-                                $('#btnClear').show();
-                                $('.btn-fileupload').show();
-                                $('.boton-guardar-inmueble').show();
-
-                                $(".boton-eliminar-inmueble").hide();
-
-                                GetCode2();
-
-
-
-
-                            } else {
-                                //            document.getElementById('geocoding').innerHTML =
-                                //                'No se encontraron resultados';
-                                alert("No result 0");
-                            }
-
-                        }
-                        else {
-                            document.getElementById("lnkAcceso").innerHTML = 'Geocodificación  ha fallado debido a: ' + status;
-                        }
-                    });
-                else {
-                    alert("Ingresa para poder registrar propiedades");
-                }
-
-            }
-        }, 500);
-
-    });
-    google.maps.event.addListener(map, 'mouseup', function (event) {
-        mousedUp = true;
-    });
-    google.maps.event.addListener(map, 'dragstart', function (event) {
-        mousedUp = true;
-    });
-    google.maps.event.addListener(map, 'touchstart', function (event) {
-        mousedUp = true;
-    });
-
-    fetchMarkers();
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    const apiKey = 'AIzaSyAiEPIpKUewZTon1DeYNod3M63NB_HRcU4';  // Reemplaza con tu clave API de Google Maps
-    loadGoogleMapsAPI(apiKey)
-        .then(() => {
-            console.log('Google Maps API loaded successfully');
-        })
-        .catch(error => {
-            console.error('Error loading Google Maps API:', error);
-        });
-
-
-
-});
-
-function fetchMarkers() {
-    fetch("/Home/listaInmuebles")
-        .then(response => {
-            return response.ok ? response.json() : Promise.reject(response)
-        })
-        .then(responseJson => {
-            if (responseJson.length > 0) {
-                responseJson.forEach((item) => {
-                    let imageIcon;
-                    switch (item.idTipo) {
-                        case 2:
-                            imageIcon = "images/icon/casa_che.png";
-                            break;
-                        case 3:
-                            imageIcon = "images/icon/casa.png";
-                            break;
-                        case 4:
-                            imageIcon = "images/icon/apartment1.png";
-                            break;
-                        case 5:
-                            imageIcon = "images/icon/apartment2.png";
-                            break;
-                        case 6:
-                            imageIcon = "images/icon/terreno1b.png";
-                            break;
-                        case 7:
-                            imageIcon = "images/icon/terreno2.png";
-                            break;
-                        case 8:
-                            imageIcon = "images/icon/local.png";
-                            break;
-                        case 9:
-                            imageIcon = "images/icon/local2.png";
-                            break;
-                        case 10:
-                            imageIcon = "images/icon/building.png";
-                            break;
-                        case 11:
-                            imageIcon = "images/icon/building2.png";
-                            break;
-                        case 12:
-                            imageIcon = "images/icon/montacargas2.png";
-                            break;
-                        case 13:
-                            imageIcon = "images/icon/montacargas.png";
-                            break;
-                        case 14:
-                            imageIcon = "images/icon/desk.png";
-                            break;
-                        case 15:
-                            imageIcon = "images/icon/desk2.png";
-                            break;
-                        case 16:
-                            imageIcon = "images/icon/tractor2.png";
-                            break;
-                        case 17:
-                            imageIcon = "images/icon/tractor3.png";
-                            break;
-                    }
-
-                    const latLng = new google.maps.LatLng(item.lat, item.lng);
-                    const markerx = new google.maps.Marker({
-                        position: latLng,
-                        map,
-                        title: String(item.idTipo),
-                        icon: {
-                            url: imageIcon,
-                            scaledSize: new google.maps.Size(32, 32),
-                            origin: new google.maps.Point(0, 0), // Origen de la imagen (0, 0)
-                            anchor: new google.maps.Point(16, 16) // Punto de anclaje de la imagen (centrado)
-                        },
-                    });
-
-                    markerx.customInfo = item.precio;
-                    markersx[i] = markerx;
-                    i++;
-
-                    markerx.addListener('click', function () {
-                        $('#btnClear').css('display', "none");
-                        $('.btn-fileupload').css('display', "none");
-                        $('.boton-guardar-inmueble').css('display', "none");
-
-                        const str = document.getElementById("lnkAcceso").innerText;
-                        const str2 = item.refUsuario.correo.toString();
-
-                        const res = str.toUpperCase();
-                        const res2 = str2.toUpperCase();
-
-                        if (res != res2) {
-                            $('.boton-eliminar-inmueble').css('display', "none");
-                        } else {
-                            $(".boton-eliminar-inmueble").show();
-                        }
-
-                        GetCode1(item.idTipo, item.idInmueble, item.nombreCompleto, item.telefono, item.terreno, item.construccion, item.precio, item.observaciones, item.contacto, item.imagenes);
-                    });
-                });
-                map.setCenter(latLng);
-            }
-        })
-        .catch(error => {
-            console.error('Error al obtener la lista de inmuebles:', error);
-        });
-}
 
     fetch("/Home/listaInmuebles")
         .then(response => {
@@ -312,7 +103,7 @@ function fetchMarkers() {
                             break
                     }
 
-                    latLng = new google.maps.LatLng(item.lat, item.lng);
+                    var latLng = new google.maps.LatLng(item.lat, item.lng);
                     markerx = new google.maps.Marker({
                         position: latLng,
                         map,
@@ -334,8 +125,8 @@ function fetchMarkers() {
 
                     markerx.addListener('click', function () {
 
-                        $('#btnClear').css('display', "none");
-                        $('.btn-fileupload').css('display', "none");
+                        $('#btnClear').css('display', "none"); 
+                        $('.btn-fileupload').css('display', "none"); 
                         $('.boton-guardar-inmueble').css('display', "none");
 
                         var str = document.getElementById("lnkAcceso").innerText;
@@ -359,6 +150,100 @@ function fetchMarkers() {
                 map.setCenter(latLng);
             }
         })
+
+    google.maps.event.addListener(map, 'mousedown', function (e) {
+        mousedUp = false;
+        setTimeout(function () {
+
+            var latLng = e.latLng;
+
+            if (mousedUp === false) {
+            var log = document.getElementById("lnkAcceso").innerText;
+
+                if (log != "Iniciar Sesión") //Le cambie para no batallar en entrar, pero hay que regresar a ==
+                    //alert(log);
+                    geocoder.geocode({ 'latLng': latLng }, function (results, status) {
+
+                        //alert("Geocode");
+                        if (status == google.maps.GeocoderStatus.OK) {
+
+                            //alert("Status ok");
+
+                            if (results[0]) {
+
+                                var location1 = results[0].geometry.location;
+                                var lat1 = latLng.lat().toFixed(6);
+                                var lng1 = latLng.lng().toFixed(6);
+                                var adress1 = results[0].formatted_address;
+
+                                marker = new google.maps.Marker({
+                                    position: latLng,
+                                    map: map
+                                });
+
+                                markers[i] = marker;
+                                i++;
+
+                                var label = document.getElementById('ubicacion');
+                                label.textContent = "(" + lat1 + "," + lng1 + ")";
+
+                                //alert("Si result 1");
+                                //alert(location1 + " " + lat1 + " " + lat2 + " " + adress1);
+
+                                $('#btnClear').show();
+                                $('.btn-fileupload').show();
+                                $('.boton-guardar-inmueble').show();
+
+                                $(".boton-eliminar-inmueble").hide();
+
+                                GetCode2();
+
+
+
+
+                            } else {
+                                //            document.getElementById('geocoding').innerHTML =
+                                //                'No se encontraron resultados';
+                                alert("No result 0");
+                            }
+
+                        }
+                        else {
+                            document.getElementById("lnkAcceso").innerHTML = 'Geocodificación  ha fallado debido a: ' + status;
+                        }
+                    });
+                else {
+                    alert("Ingresa para poder registrar propiedades");
+                }
+
+            }
+        }, 500);
+
+    });
+
+    google.maps.event.addListener(map, 'mouseup', function (event) {
+        mousedUp = true;
+    });
+    google.maps.event.addListener(map, 'dragstart', function (event) {
+        mousedUp = true;
+    });
+    google.maps.event.addListener(map, 'touchstart', function (event) {
+        mousedUp = true;
+    });
+
+    $.ajax({
+        url: '/Home/GetUserClaims',
+        type: 'GET',
+        success: function (data) {
+            // Maneja los claims devueltos aquí
+            //console.log(data);
+            $("#lnkAcceso").text(data[0].value);
+            var access = data[0].value;
+        },
+        error: function () {
+            console.error('Error al obtener los claims del usuario.');
+        }
+    });
 
 
 
@@ -386,27 +271,14 @@ function fetchMarkers() {
 
         })
 
-    fetch('/Home/GetUserClaims', {
-        method: 'GET'
-    })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (!data || data.length === 0 || data === 0) {
-                // Si los datos son 0, no hacer nada
-                return;
-            }
-            // Maneja los claims devueltos aquí
-            document.getElementById('lnkAcceso').textContent = data[0].value;
-            var access = data[0].value;
-        })
-        .catch(error => {
-            console.error('Error al obtener los claims del usuario:', error);
-        });
+    //$("#txtFechaContrato").datepicker({
+    //    format: "dd/mm/yyyy",
+    //    autoclose: true,
+    //    todayHighlight: true
+    //})
+
+
+}, false);
 
 
 
@@ -617,7 +489,7 @@ document.getElementById('modalInmueble').addEventListener('hidden.bs.modal', fun
 
 function clearAll() {
     markers.forEach(function (marker) {
-        marker.setMap(null);
+        marker.setMap(null); 
     });
 
     markers = [];
@@ -688,7 +560,7 @@ function extractLatLon(text) {
         let lng = parseFloat(parts[2]).toFixed(6);
         return { lat: parseFloat(lat), lng: parseFloat(lng) };
     }
-    return { lat: null, lng: null };
+    return { lat: null, lng: null }; 
 }
 
 
@@ -700,4 +572,3 @@ $(document).on("click", "#cerrarmodalImagenCompleta", function () {
 $(document).on("click", ".boton-eliminar-inmueble", function () {
 
 });
-
