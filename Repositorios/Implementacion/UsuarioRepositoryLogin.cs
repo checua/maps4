@@ -64,14 +64,14 @@ namespace maps4.Repositorios.Implementacion
                 cmd.Parameters.AddWithValue("nombres", modelo.nombres);
                 cmd.Parameters.AddWithValue("aPaterno", modelo.aPaterno);
                 cmd.Parameters.AddWithValue("aMaterno", "");
-                cmd.Parameters.AddWithValue("idInmobiliaria", "1");
+                cmd.Parameters.AddWithValue("idInmobiliaria", 1);
                 cmd.Parameters.AddWithValue("nick", "nick");
                 cmd.Parameters.AddWithValue("contra", modelo.contra);
                 cmd.Parameters.AddWithValue("telefono", modelo.telefono);
                 cmd.Parameters.AddWithValue("correo", modelo.correo);
                 cmd.Parameters.AddWithValue("foto", "foto");
                 cmd.Parameters.AddWithValue("obs", "obs");
-                cmd.Parameters.AddWithValue("dob", DateTime.Now.ToString());
+                cmd.Parameters.AddWithValue("dob", DateTime.Now.ToString("d"));
                 cmd.Parameters.AddWithValue("revisado", 1);
 
                 cmd.CommandType = CommandType.StoredProcedure;

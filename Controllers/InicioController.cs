@@ -95,7 +95,9 @@ namespace maps4.Controllers
             if (usuario_creado.correo != "")
             {
                 //return RedirectToAction("IniciarSesion", "Inicio");
-                return RedirectToAction("IniciarSesion", "Inicio", new { correo = modelo.correo, contra = modelo.contra }); //Para cuando quiere loguearse después de registrarse
+                return RedirectToAction("IniciarSesion", "Inicio");
+                
+                //, new { correo = modelo.correo, contra = modelo.contra }); //Para cuando quiere loguearse después de registrarse
                 ViewData["Mensaje"] = modelo.correo;
             }
             else

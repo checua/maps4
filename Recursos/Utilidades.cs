@@ -7,10 +7,9 @@ namespace maps4.Recursos
     {
         public static string EncriptarClave(string contra)
         {
-
             StringBuilder sb = new StringBuilder();
 
-            using (SHA256 hash = SHA256Managed.Create())
+            using (SHA256 hash = SHA256.Create())
             {
                 Encoding enc = Encoding.UTF8;
 
@@ -21,7 +20,6 @@ namespace maps4.Recursos
             }
 
             return sb.ToString();
-
         }
     }
 }
