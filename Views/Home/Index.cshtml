@@ -150,10 +150,9 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h1 class="modal-title fs-5" id="exampleModalLabel">Registrar inmueble</h1>
+                <h1 class="modal-title fs-5" id="exampleModalLabel">Inmueble</h1>
                 <button type="button" class="btn-close" onclick="clearAll();" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-
             <div id="inmuebleForm">
             @* <form asp-controller="Inicio" asp-action="GuardarInmueble" method="post" id="inmuebleForm"> *@
                 <div class="modal-body">
@@ -177,10 +176,14 @@
                     <input class="form-control mb-3" type="text" placeholder="Construcción" name="construccion" id="construccion" required />
                     <input class="form-control mb-3" type="text" placeholder="Precio" name="precio" id="precio" required />
                     <input class="form-control mb-3" type="text" placeholder="Descripción" name="descripcion" id="descripcion" />
-                    <input class="form-control mb-3" type="text" placeholder="Contacto alterno" name="contacto_a" id="contacto_a" required />
-                    <label id="ubicacion"></label> 
+                    <input class="form-control mb-3" type="text" placeholder="Notas privadas" name="contacto_a" id="contacto_a"/>
 
+                    <div class="d-flex justify-content-between">
+                        <label id="ubicacion"></label>
+                        <label id="telefono"></label>
+                    </div>
                 </div>
+
                 <div class="modal-footer">
                     <div class="d-flex justify-content-between w-100">
                         <div class="left-buttons">

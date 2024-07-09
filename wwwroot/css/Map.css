@@ -170,3 +170,8 @@
     margin: 0 auto; /* Asegura que los modales no se traslapen */
 }
 
+#ubicacion {
+    text-align:right;
+}
+
+

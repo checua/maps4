@@ -8,7 +8,7 @@
         public float Terreno { get; set; }
         public float Construccion { get; set; }
         public float Precio { get; set; }
-        public string Observaciones { get; set; }
-        public string Contacto { get; set; }
+        public string? Observaciones { get; set; }
+        public string? Contacto { get; set; }
     }
 }

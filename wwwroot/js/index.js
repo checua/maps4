@@ -17,6 +17,7 @@ var canvas = null;
 var access = null;
 var i = 0;
 var latLng;
+var latLngx;
 
 // Función para cargar la API de Google Maps de manera asincrónica
 function loadGoogleMapsAPI(apiKey) {
@@ -36,7 +37,7 @@ function loadGoogleMapsAPI(apiKey) {
 
 // Función para inicializar el mapa
 function initializeMap() {
-    const latLng = new google.maps.LatLng(24.02, -104.62);
+    const latLng = new google.maps.LatLng(24.017926, -104.657079);
     const opciones = {
         center: latLng,
         zoom: 12,
@@ -52,14 +53,14 @@ function initializeMap() {
         mousedUp = false;
         setTimeout(function () {
 
-            var latLng = e.latLng;
+            var latLng1 = e.latLng;
 
             if (mousedUp === false) {
                 var log = document.getElementById("lnkAcceso").innerText;
 
                 if (log != "Iniciar Sesión") //Le cambie para no batallar en entrar, pero hay que regresar a ==
                     //alert(log);
-                    geocoder.geocode({ 'latLng': latLng }, function (results, status) {
+                    geocoder.geocode({ 'latLng': latLng1 }, function (results, status) {
 
                         //alert("Geocode");
                         if (status == google.maps.GeocoderStatus.OK) {
@@ -69,12 +70,12 @@ function initializeMap() {
                             if (results[0]) {
 
                                 var location1 = results[0].geometry.location;
-                                var lat1 = latLng.lat().toFixed(6);
-                                var lng1 = latLng.lng().toFixed(6);
+                                var lat1 = latLng1.lat().toFixed(6);
+                                var lng1 = latLng1.lng().toFixed(6);
                                 var adress1 = results[0].formatted_address;
 
                                 marker = new google.maps.Marker({
-                                    position: latLng,
+                                    position: latLng1,
                                     map: map
                                 });
 
@@ -83,27 +84,19 @@ function initializeMap() {
 
                                 var label = document.getElementById('ubicacion');
                                 label.textContent = "(" + lat1 + "," + lng1 + ")";
-
                                 //alert("Si result 1");
                                 //alert(location1 + " " + lat1 + " " + lat2 + " " + adress1);
-
                                 $('#btnClear').show();
                                 $('.btn-fileupload').show();
                                 $('.boton-guardar-inmueble').show();
-
+                                $('#contacto_a').show();
                                 $(".boton-eliminar-inmueble").hide();
 
                                 GetCode2();
-
-
-
-
                             } else {
-                                //            document.getElementById('geocoding').innerHTML =
-                                //                'No se encontraron resultados';
+                                // document.getElementById('geocoding').innerHTML ='No se encontraron resultados';
                                 alert("No result 0");
                             }
-
                         }
                         else {
                             document.getElementById("lnkAcceso").innerHTML = 'Geocodificación  ha fallado debido a: ' + status;
@@ -112,7 +105,6 @@ function initializeMap() {
                 else {
                     alert("Ingresa para poder registrar propiedades");
                 }
-
             }
         }, 500);
 
@@ -234,11 +226,14 @@ function fetchMarkers() {
 
                         if (res != res2) {
                             $('.boton-eliminar-inmueble').css('display', "none");
+                            $("#contacto_a").hide(); 
                         } else {
                             $(".boton-eliminar-inmueble").show();
+                            $("#contacto_a").show(); 
                         }
 
-                        GetCode1(item.idTipo, item.idInmueble, item.nombreCompleto, item.telefono, item.terreno, item.construccion, item.precio, item.observaciones, item.contacto, item.imagenes);
+                        var nom_tel = item.refUsuario.nombres + " " + item.refUsuario.aPaterno;
+                        GetCode1(item.idTipo, item.idInmueble, nom_tel , item.telefono, item.terreno, item.construccion, item.precio, item.observaciones, item.contacto, item.imagenes);
                     });
                 });
                 map.setCenter(latLng);
@@ -249,116 +244,116 @@ function fetchMarkers() {
         });
 }
 
-    fetch("/Home/listaInmuebles")
-        .then(response => {
-            return response.ok ? response.json() : Promise.reject(response)
-        })
-        .then(responseJson => {
+    //fetch("/Home/listaInmuebles")
+    //    .then(response => {
+    //        return response.ok ? response.json() : Promise.reject(response)
+    //    })
+    //    .then(responseJson => {
 
-            if (responseJson.length > 0) {
+    //        if (responseJson.length > 0) {
 
-                responseJson.forEach((item) => {
-                    switch (item.idTipo) {
-                        //case 0:
-                        //    imageIcon = "images/icon/casa_che.png";
-                        //    break;
-                        case 2:
-                            imageIcon = "images/icon/casa_che.png";
-                            break;
-                        case 3:
-                            imageIcon = "images/icon/casa.png";
-                            break;
-                        case 4:
-                            imageIcon = "images/icon/apartment1.png";
-                            break;
-                        case 5:
-                            imageIcon = "images/icon/apartment2.png";
-                            break;
-                        case 6:
-                            imageIcon = "images/icon/terreno1b.png";
-                            break;
-                        case 7:
-                            imageIcon = "images/icon/terreno2.png";
-                            break
-                        case 8:
-                            imageIcon = "images/icon/local.png";
-                            break
-                        case 9:
-                            imageIcon = "images/icon/local2.png";
-                            break
-                        case 10:
-                            imageIcon = "images/icon/building.png";
-                            break
-                        case 11:
-                            imageIcon = "images/icon/building2.png";
-                            break
-                        case 12:
-                            imageIcon = "images/icon/montacargas2.png";
-                            break
-                        case 13:
-                            imageIcon = "images/icon/montacargas.png";
-                            break
-                        case 14:
-                            imageIcon = "images/icon/desk.png";
-                            break
-                        case 15:
-                            imageIcon = "images/icon/desk2.png";
-                            break
-                        case 16:
-                            imageIcon = "images/icon/tractor2.png";
-                            break
-                        case 17:
-                            imageIcon = "images/icon/tractor3.png";
-                            break
-                    }
+    //            responseJson.forEach((item) => {
+    //                switch (item.idTipo) {
+    //                    //case 0:
+    //                    //    imageIcon = "images/icon/casa_che.png";
+    //                    //    break;
+    //                    case 2:
+    //                        imageIcon = "images/icon/casa_che.png";
+    //                        break;
+    //                    case 3:
+    //                        imageIcon = "images/icon/casa.png";
+    //                        break;
+    //                    case 4:
+    //                        imageIcon = "images/icon/apartment1.png";
+    //                        break;
+    //                    case 5:
+    //                        imageIcon = "images/icon/apartment2.png";
+    //                        break;
+    //                    case 6:
+    //                        imageIcon = "images/icon/terreno1b.png";
+    //                        break;
+    //                    case 7:
+    //                        imageIcon = "images/icon/terreno2.png";
+    //                        break
+    //                    case 8:
+    //                        imageIcon = "images/icon/local.png";
+    //                        break
+    //                    case 9:
+    //                        imageIcon = "images/icon/local2.png";
+    //                        break
+    //                    case 10:
+    //                        imageIcon = "images/icon/building.png";
+    //                        break
+    //                    case 11:
+    //                        imageIcon = "images/icon/building2.png";
+    //                        break
+    //                    case 12:
+    //                        imageIcon = "images/icon/montacargas2.png";
+    //                        break
+    //                    case 13:
+    //                        imageIcon = "images/icon/montacargas.png";
+    //                        break
+    //                    case 14:
+    //                        imageIcon = "images/icon/desk.png";
+    //                        break
+    //                    case 15:
+    //                        imageIcon = "images/icon/desk2.png";
+    //                        break
+    //                    case 16:
+    //                        imageIcon = "images/icon/tractor2.png";
+    //                        break
+    //                    case 17:
+    //                        imageIcon = "images/icon/tractor3.png";
+    //                        break
+    //                }
 
-                    latLng = new google.maps.LatLng(item.lat, item.lng);
-                    markerx = new google.maps.Marker({
-                        position: latLng,
-                        map,
-                        title: String(item.idTipo),
-                        icon: {
-                            url: imageIcon,
-                            scaledSize: new google.maps.Size(32, 32),
-                            origin: new google.maps.Point(0, 0), // Origen de la imagen (0, 0)
-                            anchor: new google.maps.Point(16, 16) // Punto de anclaje de la imagen (centrado)
-                        },
-                    });
+    //                latLngx = new google.maps.LatLng(item.lat, item.lng);
+    //                markerx = new google.maps.Marker({
+    //                    position: latLngx,
+    //                    map,
+    //                    title: String(item.idTipo),
+    //                    icon: {
+    //                        url: imageIcon,
+    //                        scaledSize: new google.maps.Size(32, 32),
+    //                        origin: new google.maps.Point(0, 0), // Origen de la imagen (0, 0)
+    //                        anchor: new google.maps.Point(16, 16) // Punto de anclaje de la imagen (centrado)
+    //                    },
+    //                });
 
-                    markerx.customInfo = item.precio;
+    //                markerx.customInfo = item.precio;
 
-                    markersx[i] = markerx;
-                    i++;
-
-
-
-                    markerx.addListener('click', function () {
-
-                        $('#btnClear').css('display', "none");
-                        $('.btn-fileupload').css('display', "none");
-                        $('.boton-guardar-inmueble').css('display', "none");
-
-                        var str = document.getElementById("lnkAcceso").innerText;
-                        var str2 = item.refUsuario.correo.toString();
-
-                        var res = str.toUpperCase();
-                        var res2 = str2.toUpperCase();
-
-                        if (res != res2) {
-                            $('.boton-eliminar-inmueble').css('display', "none");
-                        }
-                        else {
-                            $(".boton-eliminar-inmueble").show();
-                        }
-
-                        GetCode1(item.idTipo, item.idInmueble, item.nombreCompleto, item.telefono, item.terreno, item.construccion, item.precio, item.observaciones, item.contacto, item.imagenes);
-                    });
+    //                markersx[i] = markerx;
+    //                i++;
 
 
-                })
-                map.setCenter(latLng);
-            }
-        })
+
+    //                markerx.addListener('click', function () {
+
+    //                    $('#btnClear').css('display', "none");
+    //                    $('.btn-fileupload').css('display', "none");
+    //                    $('.boton-guardar-inmueble').css('display', "none");
+
+    //                    var str = document.getElementById("lnkAcceso").innerText;
+    //                    var str2 = item.refUsuario.correo.toString();
+
+    //                    var res = str.toUpperCase();
+    //                    var res2 = str2.toUpperCase();
+
+    //                    if (res != res2) {
+    //                        $('.boton-eliminar-inmueble').css('display', "none");
+    //                    }
+    //                    else {
+    //                        $(".boton-eliminar-inmueble").show();
+    //                    }
+
+    //                    GetCode1(item.idTipo, item.idInmueble, item.nombreCompleto, item.telefono, item.terreno, item.construccion, item.precio, item.observaciones, item.contacto, item.imagenes);
+    //                });
+
+
+    //            })
+    //            map.setCenter(latLng); // Este se debe mover a donde el usuario designe como su lugar de residencia
+    //        }
+    //    })
 
 
 
@@ -472,18 +467,19 @@ function panel(imgElement) {
 
 function GetCode1(a, b, c, d, e, f, g, h, i, j) {
     $('#tipo').val(a);
+    document.getElementById("telefono").innerHTML = c + " " + d;
     $('#terreno').val(numberWithCommas(e));
     $('#construccion').val(numberWithCommas(f));
     $('#precio').val("$ " + numberWithCommas(g));
     $('#descripcion').val(h);
     $('#contacto_a').val(i);
-    document.getElementById("ubicacion").innerHTML = j;
+    document.getElementById("ubicacion").innerHTML = "";//j;
 
     $('#imgViewer').remove();
     $('#imageStrip').empty(); // Limpiar el contenedor antes de añadir nuevas imágenes
 
     $('div#test1').append('<div id="imgViewer" class="slider"></div>');
-    if (i > 0) {
+    if (j > 0) {
         for (var x = 1; x <= j; x++) {
             var imgSrc = `Cargas/${b}_${x}.jpg`;
             var imgElement = `
@@ -506,21 +502,24 @@ function GetCode1(a, b, c, d, e, f, g, h, i, j) {
 }
 
 function GetCode2() {
-
     //$("#txtNombreCompleto").val(_modeloEmpleado.nombreCompleto);
     //$("#cboDepartamento").val(_modeloEmpleado.idDepartamento == 0 ? $("#cboDepartamento option:first").val() : _modeloEmpleado.idDepartamento)
     //$("#txtSueldo").val(_modeloEmpleado.sueldo);
     //$("#txtFechaContrato").val(_modeloEmpleado.fechaContrato)
-
     $("#modalInmueble").modal("show");
-
 }
+
 function ShowImagePreview(evt) {
     var files = evt.files;
     if (files.length) {
         var filePromises = [];
         for (var i = 0, f; f = files[i]; i++) {
-            filePromises.push(resizeImageFile(f));
+            // Verificar si el archivo es una imagen
+            if (f.type.startsWith('image/')) {
+                filePromises.push(resizeImageFile(f));
+            } else {
+                console.warn(`File ${f.name} is not an image and will be discarded.`);
+            }
         }
 
         Promise.all(filePromises).then(function (resizedFiles) {
@@ -599,6 +598,7 @@ async function resizeImageFile(file) {
 
 
 
+
 function clearPreviewAndFields() {
     // Limpiar imágenes del contenedor de vista previa
     document.getElementById('imgViewer').innerHTML = '';
@@ -607,6 +607,10 @@ function clearPreviewAndFields() {
     document.getElementById('tipo').value = '';
     document.getElementById('terreno').value = '';
     document.getElementById('construccion').value = '';
+    document.getElementById('precio').value = '';
+    document.getElementById('descripcion').value = '';
+    document.getElementById('contacto_a').value = '';
+    document.getElementById("telefono").innerHTML = "";
 
     // Ocultar el botón "Limpiar"
     document.getElementById('btnClear').style.display = 'none';
@@ -624,6 +628,21 @@ function clearAll() {
     });
 
     markers = [];
+
+    // Limpiar imágenes del contenedor de vista previa
+    document.getElementById('imgViewer').innerHTML = '';
+
+    // Limpiar campos de entrada
+    document.getElementById('tipo').value = '';
+    document.getElementById('terreno').value = '';
+    document.getElementById('construccion').value = '';
+    document.getElementById('precio').value = '';
+    document.getElementById('descripcion').value = '';
+    document.getElementById('contacto_a').value = '';
+    document.getElementById("telefono").innerHTML = "";
+
+    // Ocultar el botón "Limpiar"
+    document.getElementById('btnClear').style.display = 'none';
 
     // Opcional: También podrías limpiar cualquier otro estado o realizar otras acciones necesarias
 }

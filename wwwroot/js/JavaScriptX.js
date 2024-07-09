@@ -51,7 +51,19 @@
         });
     });
 
-    document.getElementById('contacto_a').addEventListener('keypress', function (e) {
+    document.getElementById('precio').addEventListener('keypress', function (e) {
+        // Utiliza la expresión regular para permitir solo números
+        if (!/^\d+$/.test(e.key) && e.key !== 'Backspace') {
+            e.preventDefault();  // Previene la acción por defecto si no es un número
+        }
+    });
+    document.getElementById('construccion').addEventListener('keypress', function (e) {
+        // Utiliza la expresión regular para permitir solo números
+        if (!/^\d+$/.test(e.key) && e.key !== 'Backspace') {
+            e.preventDefault();  // Previene la acción por defecto si no es un número
+        }
+    });
+    document.getElementById('terreno').addEventListener('keypress', function (e) {
         // Utiliza la expresión regular para permitir solo números
         if (!/^\d+$/.test(e.key) && e.key !== 'Backspace') {
             e.preventDefault();  // Previene la acción por defecto si no es un número
