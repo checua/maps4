@@ -386,27 +386,30 @@ function fetchMarkers() {
 
         })
 
-    fetch('/Home/GetUserClaims', {
-        method: 'GET'
+fetch('/Home/GetUserClaims', {
+    method: 'GET'
+})
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
     })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (!data || data.length === 0 || data === 0) {
-                // Si los datos son 0, no hacer nada
-                return;
-            }
-            // Maneja los claims devueltos aquí
-            document.getElementById('lnkAcceso').textContent = data[0].value;
-            var access = data[0].value;
-        })
-        .catch(error => {
-            console.error('Error al obtener los claims del usuario:', error);
-        });
+    .then(data => {
+        if (!data || data.length === 0 || data === 0) {
+            // Si los datos son 0, no hacer nada
+            return;
+        }
+        // Maneja los claims devueltos aquí
+        document.getElementById('lnkAcceso').textContent = data[0].value;
+        var access = data[0].value;
+    })
+    .catch(error => {
+        console.error('Error al obtener los claims del usuario:', error);
+    });
+
+
+
 
 
 

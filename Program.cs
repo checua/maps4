@@ -23,8 +23,11 @@ builder.Services.AddScoped<IInmuebleServicio<Inmueble>, InmuebleRegistroReposito
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
+        options.ExpireTimeSpan = TimeSpan.FromDays(10); // Cambiar a más de 10 días
+        options.SlidingExpiration = true; // Opcional, para reiniciar el tiempo de expiración en cada solicitud
         options.LoginPath = "/Inicio/IniciarSesion";
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(20);
+        options.Cookie.SameSite = SameSiteMode.Lax; // Ajusta según tu necesidad (Lax, Strict, None)
+        options.Cookie.HttpOnly = true; // Asegura que las cookies solo se envíen a través de solicitudes HTTP(S)
     });
 
 var app = builder.Build();

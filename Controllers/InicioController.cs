@@ -26,15 +26,14 @@ namespace maps4.Controllers
 
 
         [HttpGet]
-        public async Task<IActionResult> IniciarSesion(String correo, String contra)
+        public async Task<IActionResult> IniciarSesion(string correo, string contra)
         {
-            if (correo != null && contra != null)
+            if (!string.IsNullOrEmpty(correo) && !string.IsNullOrEmpty(contra))
             {
                 List<Usuario> _lista = new List<Usuario>();
 
                 if (contra.Length < 20)
                 {
-
                     _lista = await _usuarioRepositoryLogin.GetUsuario(correo, Utilidades.EncriptarClave(contra));
                 }
                 else
@@ -50,33 +49,33 @@ namespace maps4.Controllers
                     return View();
                 }
 
-                List<Claim> claims = new List<Claim>() {
-                new Claim(ClaimTypes.Name, usuario_encontrado.correo)
-            };
+                List<Claim> claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.Name, usuario_encontrado.correo)
+        };
 
                 ClaimsIdentity claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                AuthenticationProperties properties = new AuthenticationProperties()
+                AuthenticationProperties properties = new AuthenticationProperties
                 {
-                    AllowRefresh = true
+                    AllowRefresh = true,
+                    IsPersistent = true, // Para que la cookie persista después de cerrar el navegador
+                    ExpiresUtc = DateTimeOffset.UtcNow.AddDays(10) // Asegura que la cookie expira en 10 días
                 };
 
                 await HttpContext.SignInAsync(
                     CookieAuthenticationDefaults.AuthenticationScheme,
                     new ClaimsPrincipal(claimsIdentity),
                     properties
-                    );
-
+                );
 
                 if (contra.Length < 20)
                 {
-
                     return StatusCode(StatusCodes.Status200OK, _lista);
                 }
                 else
                 {
                     return RedirectToAction("Index", "Home");
                 }
-                
             }
             else
             {
