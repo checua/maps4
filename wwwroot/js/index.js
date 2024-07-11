@@ -18,6 +18,7 @@ var access = null;
 var i = 0;
 var latLng;
 var latLngx;
+var typeofp;
 
 // Función para cargar la API de Google Maps de manera asincrónica
 function loadGoogleMapsAPI(apiKey) {
@@ -146,54 +147,86 @@ function fetchMarkers() {
                 responseJson.forEach((item) => {
                     let imageIcon;
                     switch (item.idTipo) {
-                        case 2:
+                        case 2: {
                             imageIcon = "images/icon/casa_che.png";
+                            typeofp = "Casa en venta";
                             break;
-                        case 3:
+                        }
+                        case 3: {
                             imageIcon = "images/icon/casa.png";
+                            typeofp = "Casa en renta";
                             break;
-                        case 4:
+                        }
+                        case 4: {
                             imageIcon = "images/icon/apartment1.png";
+                            typeofp = "Apartamento en venta";
                             break;
-                        case 5:
+                        }
+                        case 5: {
                             imageIcon = "images/icon/apartment2.png";
+                            typeofp = "Apartamento en renta";
                             break;
-                        case 6:
+                        }
+                        case 6: {
                             imageIcon = "images/icon/terreno1b.png";
+                            typeofp = "Terreno en venta";
                             break;
-                        case 7:
+                        }
+                        case 7: {
                             imageIcon = "images/icon/terreno2.png";
+                            typeofp = "Terreno en renta";
                             break;
-                        case 8:
+                        }
+                        case 8: {
                             imageIcon = "images/icon/local.png";
+                            typeofp = "Local en venta";
                             break;
-                        case 9:
+                        }
+                        case 9: {
                             imageIcon = "images/icon/local2.png";
+                            typeofp = "Local en renta";
                             break;
-                        case 10:
+                        }
+                        case 10: {
                             imageIcon = "images/icon/building.png";
+                            typeofp = "Edificio en venta";
                             break;
-                        case 11:
+                        }
+                        case 11: {
                             imageIcon = "images/icon/building2.png";
+                            typeofp = "Edificio en renta";
                             break;
-                        case 12:
+                        }
+                        case 12: {
                             imageIcon = "images/icon/montacargas2.png";
+                            typeofp = "Bodega en venta";
                             break;
-                        case 13:
+                        }
+                        case 13: {
                             imageIcon = "images/icon/montacargas.png";
+                            typeofp = "Bodega en renta";
                             break;
-                        case 14:
+                        }
+                        case 14: {
                             imageIcon = "images/icon/desk.png";
+                            typeofp = "Oficina en venta";
                             break;
-                        case 15:
+                        }
+                        case 15: {
                             imageIcon = "images/icon/desk2.png";
+                            typeofp = "Oficina en renta";
                             break;
-                        case 16:
+                        }
+                        case 16: {
+                            imageIcon = "images/icon/tractor1.png";
+                            typeofp = "Rancho en venta";
+                            break;
+                        }
+                        case 17: {
                             imageIcon = "images/icon/tractor2.png";
+                            typeofp = "Rancho en renta";
                             break;
-                        case 17:
-                            imageIcon = "images/icon/tractor3.png";
-                            break;
+                        }
                     }
 
                     const latLng = new google.maps.LatLng(item.lat, item.lng);
@@ -201,6 +234,7 @@ function fetchMarkers() {
                         position: latLng,
                         map,
                         title: String(item.idTipo),
+                        //title: String("Id Inmueble: " + item.idInmueble + ", Propiedad: " + typeofp), //Con esto no filtra, luego lo vemos
                         icon: {
                             url: imageIcon,
                             scaledSize: new google.maps.Size(32, 32),
@@ -244,142 +278,30 @@ function fetchMarkers() {
         });
 }
 
-    //fetch("/Home/listaInmuebles")
-    //    .then(response => {
-    //        return response.ok ? response.json() : Promise.reject(response)
-    //    })
-    //    .then(responseJson => {
+    
+fetch("/Home/listaTipoPropiedades")
+    .then(response => {
+        return response.ok ? response.json() : Promise.reject(response)
+    })
+    .then(responseJson => {
 
-    //        if (responseJson.length > 0) {
+        if (responseJson.length > 0) {
+            responseJson.forEach((item) => {
 
-    //            responseJson.forEach((item) => {
-    //                switch (item.idTipo) {
-    //                    //case 0:
-    //                    //    imageIcon = "images/icon/casa_che.png";
-    //                    //    break;
-    //                    case 2:
-    //                        imageIcon = "images/icon/casa_che.png";
-    //                        break;
-    //                    case 3:
-    //                        imageIcon = "images/icon/casa.png";
-    //                        break;
-    //                    case 4:
-    //                        imageIcon = "images/icon/apartment1.png";
-    //                        break;
-    //                    case 5:
-    //                        imageIcon = "images/icon/apartment2.png";
-    //                        break;
-    //                    case 6:
-    //                        imageIcon = "images/icon/terreno1b.png";
-    //                        break;
-    //                    case 7:
-    //                        imageIcon = "images/icon/terreno2.png";
-    //                        break
-    //                    case 8:
-    //                        imageIcon = "images/icon/local.png";
-    //                        break
-    //                    case 9:
-    //                        imageIcon = "images/icon/local2.png";
-    //                        break
-    //                    case 10:
-    //                        imageIcon = "images/icon/building.png";
-    //                        break
-    //                    case 11:
-    //                        imageIcon = "images/icon/building2.png";
-    //                        break
-    //                    case 12:
-    //                        imageIcon = "images/icon/montacargas2.png";
-    //                        break
-    //                    case 13:
-    //                        imageIcon = "images/icon/montacargas.png";
-    //                        break
-    //                    case 14:
-    //                        imageIcon = "images/icon/desk.png";
-    //                        break
-    //                    case 15:
-    //                        imageIcon = "images/icon/desk2.png";
-    //                        break
-    //                    case 16:
-    //                        imageIcon = "images/icon/tractor2.png";
-    //                        break
-    //                    case 17:
-    //                        imageIcon = "images/icon/tractor3.png";
-    //                        break
-    //                }
+                $("#cboTipoPropiedad").append(
+                    $("<option>").val(item.idTipoPropiedad).text(item.nombre)
+                )
 
-    //                latLngx = new google.maps.LatLng(item.lat, item.lng);
-    //                markerx = new google.maps.Marker({
-    //                    position: latLngx,
-    //                    map,
-    //                    title: String(item.idTipo),
-    //                    icon: {
-    //                        url: imageIcon,
-    //                        scaledSize: new google.maps.Size(32, 32),
-    //                        origin: new google.maps.Point(0, 0), // Origen de la imagen (0, 0)
-    //                        anchor: new google.maps.Point(16, 16) // Punto de anclaje de la imagen (centrado)
-    //                    },
-    //                });
-
-    //                markerx.customInfo = item.precio;
-
-    //                markersx[i] = markerx;
-    //                i++;
-
-
-
-    //                markerx.addListener('click', function () {
-
-    //                    $('#btnClear').css('display', "none");
-    //                    $('.btn-fileupload').css('display', "none");
-    //                    $('.boton-guardar-inmueble').css('display', "none");
-
-    //                    var str = document.getElementById("lnkAcceso").innerText;
-    //                    var str2 = item.refUsuario.correo.toString();
-
-    //                    var res = str.toUpperCase();
-    //                    var res2 = str2.toUpperCase();
-
-    //                    if (res != res2) {
-    //                        $('.boton-eliminar-inmueble').css('display', "none");
-    //                    }
-    //                    else {
-    //                        $(".boton-eliminar-inmueble").show();
-    //                    }
-
-    //                    GetCode1(item.idTipo, item.idInmueble, item.nombreCompleto, item.telefono, item.terreno, item.construccion, item.precio, item.observaciones, item.contacto, item.imagenes);
-    //                });
-
-
-    //            })
-    //            map.setCenter(latLng); // Este se debe mover a donde el usuario designe como su lugar de residencia
-    //        }
-    //    })
-
-
-
-    fetch("/Home/listaTipoPropiedades")
-        .then(response => {
-            return response.ok ? response.json() : Promise.reject(response)
-        })
-        .then(responseJson => {
-
-            if (responseJson.length > 0) {
-                responseJson.forEach((item) => {
-
-                    $("#cboTipoPropiedad").append(
+                if ($("#cboTipoPropiedad option").length > 1) {
+                    $("#tipo").append(
                         $("<option>").val(item.idTipoPropiedad).text(item.nombre)
-                    )
+                    );
+                }
 
-                    if ($("#cboTipoPropiedad option").length > 1) {
-                        $("#tipo").append(
-                            $("<option>").val(item.idTipoPropiedad).text(item.nombre)
-                        );
-                    }
+            })
+        }
 
-                })
-            }
-
-        })
+    })
 
 fetch('/Home/GetUserClaims', {
     method: 'GET'
@@ -449,6 +371,10 @@ $(document).on("click", ".boton-iniciar-sesion", function () {
                 Swal.fire("Error!", "Usuario no encontrado", "danger");
             }
         })
+        .catch(error => {
+            //console.error('Error al obtener los claims del usuario:', error);
+            Swal.fire("Error!", "Usuario o contraseña equivocados", "danger");
+        });
 })
 
 function numberWithCommas(x) {
@@ -471,15 +397,21 @@ function GetCode1(a, b, c, d, e, f, g, h, i, j) {
     $('#terreno').val(numberWithCommas(e));
     $('#construccion').val(numberWithCommas(f));
     $('#precio').val("$ " + numberWithCommas(g));
-    $('#descripcion').val(h);
-    $('#contacto_a').val(i);
+    if (h != 0)
+        $('#descripcion').val(h);
+    else
+        $('#descripcion').val("");
+    if (i != 0)
+        $('#contacto_a').val(i);
+    else
+        $('#contacto_a').val("");
     document.getElementById("ubicacion").innerHTML = "";//j;
 
     $('#imgViewer').remove();
     $('#imageStrip').empty(); // Limpiar el contenedor antes de añadir nuevas imágenes
 
     $('div#test1').append('<div id="imgViewer" class="slider"></div>');
-    if (j > 0) {
+    if (j != 0) {
         for (var x = 1; x <= j; x++) {
             var imgSrc = `Cargas/${b}_${x}.jpg`;
             var imgElement = `
@@ -496,7 +428,7 @@ function GetCode1(a, b, c, d, e, f, g, h, i, j) {
             $('#imageStrip').append(stripItem);
         }
     } else {
-        $('#imgViewer').append($('<img>', { src: "images/nouser.jpg", width: '50px', height: '50px' }));
+        $('#imgViewer').append($('<img>', { src: "images/nohouse.jpg", width: '50px', height: '50px' }));
     }
     $("#modalInmueble").modal("show");
 }
@@ -596,9 +528,6 @@ async function resizeImageFile(file) {
     });
 }
 
-
-
-
 function clearPreviewAndFields() {
     // Limpiar imágenes del contenedor de vista previa
     document.getElementById('imgViewer').innerHTML = '';
@@ -620,7 +549,6 @@ function clearPreviewAndFields() {
 document.getElementById('modalInmueble').addEventListener('hidden.bs.modal', function () {
     clearPreviewAndFields();
 });
-
 
 function clearAll() {
     markers.forEach(function (marker) {
@@ -650,7 +578,6 @@ function clearAll() {
 document.getElementById('modalInmueble').addEventListener('hidden.bs.modal', function () {
     clearAll();
 });
-
 
 function clearPreviewAndFields() {
     document.getElementById('tipo').value = '';
@@ -713,13 +640,11 @@ function extractLatLon(text) {
     return { lat: null, lng: null };
 }
 
-
 $(document).on("click", "#cerrarmodalImagenCompleta", function () {
     $("#modalImagenCompleta").modal("hide");
 });
 
-
 $(document).on("click", ".boton-eliminar-inmueble", function () {
-
+    alert("Eliminar inmueble");
 });
 
