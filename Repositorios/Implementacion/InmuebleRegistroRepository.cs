@@ -24,7 +24,7 @@ namespace maps4.Repositorios.Implementacion
                     cmd.CommandType = CommandType.StoredProcedure;
 
                     // Agregar los parámetros de entrada
-                    cmd.Parameters.AddWithValue("@correo", "profesor76@hotmail.com");
+                    cmd.Parameters.AddWithValue("@correo", data.RefUsuario.correo);
                     cmd.Parameters.AddWithValue("@idInmobiliaria", 1);
                     cmd.Parameters.AddWithValue("@lat", data.Lat);
                     cmd.Parameters.AddWithValue("@lng", data.Lng);

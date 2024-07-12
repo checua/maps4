@@ -36,7 +36,7 @@ namespace maps4.Repositorios.Implementacion
                                 idInmobiliaria = Convert.ToInt32(dr["idInmobiliaria"]),
                                 nombre = dr["nombre"].ToString()
                             },
-                            refUsuario = new Usuario()
+                            RefUsuario = new Usuario()
                             {
                                 idAsesor = Convert.ToInt32(dr["idAsesor"]),
                                 nombres = dr["nombres"].ToString(),

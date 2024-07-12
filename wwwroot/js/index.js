@@ -579,14 +579,121 @@ document.getElementById('modalInmueble').addEventListener('hidden.bs.modal', fun
     clearAll();
 });
 
-function clearPreviewAndFields() {
-    document.getElementById('tipo').value = '';
-    document.getElementById('terreno').value = '';
-    document.getElementById('construccion').value = '';
-    document.getElementById('imgViewer').innerHTML = '';
+//function clearPreviewAndFields() {
+//    document.getElementById('tipo').value = '';
+//    document.getElementById('terreno').value = '';
+//    document.getElementById('construccion').value = '';
+//    document.getElementById('imgViewer').innerHTML = '';
+//}
+
+
+
+//$(document).on("click", ".boton-guardar-inmueble", function () {
+//    const formData = new FormData();
+
+//    const ubicacionTexto = document.getElementById('ubicacion').textContent;
+//    const { lat, lng } = extractLatLon(ubicacionTexto);
+
+//    // Agrega datos del modelo al FormData
+//    formData.append('Datax.Lat', lat.toFixed(6));  // Asegúrate de que tenga 6 decimales
+//    formData.append('Datax.Lng', lng.toFixed(6));  // Asegúrate de que tenga 6 decimales
+//    formData.append('Datax.IdTipo', $("#tipo").val());
+//    formData.append('Datax.Terreno', $("#terreno").val());
+//    formData.append('Datax.Construccion', $("#construccion").val());
+//    formData.append('Datax.Precio', $("#precio").val());
+//    formData.append('Datax.Observaciones', $("#descripcion").val());
+//    formData.append('Datax.Contacto', $("#contacto_a").val());
+
+//    // Agrega los archivos al FormData
+//    const files = document.getElementById("FileUpload1").files;
+//    for (let i = 0; i < files.length; i++) {
+//        formData.append('Files', files[i]);
+//    }
+
+//    formData.append('Correo', document.getElementById("lnkAcceso").innerText);
+
+//    fetch("/Inmueble/RegistrarInmueble", {
+//        method: 'POST',
+//        body: formData  // Nota que no establecemos Content-Type. FormData lo hará automáticamente.
+//    })
+//        .then(response => response.json())
+//        .then(response => {
+//            if (response.success) {
+//                //alert(response.message);
+//                location.reload();
+//            } else {
+//                alert("Error al guardar el inmueble y las imágenes");
+//            }
+//        })
+//        .catch(error => {
+//            console.error('Error al enviar datos:', error);
+//            alert("Error en la red o servidor");
+//        });
+//});
+
+//// Función para extraer latitud y longitud del texto del label
+//function extractLatLon(text) {
+//    const parts = text.match(/\(([\d.-]+),\s*([\d.-]+)\)/);
+//    if (parts) {
+//        let lat = parseFloat(parts[1]).toFixed(6);
+//        let lng = parseFloat(parts[2]).toFixed(6);
+//        return { lat: parseFloat(lat), lng: parseFloat(lng) };
+//    }
+//    return { lat: null, lng: null };
+//}
+
+function validateForm(event) {
+    event.preventDefault(); // Prevenir el envío del formulario por defecto
+
+    let isValid = true;
+
+    const tipo = document.getElementById("tipo").value;
+    const terreno = document.getElementById("terreno").value;
+    const construccion = document.getElementById("construccion").value;
+    const precio = document.getElementById("precio").value;
+
+    if (!tipo) {
+        isValid = false;
+        document.getElementById("tipoError").textContent = "Seleccione el tipo de propiedad.";
+        document.getElementById("tipo").classList.add("is-invalid");
+    } else {
+        document.getElementById("tipoError").textContent = "";
+        document.getElementById("tipo").classList.remove("is-invalid");
+    }
+
+    if (!terreno) {
+        isValid = false;
+        document.getElementById("terrenoError").textContent = "El terreno es obligatorio.";
+        document.getElementById("terreno").classList.add("is-invalid");
+    } else {
+        document.getElementById("terrenoError").textContent = "";
+        document.getElementById("terreno").classList.remove("is-invalid");
+    }
+
+    if (!construccion) {
+        isValid = false;
+        document.getElementById("construccionError").textContent = "La construcción es obligatoria.";
+        document.getElementById("construccion").classList.add("is-invalid");
+    } else {
+        document.getElementById("construccionError").textContent = "";
+        document.getElementById("construccion").classList.remove("is-invalid");
+    }
+
+    if (!precio) {
+        isValid = false;
+        document.getElementById("precioError").textContent = "El precio es obligatorio.";
+        document.getElementById("precio").classList.add("is-invalid");
+    } else {
+        document.getElementById("precioError").textContent = "";
+        document.getElementById("precio").classList.remove("is-invalid");
+    }
+
+    if (isValid) {
+        submitForm(); // Llamar a la función para enviar el formulario
+    }
 }
 
-$(document).on("click", ".boton-guardar-inmueble", function () {
+function submitForm() {
     const formData = new FormData();
 
     const ubicacionTexto = document.getElementById('ubicacion').textContent;
@@ -627,9 +734,8 @@ $(document).on("click", ".boton-guardar-inmueble", function () {
             console.error('Error al enviar datos:', error);
             alert("Error en la red o servidor");
         });
-});
+}
 
-// Función para extraer latitud y longitud del texto del label
 function extractLatLon(text) {
     const parts = text.match(/\(([\d.-]+),\s*([\d.-]+)\)/);
     if (parts) {
@@ -639,6 +745,21 @@ function extractLatLon(text) {
     }
     return { lat: null, lng: null };
 }
+
+function clearPreviewAndFields() {
+    // Limpiar imágenes del contenedor de vista previa
+    document.getElementById('imgViewer').innerHTML = '';
+
+    // Limpiar campos de entrada
+    document.getElementById('tipo').value = '';
+    document.getElementById('terreno').value = '';
+    document.getElementById('construccion').value = '';
+    document.getElementById('precio').value = '';
+
+    // Ocultar el botón "Limpiar"
+    document.getElementById('btnClear').style.display = 'none';
+}
+
 
 $(document).on("click", "#cerrarmodalImagenCompleta", function () {
     $("#modalImagenCompleta").modal("hide");

@@ -154,7 +154,7 @@
                 <button type="button" class="btn-close" onclick="clearAll();" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div id="inmuebleForm">
-            @* <form asp-controller="Inicio" asp-action="GuardarInmueble" method="post" id="inmuebleForm"> *@
+                @* <form asp-controller="Inicio" asp-action="GuardarInmueble" method="post" id="inmuebleForm"> *@
                 <div class="modal-body">
                     <div id="test1">
                         <div id="imgViewerContainer" style="overflow-x: auto; white-space: nowrap; max-width: 100%;">
@@ -169,14 +169,35 @@
                         Upload images...
                     </label>
 
-                    <select class="form-control mb-3" name="tipo" id="tipo" required>
-                        <option value="" disabled selected>Seleccione el tipo de propiedad</option>
-                    </select>
-                    <input class="form-control mb-3" type="text" placeholder="Terreno" name="terreno" id="terreno" required />
-                    <input class="form-control mb-3" type="text" placeholder="Construcción" name="construccion" id="construccion" required />
-                    <input class="form-control mb-3" type="text" placeholder="Precio" name="precio" id="precio" required />
-                    <input class="form-control mb-3" type="text" placeholder="Descripción" name="descripcion" id="descripcion" />
-                    <input class="form-control mb-3" type="text" placeholder="Notas privadas" name="contacto_a" id="contacto_a"/>
+                    <div class="mb-3">
+                        <select class="form-control" name="tipo" id="tipo" required>
+                            <option value="" disabled selected>Seleccione el tipo de propiedad</option>
+                        </select>
+                        <div class="invalid-feedback" id="tipoError"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <input class="form-control" type="text" placeholder="Terreno" name="terreno" id="terreno" required />
+                        <div class="invalid-feedback" id="terrenoError"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <input class="form-control" type="text" placeholder="Construcción" name="construccion" id="construccion" required />
+                        <div class="invalid-feedback" id="construccionError"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <input class="form-control" type="text" placeholder="Precio" name="precio" id="precio" required />
+                        <div class="invalid-feedback" id="precioError"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <input class="form-control" type="text" placeholder="Descripción" name="descripcion" id="descripcion" />
+                    </div>
+
+                    <div class="mb-3">
+                        <input class="form-control" type="text" placeholder="Notas privadas" name="contacto_a" id="contacto_a" />
+                    </div>
 
                     <div class="d-flex justify-content-between">
                         <label id="ubicacion"></label>
@@ -192,12 +213,12 @@
                         </div>
                         <div class="right-buttons">
                             <button type="button" class="btn btn-default" data-bs-dismiss="modal">Close</button>
-                            <button type="submit" class="btn btn-success boton-guardar-inmueble">Guardar</button>
+                            <button type="submit" class="btn btn-success boton-guardar-inmueble" onclick="validateForm(event)">Guardar</button>
                         </div>
                     </div>
                 </div>
-@*                 </form>
- *@            </div>
+                @* </form> *@
+            </div>
         </div>
     </div>
 </div>

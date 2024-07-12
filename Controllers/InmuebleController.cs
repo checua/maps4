@@ -42,8 +42,20 @@ namespace maps4.Controllers
             modelo.Exclusiva = 1;
             modelo.Link = "";
             modelo.Contacto = data.Datax.Contacto;
-            modelo.Imagenes = data.Files.Count;
-            var correo = data.Correo;
+
+            //if(data.Files != null)
+            //modelo.Imagenes = data.Files.Count;
+            //else
+            //{
+            //    modelo.Imagenes = 0;
+            //}
+
+            modelo.Imagenes = data.Files?.Count ?? 0;
+
+
+            modelo.RefUsuario = new Usuario();
+            modelo.RefUsuario.correo = data.Correo;
+
             var archivos = data.Files;
 
             if (modelo == null)
@@ -59,20 +71,23 @@ namespace maps4.Controllers
                 // Guarda los archivos
                 if (inmueble_creado != null)
                 {
-                    int fileCounter = 1;
-                    foreach (var file in archivos)
+                    if (modelo.Imagenes != 0)
                     {
-                        if (file.Length > 0)
+                        int fileCounter = 1;
+                        foreach (var file in archivos)
                         {
-                            // Generar el nombre del archivo con la extensión .jpg
-                            var fileName = $"{inmueble_creado.IdInmueble}_{fileCounter}.jpg";
-                            var filePath = Path.Combine("wwwroot/cargas", fileName);
-
-                            using (var stream = new FileStream(filePath, FileMode.Create))
+                            if (file.Length > 0)
                             {
-                                await file.CopyToAsync(stream);
+                                // Generar el nombre del archivo con la extensión .jpg
+                                var fileName = $"{inmueble_creado.IdInmueble}_{fileCounter}.jpg";
+                                var filePath = Path.Combine("wwwroot/cargas", fileName);
+
+                                using (var stream = new FileStream(filePath, FileMode.Create))
+                                {
+                                    await file.CopyToAsync(stream);
+                                }
+                                fileCounter++;
                             }
-                            fileCounter++;
                         }
                     }
                 }
