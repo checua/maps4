@@ -100,5 +100,25 @@ namespace maps4.Controllers
                 return Json(new { success = false, message = ex.Message });
             }
         }
+
+        [HttpDelete]
+        public async Task<IActionResult> Eliminar(int idInmueble)
+        {
+            if (idInmueble <= 0)
+            {
+                return BadRequest(new { success = false, message = "ID de inmueble inválido." });
+            }
+
+            bool eliminado = await _inmuebleRepository.EliminarInmueble(idInmueble);
+
+            if (eliminado)
+            {
+                return Ok(new { success = true, message = "Inmueble eliminado correctamente." });
+            }
+            else
+            {
+                return StatusCode(500, new { success = false, message = "Error al eliminar el inmueble." });
+            }
+        }
     }
 }

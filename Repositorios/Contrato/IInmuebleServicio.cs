@@ -7,5 +7,7 @@ namespace maps4.Repositorios.Contrato
         //Task<List<T>> GetInmuebles();
 
         Task<Inmueble> SaveInmueble(Inmueble modelo);//, int files, string correo);
+
+        Task<bool> EliminarInmueble(int idInmueble);
     }
 }
