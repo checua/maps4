@@ -20,6 +20,8 @@ var latLng;
 var latLngx;
 var typeofp;
 
+let currentInmuebleId = null;
+
 // Función para cargar la API de Google Maps de manera asincrónica
 function loadGoogleMapsAPI(apiKey) {
     return new Promise((resolve, reject) => {
@@ -365,6 +367,8 @@ $(document).on("click", ".boton-iniciar-sesion", function () {
                     $("#modalEmpleado").modal("hide");
                     $("#lnkAcceso").text(item.correo);
                     //Swal.fire("Listo! " + item.correo, "Usuario logegado", "success");
+                    $("#correo").val("");
+                    $("#contra").val("");
                 })
             }
             else {
@@ -392,6 +396,9 @@ function panel(imgElement) {
 }
 
 function GetCode1(a, b, c, d, e, f, g, h, i, j) {
+
+    currentInmuebleId = b; // Guarda el id del inmueble actual
+
     $('#tipo').val(a);
     document.getElementById("telefono").innerHTML = c + " " + d;
     $('#terreno').val(numberWithCommas(e));
@@ -755,10 +762,29 @@ function clearPreviewAndFields() {
     document.getElementById('terreno').value = '';
     document.getElementById('construccion').value = '';
     document.getElementById('precio').value = '';
+    document.getElementById('descripcion').value = '';
+    document.getElementById('contacto_a').value = '';
+
+    // Limpiar mensajes de error
+    document.getElementById("tipoError").textContent = "";
+    document.getElementById("terrenoError").textContent = "";
+    document.getElementById("construccionError").textContent = "";
+    document.getElementById("precioError").textContent = "";
+
+    // Remover clases de error
+    document.getElementById("tipo").classList.remove("is-invalid");
+    document.getElementById("terreno").classList.remove("is-invalid");
+    document.getElementById("construccion").classList.remove("is-invalid");
+    document.getElementById("precio").classList.remove("is-invalid");
 
     // Ocultar el botón "Limpiar"
     document.getElementById('btnClear').style.display = 'none';
 }
+
+// Limpiar campos y mensajes de error al cerrar el modal
+document.getElementById('modalInmueble').addEventListener('hidden.bs.modal', function () {
+    clearPreviewAndFields();
+});
 
 
 $(document).on("click", "#cerrarmodalImagenCompleta", function () {
@@ -766,6 +792,34 @@ $(document).on("click", "#cerrarmodalImagenCompleta", function () {
 });
 
 $(document).on("click", ".boton-eliminar-inmueble", function () {
-    alert("Eliminar inmueble");
+    if (currentInmuebleId) {
+        fetch("/Inmueble/Eliminar?idInmueble=" + currentInmuebleId, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json().catch(() => {
+                    throw new Error('Invalid JSON response');
+                });
+            })
+            .then(response => {
+                if (response.success) {
+                    location.reload();
+                } else {
+                    alert("Error al eliminar el inmueble");
+                }
+            })
+            .catch(error => {
+                console.error('Error al eliminar el inmueble:', error);
+                alert("Error en la red o servidor");
+            });
+    } else {
+        alert("No se ha seleccionado ningún inmueble para eliminar");
+    }
 });
 

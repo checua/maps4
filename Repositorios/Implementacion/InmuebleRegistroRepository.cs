@@ -2,6 +2,7 @@
 using maps4.Repositorios.Contrato;
 using Microsoft.Data.SqlClient;
 using System.Data;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace maps4.Repositorios.Implementacion
 {
@@ -50,6 +51,34 @@ namespace maps4.Repositorios.Implementacion
                     data.IdInmueble = (int)idInmuebleParam.Value;
 
                     return data;
+                }
+            }
+        }
+
+        public async Task<bool> EliminarInmueble(int idInmuele)
+        {
+            using (var conexion = new SqlConnection(_cadenaSQL))
+            {
+                await conexion.OpenAsync();
+                using (var cmd = new SqlCommand("sp_RSMAPS_insertar_coordenadas", conexion))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+
+                    // Agregar los parámetros de entrada
+                    cmd.Parameters.AddWithValue("@idinmueble", 1);
+
+
+                    // Agregar el parámetro de salida para obtener el idInmueble
+                    var idInmuebleParam = new SqlParameter("@idInmueble", SqlDbType.Int)
+                    {
+                        Direction = ParameterDirection.Output
+                    };
+                    cmd.Parameters.Add(idInmuebleParam);
+
+                    // Ejecutar el comando
+                    await cmd.ExecuteNonQueryAsync();
+
+                    return true;
                 }
             }
         }
