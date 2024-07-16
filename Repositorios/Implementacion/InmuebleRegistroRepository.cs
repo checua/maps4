@@ -55,25 +55,17 @@ namespace maps4.Repositorios.Implementacion
             }
         }
 
-        public async Task<bool> EliminarInmueble(int idInmuele)
+        public async Task<bool> EliminarInmueble(int idInmueble)
         {
             using (var conexion = new SqlConnection(_cadenaSQL))
             {
                 await conexion.OpenAsync();
-                using (var cmd = new SqlCommand("sp_RSMAPS_insertar_coordenadas", conexion))
+                using (var cmd = new SqlCommand("sp_RSMAPS_delete_inmueble", conexion))
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
 
-                    // Agregar los parámetros de entrada
-                    cmd.Parameters.AddWithValue("@idinmueble", 1);
-
-
-                    // Agregar el parámetro de salida para obtener el idInmueble
-                    var idInmuebleParam = new SqlParameter("@idInmueble", SqlDbType.Int)
-                    {
-                        Direction = ParameterDirection.Output
-                    };
-                    cmd.Parameters.Add(idInmuebleParam);
+                    // Agregar el parámetro de entrada
+                    cmd.Parameters.AddWithValue("@idInmueble", idInmueble);
 
                     // Ejecutar el comando
                     await cmd.ExecuteNonQueryAsync();

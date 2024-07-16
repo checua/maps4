@@ -793,33 +793,49 @@ $(document).on("click", "#cerrarmodalImagenCompleta", function () {
 
 $(document).on("click", ".boton-eliminar-inmueble", function () {
     if (currentInmuebleId) {
-        fetch("/Inmueble/Eliminar?idInmueble=" + currentInmuebleId, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json'
+        Swal.fire({
+            title: '¿Estás seguro?',
+            text: "¿Deseas eliminar el inmueble con ID #" + currentInmuebleId + "?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, eliminarlo!',
+            cancelButtonText: 'No, cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch("/Inmueble/Eliminar?idInmueble=" + currentInmuebleId, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json().catch(() => {
+                            throw new Error('Invalid JSON response');
+                        });
+                    })
+                    .then(response => {
+                        if (response.success) {
+                            Swal.fire("Eliminado!", "El inmueble ha sido eliminado", "success").then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire("Error", "Error al eliminar el inmueble", "error");
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error al eliminar el inmueble:', error);
+                        Swal.fire("Error", "Error en la red o servidor", "error");
+                    });
             }
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json().catch(() => {
-                    throw new Error('Invalid JSON response');
-                });
-            })
-            .then(response => {
-                if (response.success) {
-                    location.reload();
-                } else {
-                    alert("Error al eliminar el inmueble");
-                }
-            })
-            .catch(error => {
-                console.error('Error al eliminar el inmueble:', error);
-                alert("Error en la red o servidor");
-            });
+        });
     } else {
-        alert("No se ha seleccionado ningún inmueble para eliminar");
+        Swal.fire("Atención", "No se ha seleccionado ningún inmueble para eliminar", "warning");
     }
 });
+
 
