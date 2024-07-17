@@ -262,14 +262,14 @@ function fetchMarkers() {
 
                         if (res != res2) {
                             $('.boton-eliminar-inmueble').css('display', "none");
-                            $("#contacto_a").hide(); 
+                            $("#contacto_a").hide();
                         } else {
                             $(".boton-eliminar-inmueble").show();
-                            $("#contacto_a").show(); 
+                            $("#contacto_a").show();
                         }
 
                         var nom_tel = item.refUsuario.nombres + " " + item.refUsuario.aPaterno;
-                        GetCode1(item.idTipo, item.idInmueble, nom_tel , item.telefono, item.terreno, item.construccion, item.precio, item.observaciones, item.contacto, item.imagenes);
+                        GetCode1(item.idTipo, item.idInmueble, nom_tel, item.telefono, item.terreno, item.construccion, item.precio, item.observaciones, item.contacto, item.imagenes);
                     });
                 });
                 map.setCenter(latLng);
@@ -280,7 +280,7 @@ function fetchMarkers() {
         });
 }
 
-    
+
 fetch("/Home/listaTipoPropiedades")
     .then(response => {
         return response.ok ? response.json() : Promise.reject(response)
@@ -459,16 +459,13 @@ function GetCode1(a, b, c, d, e, f, g, h, i, j) {
         for (var x = 1; x <= j; x++) {
             var imgSrc = `Cargas/${b}_${x}.jpg`;
             var imgElement = `
-                <div id="images${x}" class="item" style="display: inline-block; height: 100%;">
-                    <img src="${imgSrc}" onclick="panel(this);" id="_${b}_${x}" style="margin-left:2px; height:100%; object-fit: contain;">
-                </div>
-            `;
+        <div id="images${x}" class="item" style="display: inline-block; height: 100%;">
+            <img src="${imgSrc}" onclick="panel(this);" id="_${b}_${x}" style="margin-left:2px; height:100%; object-fit: contain;">
+        </div>`;
             $('#imgViewer').append(imgElement);
 
-            // Añadir la imagen a la tira horizontal
-            var stripItem = `
-                <img src="${imgSrc}" class="d-block" style="height:100%; object-fit: contain; margin:auto;">
-            `;
+            // Añadir la imagen a la tira horizontal con altura del 80% del modal
+            var stripItem = `<img src="${imgSrc}" class="d-block" style="height:80vh; object-fit: contain; margin:auto;">`;
             $('#imageStrip').append(stripItem);
         }
     } else {
