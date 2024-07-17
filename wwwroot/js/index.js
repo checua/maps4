@@ -418,19 +418,56 @@ function GetCode1(a, b, c, d, e, f, g, h, i, j) {
     $('#imageStrip').empty(); // Limpiar el contenedor antes de añadir nuevas imágenes
 
     $('div#test1').append('<div id="imgViewer" class="slider"></div>');
+    $('#imgViewer').css({
+        'overflow-x': 'auto',
+        'overflow-y': 'hidden',
+        'white-space': 'nowrap',
+        'height': 'auto',
+        'margin-bottom': '2px',
+        'scrollbar-width': 'thin'
+    });
+
+    $('#imageStrip').css({
+        'overflow-x': 'auto',
+        'overflow-y': 'hidden',
+        'white-space': 'nowrap',
+        'height': 'auto', // Ajusta esta altura según tus necesidades
+        'scrollbar-width': 'thin'
+    });
+
+    const scrollbarStyle = `
+        <style>
+            #imgViewer::-webkit-scrollbar, #imageStrip::-webkit-scrollbar {
+                height: 4px; /* Reduce la altura de la barra de desplazamiento para Chrome y Safari */
+            }
+            #imgViewer::-webkit-scrollbar-track, #imageStrip::-webkit-scrollbar-track {
+                background: #f1f1f1; /* Color del fondo de la barra de desplazamiento */
+            }
+            #imgViewer::-webkit-scrollbar-thumb, #imageStrip::-webkit-scrollbar-thumb {
+                background: #888; /* Color del cursor de la barra de desplazamiento */
+                border-radius: 2px; /* Bordes redondeados del cursor */
+            }
+            #imgViewer::-webkit-scrollbar-thumb:hover, #imageStrip::-webkit-scrollbar-thumb:hover {
+                background: #555; /* Color del cursor cuando se pasa el mouse por encima */
+            }
+        </style>
+    `;
+
+    $('head').append(scrollbarStyle);
+
     if (j != 0) {
         for (var x = 1; x <= j; x++) {
             var imgSrc = `Cargas/${b}_${x}.jpg`;
             var imgElement = `
-                <div id="images${x}" class="item">
-                    <img src="${imgSrc}" onclick="panel(this);" id="_${b}_${x}" style="margin-left:2px; max-height:50px !important;">
+                <div id="images${x}" class="item" style="display: inline-block; height: 100%;">
+                    <img src="${imgSrc}" onclick="panel(this);" id="_${b}_${x}" style="margin-left:2px; height:100%; object-fit: contain;">
                 </div>
             `;
             $('#imgViewer').append(imgElement);
 
             // Añadir la imagen a la tira horizontal
             var stripItem = `
-                <img src="${imgSrc}" class="d-block" style="max-height:500px; margin:auto;">
+                <img src="${imgSrc}" class="d-block" style="height:100%; object-fit: contain; margin:auto;">
             `;
             $('#imageStrip').append(stripItem);
         }
@@ -440,6 +477,8 @@ function GetCode1(a, b, c, d, e, f, g, h, i, j) {
     $("#modalInmueble").modal("show");
 }
 
+
+
 function GetCode2() {
     //$("#txtNombreCompleto").val(_modeloEmpleado.nombreCompleto);
     //$("#cboDepartamento").val(_modeloEmpleado.idDepartamento == 0 ? $("#cboDepartamento option:first").val() : _modeloEmpleado.idDepartamento)
@@ -448,12 +487,64 @@ function GetCode2() {
     $("#modalInmueble").modal("show");
 }
 
+let selectedFiles = []; // Variable global para mantener el estado de las imágenes seleccionadas
+
+// Nueva función para actualizar el input file y el contenedor de imágenes de vista previa
+function updateFileInputAndPreview() {
+    const dataTransfer = new DataTransfer();
+    selectedFiles.forEach(file => {
+        dataTransfer.items.add(file);
+    });
+
+    // Reemplazar los archivos en el input file con los archivos seleccionados
+    document.getElementById("FileUpload1").files = dataTransfer.files;
+
+    // Actualizar la vista previa
+    const imgViewer = document.getElementById('imgViewer');
+    imgViewer.innerHTML = '';
+    selectedFiles.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const imgContainer = document.createElement('div');
+            imgContainer.style.display = 'inline-block';
+            imgContainer.style.position = 'relative';
+
+            const imgElement = document.createElement("img");
+            imgElement.src = e.target.result;
+            imgElement.style.height = "100px";
+            imgElement.style.marginBottom = "2px";
+            imgElement.style.marginRight = "2px";
+            imgElement.style.display = "inline-block";
+
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = 'X';
+            deleteButton.style.position = 'absolute';
+            deleteButton.style.top = '0';
+            deleteButton.style.right = '0';
+            deleteButton.style.backgroundColor = 'red';
+            deleteButton.style.color = 'white';
+            deleteButton.style.border = 'none';
+            deleteButton.style.borderRadius = '50%';
+            deleteButton.style.cursor = 'pointer';
+            deleteButton.addEventListener('click', function () {
+                selectedFiles.splice(index, 1); // Eliminar el archivo de la lista
+                updateFileInputAndPreview(); // Actualizar la vista previa y el input file
+            });
+
+            imgContainer.appendChild(imgElement);
+            imgContainer.appendChild(deleteButton);
+            imgViewer.appendChild(imgContainer);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+// Modificar la función ShowImagePreview para actualizar la lista de archivos seleccionados
 function ShowImagePreview(evt) {
-    var files = evt.files;
+    const files = evt.files;
     if (files.length) {
-        var filePromises = [];
-        for (var i = 0, f; f = files[i]; i++) {
-            // Verificar si el archivo es una imagen
+        const filePromises = [];
+        for (let i = 0, f; f = files[i]; i++) {
             if (f.type.startsWith('image/')) {
                 filePromises.push(resizeImageFile(f));
             } else {
@@ -462,29 +553,8 @@ function ShowImagePreview(evt) {
         }
 
         Promise.all(filePromises).then(function (resizedFiles) {
-            // Crear un nuevo DataTransfer para actualizar el input file
-            var dataTransfer = new DataTransfer();
-            resizedFiles.forEach(function (file) {
-                dataTransfer.items.add(file);
-            });
-
-            // Reemplazar los archivos en el input file con los archivos redimensionados
-            evt.files = dataTransfer.files;
-
-            // Mostrar miniaturas
-            for (var file of resizedFiles) {
-                var reader = new FileReader();
-                reader.onload = function (e) {
-                    var imgElement = document.createElement("img");
-                    imgElement.src = e.target.result;
-                    imgElement.style.height = "100px";  // Estilo opcional para fijar altura
-                    imgElement.style.marginBottom = "2px";  // Margen inferior opcional
-                    imgElement.style.marginRight = "2px";  // Margen derecho opcional
-                    imgElement.style.display = "inline-block";  // Mostrar como bloque en línea
-                    document.getElementById('imgViewer').appendChild(imgElement);
-                };
-                reader.readAsDataURL(file);
-            }
+            selectedFiles = [...selectedFiles, ...resizedFiles]; // Agregar archivos redimensionados a la lista de archivos seleccionados
+            updateFileInputAndPreview(); // Actualizar la vista previa y el input file
         });
     } else {
         alert("Failed to load files");
@@ -493,16 +563,15 @@ function ShowImagePreview(evt) {
 
 async function resizeImageFile(file) {
     return new Promise(function (resolve) {
-        var reader = new FileReader();
+        const reader = new FileReader();
         reader.onload = function (e) {
-            var img = new Image();
+            const img = new Image();
             img.onload = function () {
-                var maxWidth = 1000;  // Tamaño máximo deseado
-                var maxHeight = 1000;
-                var width = img.width;
-                var height = img.height;
+                const maxWidth = 1000;
+                const maxHeight = 1000;
+                let width = img.width;
+                let height = img.height;
 
-                // Redimensionar la imagen si es necesario
                 if (width > maxWidth || height > maxHeight) {
                     if (width > height) {
                         height *= maxWidth / width;
@@ -513,19 +582,16 @@ async function resizeImageFile(file) {
                     }
                 }
 
-                // Crear un canvas para redimensionar la imagen
-                var canvas = document.createElement('canvas');
+                const canvas = document.createElement('canvas');
                 canvas.width = width;
                 canvas.height = height;
-                var ctx = canvas.getContext('2d');
+                const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
 
-                // Obtener el data URI de la imagen redimensionada
-                var dataUri = canvas.toDataURL('image/jpeg', 0.7);  // Calidad ajustada a 0.7
+                const dataUri = canvas.toDataURL('image/jpeg', 0.7);
 
-                // Convertir data URI a Blob y luego a File
                 fetch(dataUri).then(res => res.blob()).then(function (blob) {
-                    var resizedFile = new File([blob], file.name, { type: 'image/jpeg' });
+                    const resizedFile = new File([blob], file.name, { type: 'image/jpeg' });
                     resolve(resizedFile);
                 });
             };
@@ -533,6 +599,12 @@ async function resizeImageFile(file) {
         };
         reader.readAsDataURL(file);
     });
+}
+
+// Nueva función para limpiar el estado de las imágenes seleccionadas
+function clearSelectedFiles() {
+    selectedFiles = [];
+    updateFileInputAndPreview();
 }
 
 function clearPreviewAndFields() {
@@ -554,7 +626,7 @@ function clearPreviewAndFields() {
 
 // Limpia el modal cuando se cierra
 document.getElementById('modalInmueble').addEventListener('hidden.bs.modal', function () {
-    clearPreviewAndFields();
+    clearPreviewAndFields(); clearAll(); clearSelectedFiles();
 });
 
 function clearAll() {
@@ -582,72 +654,7 @@ function clearAll() {
     // Opcional: También podrías limpiar cualquier otro estado o realizar otras acciones necesarias
 }
 
-document.getElementById('modalInmueble').addEventListener('hidden.bs.modal', function () {
-    clearAll();
-});
 
-//function clearPreviewAndFields() {
-//    document.getElementById('tipo').value = '';
-//    document.getElementById('terreno').value = '';
-//    document.getElementById('construccion').value = '';
-//    document.getElementById('imgViewer').innerHTML = '';
-//}
-
-
-
-//$(document).on("click", ".boton-guardar-inmueble", function () {
-//    const formData = new FormData();
-
-//    const ubicacionTexto = document.getElementById('ubicacion').textContent;
-//    const { lat, lng } = extractLatLon(ubicacionTexto);
-
-//    // Agrega datos del modelo al FormData
-//    formData.append('Datax.Lat', lat.toFixed(6));  // Asegúrate de que tenga 6 decimales
-//    formData.append('Datax.Lng', lng.toFixed(6));  // Asegúrate de que tenga 6 decimales
-//    formData.append('Datax.IdTipo', $("#tipo").val());
-//    formData.append('Datax.Terreno', $("#terreno").val());
-//    formData.append('Datax.Construccion', $("#construccion").val());
-//    formData.append('Datax.Precio', $("#precio").val());
-//    formData.append('Datax.Observaciones', $("#descripcion").val());
-//    formData.append('Datax.Contacto', $("#contacto_a").val());
-
-//    // Agrega los archivos al FormData
-//    const files = document.getElementById("FileUpload1").files;
-//    for (let i = 0; i < files.length; i++) {
-//        formData.append('Files', files[i]);
-//    }
-
-//    formData.append('Correo', document.getElementById("lnkAcceso").innerText);
-
-//    fetch("/Inmueble/RegistrarInmueble", {
-//        method: 'POST',
-//        body: formData  // Nota que no establecemos Content-Type. FormData lo hará automáticamente.
-//    })
-//        .then(response => response.json())
-//        .then(response => {
-//            if (response.success) {
-//                //alert(response.message);
-//                location.reload();
-//            } else {
-//                alert("Error al guardar el inmueble y las imágenes");
-//            }
-//        })
-//        .catch(error => {
-//            console.error('Error al enviar datos:', error);
-//            alert("Error en la red o servidor");
-//        });
-//});
-
-//// Función para extraer latitud y longitud del texto del label
-//function extractLatLon(text) {
-//    const parts = text.match(/\(([\d.-]+),\s*([\d.-]+)\)/);
-//    if (parts) {
-//        let lat = parseFloat(parts[1]).toFixed(6);
-//        let lng = parseFloat(parts[2]).toFixed(6);
-//        return { lat: parseFloat(lat), lng: parseFloat(lng) };
-//    }
-//    return { lat: null, lng: null };
-//}
 
 function validateForm(event) {
     event.preventDefault(); // Prevenir el envío del formulario por defecto
@@ -780,11 +787,6 @@ function clearPreviewAndFields() {
     // Ocultar el botón "Limpiar"
     document.getElementById('btnClear').style.display = 'none';
 }
-
-// Limpiar campos y mensajes de error al cerrar el modal
-document.getElementById('modalInmueble').addEventListener('hidden.bs.modal', function () {
-    clearPreviewAndFields();
-});
 
 
 $(document).on("click", "#cerrarmodalImagenCompleta", function () {

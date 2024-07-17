@@ -1,7 +1,7 @@
 ﻿html, body {
     margin: 0;
     padding: 0;
-    overflow-y: hidden !important;
+    overflow-y: hidden !important; /* Oculta la barra de desplazamiento vertical */
 }
 
 #map_canvas {
@@ -13,9 +13,7 @@
     position: absolute;
     top: 10px;
     left: 10px;
-    z-index:auto;
-    /*float: left;*/
-    /*clear:both;*/
+    z-index: auto;
 }
 
     #over_map .tipo1 {
@@ -24,13 +22,12 @@
         margin-top: 4px;
     }
 
-
     #over_map .dropdown {
         float: left;
     }
 
 .letrero {
-    font-size:small;
+    font-size: small;
 }
 
 .float {
@@ -51,75 +48,82 @@
 }
 
 .btn-acceso {
-    /*    position: absolute;
-    top: 10px;
-    left: 10px;
-    z-index: auto;*/
-    /*float: left;*/
-    /*clear:both;*/
     cursor: pointer;
 }
 
 #contenido-superior-derecho {
     position: absolute;
-    top: 10px; /* Ajusta la distancia desde la parte superior según tus necesidades */
-    right: 10px; /* Ajusta la distancia desde la derecha según tus necesidades */
-    background-color: rgba(255, 255, 255, 0.2); /* Color de fondo con transparencia */
-    padding: 3px; /* Espaciado interno */
-    border-radius: 5px; /* Borde redondeado */
-    z-index: 999; /* Asegúrate de que esté sobre cualquier otro contenido */
+    top: 10px;
+    right: 10px;
+    background-color: rgba(255, 255, 255, 0.2);
+    padding: 3px;
+    border-radius: 5px;
+    z-index: 999;
     cursor: pointer;
 }
 
 .card-header #btn-close-a {
     width: 49%;
-    /*background-color: aqua;*/
     display: inline-block;
 }
 
 .card-header #btn-close-b {
     width: 49%;
-    /*background-color: aqua;*/
     text-align: right;
     display: inline-block;
 }
 
 #closes-a {
     width: 99%;
-    /*background-color: aqua;*/
     display: inline-block;
 }
+
 #closes-b {
     width: 30%;
-    /*background-color: aqua;*/
     text-align: left;
     display: inline-block;
 }
+
 #closes-c {
     width: 32%;
-    /*background-color: aqua;*/
     text-align: right;
     display: inline-block;
 }
 
 .btn-fileupload {
     float: right;
-    margin-bottom:5px;
+    margin-bottom: 5px;
     margin-top: -10px;
 }
 
 #imgViewerContainer {
-    max-height: 200px; /* Ajusta la altura máxima según sea necesario */
-    overflow-y: auto; /* Añade scroll vertical si es necesario */
+    overflow-x: auto; /* Permite desplazamiento horizontal */
+    overflow-y: hidden; /* Oculta el desplazamiento vertical */
+    white-space: nowrap;
+    max-width: 100%;
+    height: auto;
+    scrollbar-width: thin; /* Hace que la barra de desplazamiento sea delgada en Firefox */
 }
 
-#imgViewerContainer img {
-    display: block; /* Asegura que cada imagen sea un bloque independiente */
-    margin-bottom: 10px; /* Espacio entre cada imagen */
-}
+    #imgViewerContainer::-webkit-scrollbar {
+        height: 4px; /* Reduce la altura de la barra de desplazamiento para Chrome y Safari */
+    }
 
-#lblFileUpload{
-    margin-top:3px;
+    #imgViewerContainer::-webkit-scrollbar-track {
+        background: #f1f1f1; /* Color del fondo de la barra de desplazamiento */
+    }
+
+    #imgViewerContainer::-webkit-scrollbar-thumb {
+        background: #888; /* Color del cursor de la barra de desplazamiento */
+        border-radius: 2px; /* Bordes redondeados del cursor */
+    }
+
+        #imgViewerContainer::-webkit-scrollbar-thumb:hover {
+            background: #555; /* Color del cursor cuando se pasa el mouse por encima */
+        }
+
+#lblFileUpload {
+    margin-top: 3px;
 }
 
 #imgViewer {
@@ -150,7 +154,6 @@
         margin-right: 10px;
     }
 
-
 .modal-footer .left-buttons,
 .modal-footer .right-buttons {
     display: flex;
@@ -165,13 +168,10 @@
     margin-left: auto;
 }
 
-
 .modal-content {
     margin: 0 auto; /* Asegura que los modales no se traslapen */
 }
 
 #ubicacion {
-    text-align:right;
+    text-align: right;
 }
-
-
