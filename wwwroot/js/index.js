@@ -19,6 +19,7 @@ var i = 0;
 var latLng;
 var latLngx;
 var typeofp;
+let isUpdate;
 
 let currentInmuebleId = null;
 
@@ -252,7 +253,6 @@ function fetchMarkers() {
                     markerx.addListener('click', function () {
                         $('#btnClear').css('display', "none");
                         $('.btn-fileupload').css('display', "none");
-                        
 
                         const str = document.getElementById("lnkAcceso").innerText;
                         const str2 = item.refUsuario.correo.toString();
@@ -265,10 +265,21 @@ function fetchMarkers() {
                             $("#contacto_a").hide();
                             $('.boton-guardar-inmueble').css('display', "none");
                         } else {
-                            
                             $("#contacto_a").show();
                             $('.boton-guardar-inmueble').css('display', "inline");
                             $(".boton-eliminar-inmueble").show();
+
+                            // Cambiar el texto del botón y el evento onclick
+                            if (item) {  // Asumiendo que tienes una propiedad isExisting para verificar si es una actualización
+                                $('.boton-guardar-inmueble').text('Actualizar');
+                                $('.boton-guardar-inmueble').attr('onclick', 'validateForm(event, true)');
+                                currentInmuebleId = item.idInmueble;
+                                isUpdate = true;
+                            } else {
+                                $('.boton-guardar-inmueble').text('Guardar');
+                                $('.boton-guardar-inmueble').attr('onclick', 'validateForm(event, false)');
+                                isUpdate = false;
+                            }
                         }
 
                         var nom_tel = item.refUsuario.nombres + " " + item.refUsuario.aPaterno;
@@ -703,19 +714,25 @@ function validateForm(event) {
     }
 
     if (isValid) {
-        submitForm(); // Llamar a la función para enviar el formulario
+        submitForm(isUpdate);
     }
 }
 
-function submitForm() {
+function submitForm(isUpdate = false) {
     const formData = new FormData();
 
     const ubicacionTexto = document.getElementById('ubicacion').textContent;
     const { lat, lng } = extractLatLon(ubicacionTexto);
 
-    // Agrega datos del modelo al FormData
-    formData.append('Datax.Lat', lat.toFixed(6));  // Asegúrate de que tenga 6 decimales
-    formData.append('Datax.Lng', lng.toFixed(6));  // Asegúrate de que tenga 6 decimales
+    if (!isUpdate) {
+        formData.append('Datax.Lat', lat.toFixed(6));
+        formData.append('Datax.Lng', lng.toFixed(6));
+
+    }
+    else {
+        formData.append('idInmueble', currentInmuebleId);
+    }
+
     formData.append('Datax.IdTipo', $("#tipo").val());
     formData.append('Datax.Terreno', $("#terreno").val());
     formData.append('Datax.Construccion', $("#construccion").val());
@@ -723,25 +740,26 @@ function submitForm() {
     formData.append('Datax.Observaciones', $("#descripcion").val());
     formData.append('Datax.Contacto', $("#contacto_a").val());
 
-    // Agrega los archivos al FormData
-    const files = document.getElementById("FileUpload1").files;
-    for (let i = 0; i < files.length; i++) {
-        formData.append('Files', files[i]);
+    if (!isUpdate) {
+        const files = document.getElementById("FileUpload1").files;
+        for (let i = 0; i < files.length; i++) {
+            formData.append('Files', files[i]);
+        }
     }
 
     formData.append('Correo', document.getElementById("lnkAcceso").innerText);
 
-    fetch("/Inmueble/RegistrarInmueble", {
+    const url = isUpdate ? "/Inmueble/ActualizarInmueble" : "/Inmueble/RegistrarInmueble";
+    fetch(url, {
         method: 'POST',
-        body: formData  // Nota que no establecemos Content-Type. FormData lo hará automáticamente.
+        body: formData
     })
         .then(response => response.json())
         .then(response => {
             if (response.success) {
-                //alert(response.message);
                 location.reload();
             } else {
-                alert("Error al guardar el inmueble y las imágenes");
+                alert("Error al " + (isUpdate ? "actualizar" : "guardar") + " el inmueble y las imágenes");
             }
         })
         .catch(error => {

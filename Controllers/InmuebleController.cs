@@ -101,6 +101,43 @@ namespace maps4.Controllers
             }
         }
 
+        [HttpPost]
+        public async Task<IActionResult> ActualizarInmueble(InmuebleData data, int idInmueble)
+        {
+            Inmueble modelo = new Inmueble();
+            //Inmueble modelo = await _inmuebleRepository.GetInmuebleById(data.IdInmueble);
+            if (modelo == null)
+            {
+                return BadRequest("Inmueble no encontrado.");
+            }
+
+            modelo.IdInmueble = idInmueble;
+            modelo.IdTipo = data.Datax.IdTipo;
+            modelo.Terreno = data.Datax.Terreno;
+            modelo.Construccion = data.Datax.Construccion;
+            modelo.Precio = data.Datax.Precio;
+            modelo.Observaciones = data.Datax.Observaciones;
+            modelo.Contacto = data.Datax.Contacto;
+
+            // No actualizamos Lat, Lng y Files en este método.
+
+            modelo.RefUsuario = new Usuario();
+            modelo.RefUsuario.correo = data.Correo;
+
+            try
+            {
+                // Actualiza el inmueble en la base de datos
+                await _inmuebleRepository.UpdateInmueble(modelo);
+
+                return Json(new { success = true, message = "Inmueble actualizado correctamente!" });
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Error en ActualizarInmueble: {ex.Message}");
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
         [HttpDelete]
         public async Task<IActionResult> Eliminar(int idInmueble)
         {

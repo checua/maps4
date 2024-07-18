@@ -8,6 +8,11 @@ namespace maps4.Repositorios.Contrato
 
         Task<Inmueble> SaveInmueble(Inmueble modelo);//, int files, string correo);
 
+        Task<bool> UpdateInmueble(Inmueble modelo);
+
         Task<bool> EliminarInmueble(int idInmueble);
+
+
+
     }
 }
