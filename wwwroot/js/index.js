@@ -252,7 +252,7 @@ function fetchMarkers() {
                     markerx.addListener('click', function () {
                         $('#btnClear').css('display', "none");
                         $('.btn-fileupload').css('display', "none");
-                        $('.boton-guardar-inmueble').css('display', "none");
+                        
 
                         const str = document.getElementById("lnkAcceso").innerText;
                         const str2 = item.refUsuario.correo.toString();
@@ -263,9 +263,12 @@ function fetchMarkers() {
                         if (res != res2) {
                             $('.boton-eliminar-inmueble').css('display', "none");
                             $("#contacto_a").hide();
+                            $('.boton-guardar-inmueble').css('display', "none");
                         } else {
-                            $(".boton-eliminar-inmueble").show();
+                            
                             $("#contacto_a").show();
+                            $('.boton-guardar-inmueble').css('display', "inline");
+                            $(".boton-eliminar-inmueble").show();
                         }
 
                         var nom_tel = item.refUsuario.nombres + " " + item.refUsuario.aPaterno;
