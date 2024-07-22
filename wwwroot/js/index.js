@@ -22,6 +22,7 @@ var typeofp;
 let isUpdate;
 
 let currentInmuebleId = null;
+let selectedInmuebleId = null;
 
 // Función para cargar la API de Google Maps de manera asincrónica
 function loadGoogleMapsAPI(apiKey) {
@@ -95,7 +96,9 @@ function initializeMap() {
                                 $('.boton-guardar-inmueble').show();
                                 $('#contacto_a').show();
                                 $(".boton-eliminar-inmueble").hide();
-
+                                    $('.boton-guardar-inmueble').text('Guardar');
+                                    $('.boton-guardar-inmueble').attr('onclick', 'validateForm(event, false)');
+                                    isUpdate = false;
                                 GetCode2();
                             } else {
                                 // document.getElementById('geocoding').innerHTML ='No se encontraron resultados';
@@ -273,7 +276,7 @@ function fetchMarkers() {
                             if (item) {  // Asumiendo que tienes una propiedad isExisting para verificar si es una actualización
                                 $('.boton-guardar-inmueble').text('Actualizar');
                                 $('.boton-guardar-inmueble').attr('onclick', 'validateForm(event, true)');
-                                currentInmuebleId = item.idInmueble;
+                                selectedInmuebleId = item.idInmueble;
                                 isUpdate = true;
                             } else {
                                 $('.boton-guardar-inmueble').text('Guardar');
@@ -730,7 +733,7 @@ function submitForm(isUpdate = false) {
 
     }
     else {
-        formData.append('idInmueble', currentInmuebleId);
+        formData.append('idInmueble', selectedInmuebleId);
     }
 
     formData.append('Datax.IdTipo', $("#tipo").val());
@@ -758,6 +761,7 @@ function submitForm(isUpdate = false) {
         .then(response => {
             if (response.success) {
                 location.reload();
+                selectedInmuebleId = 0;
             } else {
                 alert("Error al " + (isUpdate ? "actualizar" : "guardar") + " el inmueble y las imágenes");
             }

@@ -91,14 +91,17 @@ namespace maps4.Controllers
 
             Usuario usuario_creado = await _usuarioRepositoryLogin.SaveUsuario(modelo);
 
-            if (usuario_creado.correo != "")
+            if (!string.IsNullOrEmpty(usuario_creado.correo))
             {
                 //return RedirectToAction("IniciarSesion", "Inicio");
                 return RedirectToAction("IniciarSesion", "Inicio", new { correo = modelo.correo, contra = modelo.contra });
             }
             else
-                ViewData["Mensaje"] = "No se pudo crear el usuario";
-            return View();
+            {
+                ViewData["Mensaje"] = string.IsNullOrEmpty(usuario_creado.revisado) ? "No se pudo crear el usuario" : usuario_creado.revisado;
+                return View();
+            }
         }
+
     }
 }
