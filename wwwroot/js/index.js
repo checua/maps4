@@ -138,9 +138,6 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch(error => {
             console.error('Error loading Google Maps API:', error);
         });
-
-
-
 });
 
 function fetchMarkers() {
@@ -276,15 +273,17 @@ function fetchMarkers() {
                             if (item) {  // Asumiendo que tienes una propiedad isExisting para verificar si es una actualización
                                 $('.boton-guardar-inmueble').text('Actualizar');
                                 $('.boton-guardar-inmueble').attr('onclick', 'validateForm(event, true)');
-                                selectedInmuebleId = item.idInmueble;
+                                
                                 isUpdate = true;
                             } else {
                                 $('.boton-guardar-inmueble').text('Guardar');
                                 $('.boton-guardar-inmueble').attr('onclick', 'validateForm(event, false)');
                                 isUpdate = false;
                             }
-                        }
 
+                            
+                        }
+                        selectedInmuebleId = item.idInmueble;
                         var nom_tel = item.refUsuario.nombres + " " + item.refUsuario.aPaterno;
                         GetCode1(item.idTipo, item.idInmueble, nom_tel, item.telefono, item.terreno, item.construccion, item.precio, item.observaciones, item.contacto, item.imagenes);
                     });
@@ -346,6 +345,62 @@ fetch('/Home/GetUserClaims', {
 
 
 
+function shareItem() {
+    const queryParams = getQueryParams();
+    let inmuebleId = queryParams.inmuebleId;
+
+    if (!inmuebleId && selectedInmuebleId) {
+        inmuebleId = selectedInmuebleId;
+    }
+
+    if (inmuebleId) {
+        const url = `${window.location.origin}${window.location.pathname}?inmuebleId=${inmuebleId}`;
+
+        if (navigator.share) {
+            navigator.share({
+                title: 'Compartir Inmueble',
+                text: 'Mira este inmueble que encontré:',
+                url: url
+            }).then(() => {
+                console.log('Gracias por compartir.');
+            }).catch((error) => {
+                console.error('Error al compartir:', error);
+            });
+        } else {
+            copyToClipboard(url);
+            alert(`Compartir enlace: ${url}`);
+        }
+    } else {
+        alert("No hay un inmueble seleccionado para compartir.");
+    }
+}
+
+function getQueryParams() {
+    const params = {};
+    const queryString = window.location.search.slice(1);
+    if (!queryString) {
+        return params; // Return an empty object if there are no query parameters
+    }
+
+    queryString.split('&').forEach(param => {
+        const [key, value] = param.split('=');
+        if (key) {
+            params[decodeURIComponent(key)] = value ? decodeURIComponent(value) : '';
+        }
+    });
+    return params;
+}
+
+function copyToClipboard(text) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    alert('Enlace copiado al portapapeles');
+}
+
 
 
 
@@ -386,6 +441,7 @@ $(document).on("click", ".boton-iniciar-sesion", function () {
                     //Swal.fire("Listo! " + item.correo, "Usuario logegado", "success");
                     $("#correo").val("");
                     $("#contra").val("");
+                    //location.reload();
                 })
             }
             else {
