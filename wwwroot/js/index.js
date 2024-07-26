@@ -20,6 +20,7 @@ var latLng;
 var latLngx;
 var typeofp;
 let isUpdate;
+let clikeado = 0;
 
 let currentInmuebleId = null;
 let selectedInmuebleId = null;
@@ -130,6 +131,11 @@ function initializeMap() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    const queryParams = getQueryParams();
+    if (queryParams.inmuebleId) {
+        loadInmueble(queryParams.inmuebleId);
+    }
+
     const apiKey = 'AIzaSyAiEPIpKUewZTon1DeYNod3M63NB_HRcU4';  // Reemplaza con tu clave API de Google Maps
     loadGoogleMapsAPI(apiKey)
         .then(() => {
@@ -139,6 +145,61 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error loading Google Maps API:', error);
         });
 });
+
+function loadInmueble(inmuebleId) {
+    fetch(`/Inmueble/GetInmuebleById?id=${inmuebleId}`)
+        .then(response => response.json())
+        .then(inmueble => {
+            if (inmueble) {
+                //const latLng = new google.maps.LatLng(clat, inmueble[0].lng);
+                //map.setCenter(latLng);
+                //const marker = createMarker(inmueble, latLng);
+                //markers.push(marker);
+
+                const str = document.getElementById("lnkAcceso").innerText;
+                const str2 = inmueble[0].refUsuario.correo.toString();
+
+                const res = str.toUpperCase();
+                const res2 = str2.toUpperCase();
+
+                if (res != res2) {
+                    $('.boton-eliminar-inmueble').css('display', "none");
+                    $("#contacto_a").hide();
+                    $('.boton-guardar-inmueble').css('display', "none");
+
+                } else {
+                    $("#contacto_a").show();
+                    $('.boton-guardar-inmueble').css('display', "inline");
+                    $(".boton-eliminar-inmueble").show();
+
+                    // Cambiar el texto del botón y el evento onclick
+                    if (inmueble) {  // Asumiendo que tienes una propiedad isExisting para verificar si es una actualización
+                        $('.boton-guardar-inmueble').text('Actualizar');
+                        $('.boton-guardar-inmueble').attr('onclick', 'validateForm(event, true)');
+                        isUpdate = true;
+                    } else {
+                        $('.boton-guardar-inmueble').text('Guardar');
+                        $('.boton-guardar-inmueble').attr('onclick', 'validateForm(event, false)');
+
+                        isUpdate = false;
+                    }
+                }
+
+                $('#btnClear').css('display', "none");
+                $('.btn-fileupload').css('display', "none");
+                //onMarkerClick(inmueble);
+                selectedInmuebleId = inmuebleId;
+                
+                var nom_tel = inmueble[0].refUsuario.nombres + " " + inmueble[0].refUsuario.aPaterno;
+                GetCode1(inmueble[0].idTipo, inmueble[0].idInmueble, nom_tel, inmueble[0].telefono, inmueble[0].terreno, inmueble[0].construccion, inmueble[0].precio, inmueble[0].observaciones, inmueble[0].contacto, inmueble[0].imagenes);
+
+            } else {
+                alert('Inmueble no encontrado');
+            }
+        })
+        .catch(error => console.error('Error al cargar el inmueble:', error));
+}
+
 
 function fetchMarkers() {
     fetch("/Home/listaInmuebles")
@@ -283,7 +344,7 @@ function fetchMarkers() {
 
                             
                         }
-                        selectedInmuebleId = item.idInmueble;
+                        selectedInmuebleId = item.idInmueble; clikeado = 1;
                         var nom_tel = item.refUsuario.nombres + " " + item.refUsuario.aPaterno;
                         GetCode1(item.idTipo, item.idInmueble, nom_tel, item.telefono, item.terreno, item.construccion, item.precio, item.observaciones, item.contacto, item.imagenes);
                     });
@@ -346,10 +407,16 @@ fetch('/Home/GetUserClaims', {
 
 
 function shareItem() {
-    const queryParams = getQueryParams();
-    let inmuebleId = queryParams.inmuebleId;
+    let inmuebleId
+    if (clikeado != 1) {
+        const queryParams = getQueryParams();
+        inmuebleId = queryParams.inmuebleId;
 
-    if (!inmuebleId && selectedInmuebleId) {
+        if (!inmuebleId && selectedInmuebleId) {
+            inmuebleId = selectedInmuebleId;
+        }
+    }
+    else {
         inmuebleId = selectedInmuebleId;
     }
 

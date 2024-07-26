@@ -157,5 +157,23 @@ namespace maps4.Controllers
                 return StatusCode(500, new { success = false, message = "Error al eliminar el inmueble." });
             }
         }
+
+        [HttpGet]
+        public async Task<IActionResult> GetInmuebleById(int id)
+        {
+            if (id == 0)
+            {
+                return BadRequest("Invalid Inmueble ID");
+            }
+
+            List<Inmueble> _lista = await _inmuebleRepository.GetInmuebleById(id);
+            if (_lista == null || _lista.Count == 0)
+            {
+                return NotFound("Inmueble not found");
+            }
+
+            return Ok(_lista);
+        }
+
     }
 }

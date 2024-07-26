@@ -13,6 +13,8 @@ namespace maps4.Repositorios.Contrato
         Task<bool> EliminarInmueble(int idInmueble);
 
 
+        Task<List<T>> GetInmuebleById(int idInmueble);
+
 
     }
 }
