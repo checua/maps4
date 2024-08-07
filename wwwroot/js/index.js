@@ -21,9 +21,12 @@ var latLngx;
 var typeofp;
 let isUpdate;
 let clikeado = 0;
+let currentInmueble = null; 
 
 let currentInmuebleId = null;
 let selectedInmuebleId = null;
+
+
 
 // Función para cargar la API de Google Maps de manera asincrónica
 function loadGoogleMapsAPI(apiKey) {
@@ -43,9 +46,11 @@ function loadGoogleMapsAPI(apiKey) {
 
 // Función para inicializar el mapa
 function initializeMap() {
-    const latLng = new google.maps.LatLng(24.017926, -104.657079);
+
+    const defaultLatLng = new google.maps.LatLng(24.017926, -104.657079); // Ubicación predeterminada
+
     const opciones = {
-        center: latLng,
+        center: defaultLatLng,
         zoom: 12,
         mapTypeId: google.maps.MapTypeId.roadmap,
         disableDefaultUI: true
@@ -54,6 +59,29 @@ function initializeMap() {
     map = new google.maps.Map(document.getElementById('map_canvas'), opciones);
     geocoder = new google.maps.Geocoder();
     infowindow = new google.maps.InfoWindow();
+
+    // Intentar obtener la ubicación del usuario
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function (position) {
+                const userLatLng = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+                map.setCenter(userLatLng);
+
+                // Añadir un marcador en la ubicación del usuario (opcional)
+                //new google.maps.Marker({
+                //    position: userLatLng,
+                //    map: map,
+                //    title: "Tu ubicación"
+                //});
+            },
+            function () {
+                handleLocationError(true, map.getCenter());
+            }
+        );
+    } else {
+        // Navegador no soporta geolocalización
+        handleLocationError(false, map.getCenter());
+    }
 
     google.maps.event.addListener(map, 'mousedown', function (e) {
         mousedUp = false;
@@ -127,6 +155,8 @@ function initializeMap() {
         mousedUp = true;
     });
 
+
+
     fetchMarkers();
 }
 
@@ -155,6 +185,13 @@ function loadInmueble(inmuebleId) {
                 //map.setCenter(latLng);
                 //const marker = createMarker(inmueble, latLng);
                 //markers.push(marker);
+
+                // Actualizar la variable currentInmueble
+                currentInmueble = {
+                    lat: inmueble[0].lat,
+                    lng: inmueble[0].lng,
+                    id: inmueble[0].idInmueble
+                };
 
                 const str = document.getElementById("lnkAcceso").innerText;
                 const str2 = inmueble[0].refUsuario.correo.toString();
@@ -200,97 +237,82 @@ function loadInmueble(inmuebleId) {
         .catch(error => console.error('Error al cargar el inmueble:', error));
 }
 
+function gotoLocation() {
+    if (currentInmueble) {
+        
+        const lat = currentInmueble.lat;
+        const lng = currentInmueble.lng;
+        const latLng = new google.maps.LatLng(lat, lng);
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const url = isIOS
+            ? `maps://maps.apple.com/?q=${lat},${lng}`
+            : `https://maps.google.com/?q=${lat},${lng}`;
+
+        // Mostrar el SweetAlert2 con opciones
+        Swal.fire({
+            title: 'Selecciona una opción',
+            showDenyButton: true,
+            showCancelButton: true,
+            confirmButtonText: 'Acercar',
+            denyButtonText: `Abrir en Mapas`,
+            cancelButtonText: 'Cancelar',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Opción "Acercar" seleccionada
+                const latLng = new google.maps.LatLng(lat, lng);
+                map.setCenter(latLng);
+                map.setZoom(17);  // Puedes ajustar el nivel de zoom según tus necesidades
+
+                // Destacar el marcador del inmueble (puedes cambiar su ícono temporalmente o agregar una animación)
+                markers.forEach(marker => {
+                    if (marker.getPosition().equals(latLng)) {
+                        marker.setAnimation(google.maps.Animation.BOUNCE);  // Ejemplo: hacer que el marcador salte
+                        setTimeout(() => marker.setAnimation(null), 1400);  // Detener la animación después de un tiempo
+                    }
+                });
+            } else if (result.isDenied) {
+                // Opción "Abrir en Mapas" seleccionada
+                window.open(url, '_blank');
+            } else if (result.isDismissed) { // && map.getZoom() !== 12) {
+                // Opción "Cancelar" seleccionada y el zoom es diferente a 12
+                map.setCenter(latLng);
+                map.setZoom(12);
+            }
+            $("#modalInmueble").modal("hide");
+        });
+    } else {
+        Swal.fire('Error', 'No hay un inmueble seleccionado.', 'error');
+    }
+}
+
+
+let accumulatedUrls = []; // Variable para acumular los enlaces de los inmuebles
+let accumulatedIds = []; // Variable para acumular los IDs de los inmuebles
 
 function fetchMarkers() {
     fetch("/Home/listaInmuebles")
-        .then(response => {
-            return response.ok ? response.json() : Promise.reject(response)
-        })
+        .then(response => response.ok ? response.json() : Promise.reject(response))
         .then(responseJson => {
             if (responseJson.length > 0) {
                 responseJson.forEach((item) => {
                     let imageIcon;
                     switch (item.idTipo) {
-                        case 2: {
-                            imageIcon = "images/icon/casa_che.png";
-                            typeofp = "Casa en venta";
-                            break;
-                        }
-                        case 3: {
-                            imageIcon = "images/icon/casa.png";
-                            typeofp = "Casa en renta";
-                            break;
-                        }
-                        case 4: {
-                            imageIcon = "images/icon/apartment1.png";
-                            typeofp = "Apartamento en venta";
-                            break;
-                        }
-                        case 5: {
-                            imageIcon = "images/icon/apartment2.png";
-                            typeofp = "Apartamento en renta";
-                            break;
-                        }
-                        case 6: {
-                            imageIcon = "images/icon/terreno1b.png";
-                            typeofp = "Terreno en venta";
-                            break;
-                        }
-                        case 7: {
-                            imageIcon = "images/icon/terreno2.png";
-                            typeofp = "Terreno en renta";
-                            break;
-                        }
-                        case 8: {
-                            imageIcon = "images/icon/local.png";
-                            typeofp = "Local en venta";
-                            break;
-                        }
-                        case 9: {
-                            imageIcon = "images/icon/local2.png";
-                            typeofp = "Local en renta";
-                            break;
-                        }
-                        case 10: {
-                            imageIcon = "images/icon/building.png";
-                            typeofp = "Edificio en venta";
-                            break;
-                        }
-                        case 11: {
-                            imageIcon = "images/icon/building2.png";
-                            typeofp = "Edificio en renta";
-                            break;
-                        }
-                        case 12: {
-                            imageIcon = "images/icon/montacargas2.png";
-                            typeofp = "Bodega en venta";
-                            break;
-                        }
-                        case 13: {
-                            imageIcon = "images/icon/montacargas.png";
-                            typeofp = "Bodega en renta";
-                            break;
-                        }
-                        case 14: {
-                            imageIcon = "images/icon/desk.png";
-                            typeofp = "Oficina en venta";
-                            break;
-                        }
-                        case 15: {
-                            imageIcon = "images/icon/desk2.png";
-                            typeofp = "Oficina en renta";
-                            break;
-                        }
-                        case 16: {
-                            imageIcon = "images/icon/tractor1.png";
-                            typeofp = "Rancho en venta";
-                            break;
-                        }
-                        case 17: {
-                            imageIcon = "images/icon/tractor2.png";
-                            typeofp = "Rancho en renta";
-                            break;
-                        }
+                        case 2: imageIcon = "images/icon/casa_che.png"; typeofp = "Casa en venta"; break;
+                        case 3: imageIcon = "images/icon/casa.png"; typeofp = "Casa en renta"; break;
+                        case 4: imageIcon = "images/icon/apartment1.png"; typeofp = "Apartamento en venta"; break;
+                        case 5: imageIcon = "images/icon/apartment2.png"; typeofp = "Apartamento en renta"; break;
+                        case 6: imageIcon = "images/icon/terreno1b.png"; typeofp = "Terreno en venta"; break;
+                        case 7: imageIcon = "images/icon/terreno2.png"; typeofp = "Terreno en renta"; break;
+                        case 8: imageIcon = "images/icon/local.png"; typeofp = "Local en venta"; break;
+                        case 9: imageIcon = "images/icon/local2.png"; typeofp = "Local en renta"; break;
+                        case 10: imageIcon = "images/icon/building.png"; typeofp = "Edificio en venta"; break;
+                        case 11: imageIcon = "images/icon/building2.png"; typeofp = "Edificio en renta"; break;
+                        case 12: imageIcon = "images/icon/montacargas2.png"; typeofp = "Bodega en venta"; break;
+                        case 13: imageIcon = "images/icon/montacargas.png"; typeofp = "Bodega en renta"; break;
+                        case 14: imageIcon = "images/icon/desk.png"; typeofp = "Oficina en venta"; break;
+                        case 15: imageIcon = "images/icon/desk2.png"; typeofp = "Oficina en renta"; break;
+                        case 16: imageIcon = "images/icon/tractor1.png"; typeofp = "Rancho en venta"; break;
+                        case 17: imageIcon = "images/icon/tractor2.png"; typeofp = "Rancho en renta"; break;
                     }
 
                     const latLng = new google.maps.LatLng(item.lat, item.lng);
@@ -298,12 +320,11 @@ function fetchMarkers() {
                         position: latLng,
                         map,
                         title: String(item.idTipo),
-                        //title: String("Id Inmueble: " + item.idInmueble + ", Propiedad: " + typeofp), //Con esto no filtra, luego lo vemos
                         icon: {
                             url: imageIcon,
                             scaledSize: new google.maps.Size(32, 32),
-                            origin: new google.maps.Point(0, 0), // Origen de la imagen (0, 0)
-                            anchor: new google.maps.Point(16, 16) // Punto de anclaje de la imagen (centrado)
+                            origin: new google.maps.Point(0, 0),
+                            anchor: new google.maps.Point(16, 16)
                         },
                     });
 
@@ -311,43 +332,131 @@ function fetchMarkers() {
                     markersx[i] = markerx;
                     i++;
 
-                    markerx.addListener('click', function () {
-                        $('#btnClear').css('display', "none");
-                        $('.btn-fileupload').css('display', "none");
+                    let longPressDuration = 1000; // Duración del long press en milisegundos (1 segundo)
+                    let longPressTimer;
+                    let isLongPress = false;
 
-                        const str = document.getElementById("lnkAcceso").innerText;
-                        const str2 = item.refUsuario.correo.toString();
+                    const handleLongPress = () => {
+                        isLongPress = true;
+                        const url = `${window.location.origin}${window.location.pathname}?inmuebleId=${item.idInmueble}`;
+                        accumulatedUrls.push(url);
+                        accumulatedIds.push(item.idInmueble);
+                        const accumulatedIdsText = accumulatedIds.join(', ');
+                        const accumulatedUrlsText = `Tengo estas propiedades para ti:\n${accumulatedUrls.join('\n')}`;
 
-                        const res = str.toUpperCase();
-                        const res2 = str2.toUpperCase();
-
-                        if (res != res2) {
-                            $('.boton-eliminar-inmueble').css('display', "none");
-                            $("#contacto_a").hide();
-                            $('.boton-guardar-inmueble').css('display', "none");
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                            navigator.clipboard.writeText(accumulatedUrlsText).then(function () {
+                                Swal.fire({
+                                    title: `Copiado a memoria: Inmueble #${item.idInmueble}`,
+                                    html: `Inmuebles copiados: ${accumulatedIdsText}`,
+                                    icon: 'success',
+                                    confirmButtonText: 'Ok',
+                                    allowOutsideClick: false,
+                                    showCancelButton: true,
+                                    cancelButtonText: 'Vaciar memoria',
+                                    reverseButtons: true, // Esto coloca el botón de cancelar a la izquierda
+                                }).then((result) => {
+                                    if (result.dismiss === Swal.DismissReason.cancel) {
+                                        accumulatedUrls = [];
+                                        accumulatedIds = [];
+                                    }
+                                });
+                            }, function (err) {
+                                console.error('Error al copiar texto: ', err);
+                            });
                         } else {
-                            $("#contacto_a").show();
-                            $('.boton-guardar-inmueble').css('display', "inline");
-                            $(".boton-eliminar-inmueble").show();
+                            // Fallback para navegadores que no soportan navigator.clipboard.writeText
+                            const textArea = document.createElement('textarea');
+                            textArea.value = accumulatedUrlsText;
+                            document.body.appendChild(textArea);
+                            textArea.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(textArea);
+                            Swal.fire({
+                                title: `Copiado a memoria: Inmueble #${item.idInmueble}`,
+                                html: `Inmuebles copiados: ${accumulatedIdsText}`,
+                                icon: 'success',
+                                confirmButtonText: 'Ok',
+                                allowOutsideClick: false,
+                                showCancelButton: true,
+                                cancelButtonText: 'Vaciar memoria'
+                            }).then((result) => {
+                                if (result.dismiss === Swal.DismissReason.cancel) {
+                                    accumulatedUrls = [];
+                                    accumulatedIds = [];
+                                }
+                            });
+                        }
+                    };
 
-                            // Cambiar el texto del botón y el evento onclick
-                            if (item) {  // Asumiendo que tienes una propiedad isExisting para verificar si es una actualización
-                                $('.boton-guardar-inmueble').text('Actualizar');
-                                $('.boton-guardar-inmueble').attr('onclick', 'validateForm(event, true)');
-                                
-                                isUpdate = true;
+                    const onPressStart = (event) => {
+                        isLongPress = false;
+                        longPressTimer = setTimeout(handleLongPress, longPressDuration);
+                        if (event.type === 'touchstart') {
+                            event.preventDefault(); // Previene el comportamiento predeterminado en dispositivos táctiles
+                        }
+                    };
+
+                    const onPressEnd = () => {
+                        clearTimeout(longPressTimer); // Cancelar el temporizador si se suelta antes de long press
+                        setTimeout(() => { isLongPress = false; }, longPressDuration); // Reset after the click event
+                    };
+
+                    const onPressMove = () => {
+                        clearTimeout(longPressTimer); // Cancelar el temporizador si el marcador se mueve
+                        isLongPress = false;
+                    };
+
+                    markerx.addListener('click', function () {
+                        if (!isLongPress) {
+                            $('#btnClear').css('display', "none");
+                            $('.btn-fileupload').css('display', "none");
+
+                            currentInmueble = {
+                                lat: item.lat,
+                                lng: item.lng,
+                                id: item.idInmueble
+                            };
+
+                            const str = document.getElementById("lnkAcceso").innerText;
+                            const str2 = item.refUsuario.correo.toString();
+
+                            const res = str.toUpperCase();
+                            const res2 = str2.toUpperCase();
+
+                            if (res != res2) {
+                                $('.boton-eliminar-inmueble').css('display', "none");
+                                $("#contacto_a").hide();
+                                $('.boton-guardar-inmueble').css('display', "none");
                             } else {
-                                $('.boton-guardar-inmueble').text('Guardar');
-                                $('.boton-guardar-inmueble').attr('onclick', 'validateForm(event, false)');
-                                isUpdate = false;
+                                $("#contacto_a").show();
+                                $('.boton-guardar-inmueble').css('display', "inline");
+                                $(".boton-eliminar-inmueble").show();
+
+                                if (item) {
+                                    $('.boton-guardar-inmueble').text('Actualizar');
+                                    $('.boton-guardar-inmueble').attr('onclick', 'validateForm(event, true)');
+                                    isUpdate = true;
+                                } else {
+                                    $('.boton-guardar-inmueble').text('Guardar');
+                                    $('.boton-guardar-inmueble').attr('onclick', 'validateForm(event, false)');
+                                    isUpdate = false;
+                                }
                             }
 
-                            
+                            selectedInmuebleId = item.idInmueble;
+                            clikeado = 1;
+                            var nom_tel = item.refUsuario.nombres + " " + item.refUsuario.aPaterno;
+                            GetCode1(item.idTipo, item.idInmueble, nom_tel, item.telefono, item.terreno, item.construccion, item.precio, item.observaciones, item.contacto, item.imagenes);
                         }
-                        selectedInmuebleId = item.idInmueble; clikeado = 1;
-                        var nom_tel = item.refUsuario.nombres + " " + item.refUsuario.aPaterno;
-                        GetCode1(item.idTipo, item.idInmueble, nom_tel, item.telefono, item.terreno, item.construccion, item.precio, item.observaciones, item.contacto, item.imagenes);
                     });
+
+                    markerx.addListener('mousedown', onPressStart);
+                    markerx.addListener('mouseup', onPressEnd);
+                    markerx.addListener('mousemove', onPressMove);
+                    markerx.addListener('touchstart', onPressStart);
+                    markerx.addListener('touchend', onPressEnd);
+                    markerx.addListener('touchmove', onPressMove);
                 });
                 map.setCenter(latLng);
             }
@@ -356,6 +465,86 @@ function fetchMarkers() {
             console.error('Error al obtener la lista de inmuebles:', error);
         });
 }
+
+
+document.getElementById('copyIdToClipboard').addEventListener('change', function (event) {
+    if (event.target.checked) {
+        if (currentInmueble) {
+            const url = `${window.location.origin}${window.location.pathname}?inmuebleId=${currentInmueble.id}`;
+            accumulatedUrls.push(url);
+            accumulatedIds.push(currentInmueble.id);
+
+            const accumulatedUrlsText = `Tengo estas propiedades para ti:\n${accumulatedUrls.join('\n')}`;
+            const accumulatedIdsText = `Inmuebles copiados: ${accumulatedIds.join(', ')}`;
+
+            navigator.clipboard.writeText(accumulatedUrlsText).then(function () {
+                Swal.fire({
+                    title: `ID #${currentInmueble.id} copiado a memoria`,
+                    html: accumulatedIdsText,
+                    icon: 'success',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ok',
+                    cancelButtonText: 'Vaciar memoria',
+                    reverseButtons: true, // Esto coloca el botón de cancelar a la izquierda
+                }).then((result) => {
+                    if (result.dismiss === Swal.DismissReason.cancel) {
+                        accumulatedUrls = [];
+                        accumulatedIds = [];
+                        // Desmarcar todos los checkboxes
+                        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => checkbox.checked = false);
+                        Swal.fire({
+                            title: 'Memoria vaciada',
+                            icon: 'success',
+                            confirmButtonText: 'Ok'
+                        });
+                    }
+                });
+            }).catch(function (error) {
+                console.error('Error al copiar el ID:', error);
+            });
+        }
+    } else {
+        // Remove from memory if checkbox is unchecked
+        if (currentInmueble) {
+            const index = accumulatedIds.indexOf(currentInmueble.id);
+            if (index !== -1) {
+                accumulatedIds.splice(index, 1);
+                accumulatedUrls.splice(index, 1);
+            }
+
+            const accumulatedUrlsText = `Tengo estas propiedades para ti:\n${accumulatedUrls.join('\n')}`;
+            const accumulatedIdsText = `Inmuebles copiados: ${accumulatedIds.join(', ')}`;
+
+            navigator.clipboard.writeText(accumulatedUrlsText).then(function () {
+                Swal.fire({
+                    title: `ID #${currentInmueble.id} removido de memoria`,
+                    html: accumulatedIdsText,
+                    icon: 'success',
+                    showCancelButton: true,
+                    confirmButtonText: 'Ok',
+                    cancelButtonText: 'Vaciar memoria',
+                    reverseButtons: true, // Esto coloca el botón de cancelar a la izquierda
+                }).then((result) => {
+                    if (result.dismiss === Swal.DismissReason.cancel) {
+                        accumulatedUrls = [];
+                        accumulatedIds = [];
+                        // Desmarcar todos los checkboxes
+                        document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => checkbox.checked = false);
+                        Swal.fire({
+                            title: 'Memoria vaciada',
+                            icon: 'success',
+                            confirmButtonText: 'Ok'
+                        });
+                    }
+                });
+            }).catch(function (error) {
+                console.error('Error al copiar el ID:', error);
+            });
+        }
+    }
+});
+
+
 
 
 fetch("/Home/listaTipoPropiedades")
@@ -611,6 +800,11 @@ function GetCode1(a, b, c, d, e, f, g, h, i, j) {
     } else {
         $('#imgViewer').append($('<img>', { src: "images/nohouse.jpg", width: '50px', height: '50px' }));
     }
+
+    // Check if the currentInmueble is already in accumulatedIds and set the checkbox accordingly
+    const checkbox = document.getElementById('copyIdToClipboard');
+    checkbox.checked = accumulatedIds.includes(b);
+
     $("#modalInmueble").modal("show");
 }
 
@@ -883,8 +1077,9 @@ function submitForm(isUpdate = false) {
         .then(response => response.json())
         .then(response => {
             if (response.success) {
-                location.reload();
+                window.history.replaceState({}, document.title, window.location.pathname);
                 selectedInmuebleId = 0;
+                location.reload();
             } else {
                 alert("Error al " + (isUpdate ? "actualizar" : "guardar") + " el inmueble y las imágenes");
             }

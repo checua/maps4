@@ -157,7 +157,7 @@
 .modal-footer .left-buttons,
 .modal-footer .right-buttons {
     display: flex;
-    gap: 10px; /* Ajusta el espacio entre los botones según sea necesario */
+    gap: 3px; /* Ajusta el espacio entre los botones según sea necesario */
 }
 
 .modal-footer .left-buttons {
@@ -174,4 +174,14 @@
 
 #ubicacion {
     text-align: right;
+}
+
+#btnPin {
+    background: url('/images/marker.png') no-repeat center center; /* Ajusta la ruta según sea necesario */
+    background-size: contain;
+    /*width: 40px;*/ /* Ajusta el ancho según sea necesario */
+    /*height: 60px;*/ /* Ajusta la altura según sea necesario */
+    border: none;
+    cursor: pointer;
+    outline: none;
 }

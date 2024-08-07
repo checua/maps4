@@ -93,7 +93,14 @@ namespace maps4.Repositorios.Implementacion
             catch (Exception ex)
             {
                 modelo.correo = "";
-                modelo.revisado = $"Error al guardar usuario: {ex.Message}";
+                if (ex.Message.Contains("Violation of UNIQUE KEY constraint"))
+                {
+                    modelo.revisado = "Este correo ya ha sido registrado";
+                }
+                else
+                {
+                    modelo.revisado = $"Error al guardar usuario: {ex.Message}";
+                }
                 return modelo;
             }
         }

@@ -117,7 +117,7 @@
                     </div>
                 </div>
 
-               <div class="card-body">
+                <div class="card-body">
                     <input class="form-control mb-3" type="text" placeholder="Correo" required name="correo" id="correo" />
                     <input class="form-control mb-3" type="password" placeholder="Contraseña" required name="contra" id="contra" />
                     <div class="d-grid gap-2 mb-3">
@@ -131,13 +131,14 @@
                             </div>
                         </div>
                     }
-                    <div id="closes-a"> ¿No tienes una cuenta? 
+                    <div id="closes-a">
+                        ¿No tienes una cuenta?
                         <div id="closes-b">
                             <a href="@Url.Action("Registrarse","Inicio")"> Regístrate!</a>
                         </div>
                         <div id="closes-c">
                             <a href="@Url.Action("CerrarSesion","hoME")">Cerrar Sesión</a>
-                        
+
                         </div>
                     </div>
                 </div>
@@ -201,6 +202,10 @@
                     </div>
 
                     <div class="d-flex justify-content-between">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="copyIdToClipboard">
+                            <label class="form-check-label" for="copyIdToClipboard">Copiar inmueble</label>
+                        </div>
                         <label id="ubicacion"></label>
                         <label id="telefono"></label>
                     </div>
@@ -213,6 +218,7 @@
                             <button type="button" class="btn btn-secondary" id="btnShare" onclick="shareItem()">Compatir</button>
                             <button type="button" class="btn btn-danger" id="btnClear" onclick="clearPreviewAndFields()">Limpiar</button>
                         </div>
+                        <button type="button" class="btn btn-primary" id="btnPin" onclick="gotoLocation()"></button>
                         <div class="right-buttons">
                             <button type="submit" class="btn btn-success boton-guardar-inmueble" onclick="validateForm(event)">Guardar</button>
                             <button type="button" class="btn btn-default" data-bs-dismiss="modal">Close</button>
@@ -240,8 +246,8 @@
                 </div>
             </div>
             @*<div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal" id="cerrarmodalImagenCompleta">Cerrar</button>
-             </div> *@
+            <button type="button" class="btn btn-secondary" data-dismiss="modal" id="cerrarmodalImagenCompleta">Cerrar</button>
+            </div> *@
         </div>
     </div>
 </div>

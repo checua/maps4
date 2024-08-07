@@ -1,4 +1,4 @@
-﻿@model maps4.Models.Usuario;
+﻿@model maps4.Models.Usuario
 @{
     Layout = null;
 }
@@ -24,28 +24,20 @@
                     </div>
                     <div class="card-body">
 
-                        <form asp-controller="Inicio" asp-action="Registrarse" method="post">
+                        <form asp-controller="Inicio" asp-action="Registrarse" method="post" id="registrationForm">
 
                             <input class="form-control mb-3" type="text" placeholder="Nombres" asp-for="nombres" required />
                             <input class="form-control mb-3" type="text" placeholder="Apellido paterno" required asp-for="aPaterno" />
-@*                             <input class="form-control mb-3" type="text" placeholder="Apellido materno" required asp-for="AMaterno" /> *@
-@*                             <div class="dropdown">
-                                <select class="form-control" id="cboInmobiliaria"></select>
-                            </div> *@
-@*                             <input class="form-control mb-3" type="text" placeholder="nick" required asp-for="Nick" /> *@
-                            <input class="form-control mb-3" type="password" placeholder="Contraseña" required asp-for="contra" />
-                            <input class="form-control mb-3" type="password" placeholder="Repetir contraseña" />
+                            <input class="form-control mb-3" type="password" placeholder="Contraseña" required asp-for="contra" id="password" />
+                            <input class="form-control mb-3" type="password" placeholder="Repetir contraseña" id="confirmPassword" />
                             <input class="form-control mb-3" type="text" placeholder="Teléfono" required asp-for="telefono" />
-                            <input class="form-control mb-3" type="text" placeholder="Correo" required asp-for="correo" />
-@*                             <input class="form-control mb-3" type="text" placeholder="Foto" required asp-for="Foto" />
-                            <input class="form-control mb-3" type="text" placeholder="Fecha de nacimiento" required asp-for="Dob" />
-                            <input class="form-control mb-3" type="text" placeholder="Revisado" required asp-for="Revisado" /> *@
+                            <input class="form-control mb-3" type="email" placeholder="Correo" required asp-for="correo" id="email" />
+                            <div id="error-message" class="text-danger mb-3"></div>
                             <div class="d-grid gap-2 mb-3">
-                                <button class="btn btn-primary" type="submit">Registrate</button>
+                                <button class="btn btn-primary" type="submit" id="registerBtn" disabled>Registrate</button>
                             </div>
                             @if (ViewData["Mensaje"] != null)
                             {
-
                                 <div class="form-group">
                                     <div class="alert alert-danger" role="alert">
                                         @ViewData["Mensaje"]
@@ -66,5 +58,6 @@
     </div>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/registerscript.js"></script>
 </body>
 </html>
