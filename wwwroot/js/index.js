@@ -466,15 +466,15 @@ function fetchMarkers() {
         });
 }
 
-
 document.getElementById('copyIdToClipboard').addEventListener('change', function (event) {
     if (event.target.checked) {
         if (currentInmueble) {
             const url = `${window.location.origin}${window.location.pathname}?inmuebleId=${currentInmueble.id}`;
+            const imageUrl = `${window.location.origin}/cargas/${currentInmueble.id}_1.jpg`;
             accumulatedUrls.push(url);
             accumulatedIds.push(currentInmueble.id);
 
-            const accumulatedUrlsText = `Tengo estas propiedades para ti:\n${accumulatedUrls.join('\n')}`;
+            const accumulatedUrlsText = `Tengo estas propiedades para ti:\n${accumulatedUrls.map((url, index) => `${url}\n${window.location.origin}/cargas/${accumulatedIds[index]}_1.jpg`).join('\n')}`;
             const accumulatedIdsText = `Inmuebles copiados: ${accumulatedIds.join(', ')}`;
 
             navigator.clipboard.writeText(accumulatedUrlsText).then(function () {
@@ -512,7 +512,7 @@ document.getElementById('copyIdToClipboard').addEventListener('change', function
                 accumulatedUrls.splice(index, 1);
             }
 
-            const accumulatedUrlsText = `Tengo estas propiedades para ti:\n${accumulatedUrls.join('\n')}`;
+            const accumulatedUrlsText = `Tengo estas propiedades para ti:\n${accumulatedUrls.map((url, index) => `${url}\n${window.location.origin}/cargas/${accumulatedIds[index]}_1.jpg`).join('\n')}`;
             const accumulatedIdsText = `Inmuebles copiados: ${accumulatedIds.join(', ')}`;
 
             navigator.clipboard.writeText(accumulatedUrlsText).then(function () {
@@ -543,6 +543,7 @@ document.getElementById('copyIdToClipboard').addEventListener('change', function
         }
     }
 });
+
 
 
 
@@ -1052,6 +1053,9 @@ function submitForm(isUpdate = false) {
     else {
         formData.append('idInmueble', selectedInmuebleId);
     }
+
+    const precio = document.getElementById("precio").value.replace(/[$\s]/g, '');
+    formData.append('Datax.Precio', precio);
 
     formData.append('Datax.IdTipo', $("#tipo").val());
     formData.append('Datax.Terreno', $("#terreno").val());
