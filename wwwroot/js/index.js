@@ -53,6 +53,7 @@ function initializeMap() {
         center: defaultLatLng,
         zoom: 12,
         mapTypeId: google.maps.MapTypeId.roadmap,
+        /*fullscreenControl: true, // Habilitar el control de pantalla completa*/
         disableDefaultUI: true
     };
 
@@ -67,12 +68,20 @@ function initializeMap() {
                 const userLatLng = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
                 map.setCenter(userLatLng);
 
-                // Añadir un marcador en la ubicación del usuario (opcional)
-                //new google.maps.Marker({
-                //    position: userLatLng,
-                //    map: map,
-                //    title: "Tu ubicación"
-                //});
+                // Añadir un marcador en la ubicación del usuario con un ícono personalizado
+                new google.maps.Marker({
+                    position: userLatLng,
+                    map: map,
+                    title: "Tu ubicación",
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 5,
+                        fillColor: '#4285F4',
+                        fillOpacity: 1,
+                        strokeWeight: 2,
+                        strokeColor: '#ffffff'
+                    }
+                });
             },
             function () {
                 handleLocationError(true, map.getCenter());
@@ -142,7 +151,7 @@ function initializeMap() {
                     alert("Ingresa para poder registrar propiedades");
                 }
             }
-        }, 500);
+        }, 700);
 
     });
     google.maps.event.addListener(map, 'mouseup', function (event) {
@@ -174,6 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch(error => {
             console.error('Error loading Google Maps API:', error);
         });
+
 });
 
 function loadInmueble(inmuebleId) {
@@ -466,15 +476,15 @@ function fetchMarkers() {
         });
 }
 
+
 document.getElementById('copyIdToClipboard').addEventListener('change', function (event) {
     if (event.target.checked) {
         if (currentInmueble) {
             const url = `${window.location.origin}${window.location.pathname}?inmuebleId=${currentInmueble.id}`;
-            const imageUrl = `${window.location.origin}/cargas/${currentInmueble.id}_1.jpg`;
             accumulatedUrls.push(url);
             accumulatedIds.push(currentInmueble.id);
 
-            const accumulatedUrlsText = `Tengo estas propiedades para ti:\n${accumulatedUrls.map((url, index) => `${url}\n${window.location.origin}/cargas/${accumulatedIds[index]}_1.jpg`).join('\n')}`;
+            const accumulatedUrlsText = `Tengo estas propiedades para ti:\n${accumulatedUrls.join('\n')}`;
             const accumulatedIdsText = `Inmuebles copiados: ${accumulatedIds.join(', ')}`;
 
             navigator.clipboard.writeText(accumulatedUrlsText).then(function () {
@@ -512,7 +522,7 @@ document.getElementById('copyIdToClipboard').addEventListener('change', function
                 accumulatedUrls.splice(index, 1);
             }
 
-            const accumulatedUrlsText = `Tengo estas propiedades para ti:\n${accumulatedUrls.map((url, index) => `${url}\n${window.location.origin}/cargas/${accumulatedIds[index]}_1.jpg`).join('\n')}`;
+            const accumulatedUrlsText = `Tengo estas propiedades para ti:\n${accumulatedUrls.join('\n')}`;
             const accumulatedIdsText = `Inmuebles copiados: ${accumulatedIds.join(', ')}`;
 
             navigator.clipboard.writeText(accumulatedUrlsText).then(function () {
@@ -543,7 +553,6 @@ document.getElementById('copyIdToClipboard').addEventListener('change', function
         }
     }
 });
-
 
 
 
@@ -1053,9 +1062,6 @@ function submitForm(isUpdate = false) {
     else {
         formData.append('idInmueble', selectedInmuebleId);
     }
-
-    const precio = document.getElementById("precio").value.replace(/[$\s]/g, '');
-    formData.append('Datax.Precio', precio);
 
     formData.append('Datax.IdTipo', $("#tipo").val());
     formData.append('Datax.Terreno', $("#terreno").val());

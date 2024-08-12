@@ -185,3 +185,8 @@
     cursor: pointer;
     outline: none;
 }
+
+/*.gm-fullscreen-control {
+    top: 35px !important;*/ /* Mueve el botón 70px más abajo */
+/*}*/
+
