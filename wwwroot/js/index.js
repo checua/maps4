@@ -965,7 +965,7 @@ function clearPreviewAndFields() {
     document.getElementById('btnClear').style.display = 'none';
 }
 
-// Limpia el modal cuando se cierra
+// Limpia el modal cuando se cierra //Aquí pudiera hacerse un Zoom para cuando se cirre el modal o se presione el botón "Close" del modalInmueble haga un acercamiento al icono
 document.getElementById('modalInmueble').addEventListener('hidden.bs.modal', function () {
     clearPreviewAndFields(); clearAll(); clearSelectedFiles();
 });
