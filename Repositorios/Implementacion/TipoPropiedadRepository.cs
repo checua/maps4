@@ -21,7 +21,7 @@ namespace maps4.Repositorios.Implementacion
             using (var conexion = new SqlConnection(_cadenaSQL))
             {
                 conexion.Open();
-                SqlCommand cmd = new SqlCommand("sp_ListaTipoPropiedades", conexion);
+                SqlCommand cmd = new SqlCommand("RSMAPS_sp_ListaTipoPropiedades", conexion);
                 cmd.CommandType = CommandType.StoredProcedure;
 
                 using (var dr = await cmd.ExecuteReaderAsync())

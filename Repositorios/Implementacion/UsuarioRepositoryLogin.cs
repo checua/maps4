@@ -19,7 +19,7 @@ namespace maps4.Repositorios.Implementacion
             using (var conexion = new SqlConnection(_cadenaSQL))
             {
                 conexion.Open();
-                SqlCommand cmd = new SqlCommand("sp_ListaUsuarioLogin", conexion);
+                SqlCommand cmd = new SqlCommand("RSMAPS_sp_ListaUsuarioLogin", conexion);
                 cmd.Parameters.AddWithValue("correo", correo);
                 cmd.Parameters.AddWithValue("contra", contra);
                 cmd.CommandType = CommandType.StoredProcedure;
@@ -61,7 +61,7 @@ namespace maps4.Repositorios.Implementacion
                 using (var conexion = new SqlConnection(_cadenaSQL))
                 {
                     conexion.Open();
-                    SqlCommand cmd = new SqlCommand("sp_GuardarUsuario", conexion);
+                    SqlCommand cmd = new SqlCommand("RSMAPS_sp_GuardarUsuario", conexion);
                     cmd.Parameters.AddWithValue("nombres", modelo.nombres);
                     cmd.Parameters.AddWithValue("aPaterno", modelo.aPaterno);
                     cmd.Parameters.AddWithValue("aMaterno", "");

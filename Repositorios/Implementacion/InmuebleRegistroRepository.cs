@@ -20,7 +20,7 @@ namespace maps4.Repositorios.Implementacion
             using (var conexion = new SqlConnection(_cadenaSQL))
             {
                 await conexion.OpenAsync();
-                using (var cmd = new SqlCommand("sp_RSMAPS_insertar_coordenadas", conexion))
+                using (var cmd = new SqlCommand("RSMAPS_sp_insertar_coordenadas", conexion))
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
 
@@ -60,7 +60,7 @@ namespace maps4.Repositorios.Implementacion
             using (var conexion = new SqlConnection(_cadenaSQL))
             {
                 await conexion.OpenAsync();
-                using (var cmd = new SqlCommand("sp_RSMAPS_insertar_coordenadas", conexion))
+                using (var cmd = new SqlCommand("RSMAPS_sp_insertar_coordenadas", conexion))
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
 
@@ -100,7 +100,7 @@ namespace maps4.Repositorios.Implementacion
             using (var conexion = new SqlConnection(_cadenaSQL))
             {
                 await conexion.OpenAsync();
-                using (var cmd = new SqlCommand("sp_RSMAPS_delete_inmueble", conexion))
+                using (var cmd = new SqlCommand("RSMAPS_sp_delete_inmueble", conexion))
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
 
@@ -122,7 +122,7 @@ namespace maps4.Repositorios.Implementacion
             using (var conexion = new SqlConnection(_cadenaSQL))
             {
                 conexion.Open();
-                SqlCommand cmd = new SqlCommand("sp_GetInmuebleById", conexion);
+                SqlCommand cmd = new SqlCommand("RSMAPS_sp_GetInmuebleById", conexion);
                 cmd.Parameters.AddWithValue("idInmueble", inmuebleId);
                 cmd.CommandType = CommandType.StoredProcedure;
 

@@ -720,6 +720,11 @@ $(document).on("click", ".boton-iniciar-sesion", function () {
         });
 })
 
+function numberWithOutCommas(numberString) {
+    // Reemplaza cualquier carácter que no sea un dígito (0-9) por una cadena vacía
+    return numberString.replace(/[^\d]/g, '');
+}
+
 function numberWithCommas(x) {
     if (typeof x !== 'number' && typeof x !== 'string') {
         return x;  // Devuelve el valor sin cambios si no es un número o una cadena
@@ -1066,6 +1071,12 @@ function submitForm(isUpdate = false) {
     formData.append('Datax.IdTipo', $("#tipo").val());
     formData.append('Datax.Terreno', $("#terreno").val());
     formData.append('Datax.Construccion', $("#construccion").val());
+
+    const prePrecio = document.getElementById("precio").value;
+    const precio = numberWithOutCommas(prePrecio); // Eliminando comas
+
+    formData.append('Datax.Precio', precio); // Usando el precio sin comas
+
     formData.append('Datax.Precio', $("#precio").val());
     formData.append('Datax.Observaciones', $("#descripcion").val());
     formData.append('Datax.Contacto', $("#contacto_a").val());
