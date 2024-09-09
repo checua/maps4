@@ -151,7 +151,7 @@ function initializeMap() {
                     alert("Ingresa para poder registrar propiedades");
                 }
             }
-        }, 850);
+        }, 950);
 
     });
     google.maps.event.addListener(map, 'mouseup', function (event) {

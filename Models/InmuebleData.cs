@@ -2,9 +2,9 @@
 {
     public class InmuebleData
     {
-        public Data Datax { get; set; }
-        public string Correo { get; set; }
-        public List<IFormFile> Files { get; set; }
+        public Data? Datax { get; set; }
+        public string? Correo { get; set; }
+        public List<IFormFile>? Files { get; set; }
     }
 }
 
