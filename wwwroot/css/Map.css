@@ -190,3 +190,102 @@
     top: 35px !important;*/ /* Mueve el botón 70px más abajo */
 /*}*/
 
+/* Contenedor principal */
+#cortina-anuncios-container {
+    position: absolute;
+    top: 100px;
+    right: 10px;
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 10px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+    width: 300px;
+    height: 200px;
+    overflow: hidden;
+    z-index: 1000;
+    cursor: pointer;
+}
+
+/* Título fijo */
+#anuncios-titulo {
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    padding: 10px;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    z-index: 1;
+}
+
+/* Contenedor de desplazamiento de anuncios */
+#anuncios-scroll-container {
+    height: calc(100% - 50px); /* Resta el espacio del título */
+    overflow-y: scroll; /* Permitir desplazamiento vertical manual */
+    position: relative;
+}
+
+/* Contenedor de los anuncios */
+#cortina-anuncios {
+    position: absolute;
+    width: 100%;
+    animation: scrollAnuncios 20s linear infinite;
+    animation-play-state: running;
+}
+
+/* Estilo general de los anuncios */
+#cortina-anuncios p {
+    font-size: 14px;
+    margin: 0; /* Elimina márgenes para evitar espacios entre anuncios */
+    line-height: 1.5;
+    padding: 5px;
+    color: #555;
+}
+
+/* Estilo para anuncios de "ofrecer" */
+#cortina-anuncios p.ofrecer {
+    background-color: #d4edda;
+    border-left: 5px solid #28a745;
+}
+
+/* Estilo para anuncios de "solicitar" */
+#cortina-anuncios p.solicitar {
+    background-color: #f8d7da;
+    border-left: 5px solid #dc3545;
+}
+
+/* Animación de desplazamiento vertical */
+@keyframes scrollAnuncios {
+    0% {
+        transform: translateY(0%);
+    }
+    100% {
+        transform: translateY(-100%);
+    }
+}
+
+/* Estilo para anuncios de "solicitar" */
+.solicitar {
+    padding: 5px;
+    margin: 0;
+    color: #555;
+}
+
+    /* Color alterno 1 */
+    .solicitar:nth-child(odd) {
+        background-color: #f8d7da; /* Rojo claro */
+        border-left: 5px solid #dc3545;
+    }
+
+    /* Color alterno 2 */
+    .solicitar:nth-child(even) {
+        background-color: #d1ecf1; /* Azul claro */
+        border-left: 5px solid #17a2b8;
+    }
+
+.menu-flotante {
+    position: fixed;
+    bottom: 70px;
+    right: 10px;
+    background-color: white;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);

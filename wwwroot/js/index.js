@@ -870,7 +870,7 @@ function MostrarModal() {
 
 }
 
-$(document).on("click", ".boton-nuevo-acceso", function () {
+$(document).on("click", ".boton-nuevo-acceso", function () { //Se borró la class de boton-nuevo-acceso en el <a href="#" id="btnModal" class="float" onclick="toggleMenu()"><i class="fa fa-plus my-float"></i></a>
 
     //_modeloEmpleado.idEmpleado = 0;
     //_modeloEmpleado.nombreCompleto = "";
@@ -1390,3 +1390,81 @@ $(document).on("click", ".boton-eliminar-inmueble", function () {
 });
 
 
+
+let isScrollingManually = false;
+const cortinaAnuncios = document.getElementById('cortina-anuncios');
+const anunciosScrollContainer = document.getElementById('anuncios-scroll-container');
+
+// Función para pausar y reanudar el desplazamiento automático
+function toggleScroll() {
+    const currentState = cortinaAnuncios.style.animationPlayState;
+    cortinaAnuncios.style.animationPlayState = currentState === 'running' ? 'paused' : 'running';
+}
+
+// Detectar desplazamiento manual
+anunciosScrollContainer.addEventListener('scroll', () => {
+    isScrollingManually = true;
+    cortinaAnuncios.style.animationPlayState = 'paused';
+
+    // Detiene el desplazamiento automático mientras el usuario está interactuando
+    clearTimeout(anunciosScrollContainer.autoScrollTimeout);
+    anunciosScrollContainer.autoScrollTimeout = setTimeout(() => {
+        isScrollingManually = false;
+        cortinaAnuncios.style.animationPlayState = 'running';
+    }, 2000); // Reanudar después de 2 segundos sin interacción
+});
+
+document.querySelectorAll('#cortina-anuncios p.solicitar').forEach((element, index) => {
+    // Alterna colores según el índice
+    if (index % 2 === 0) {
+        element.style.backgroundColor = '#d1ecf1'; // Azul claro
+        element.style.borderLeft = '5px solid #17a2b8';
+    } else {
+        element.style.backgroundColor = '#f8d7da'; // Rojo claro
+        element.style.borderLeft = '5px solid #dc3545';
+    }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Mostrar u ocultar la marquesina según el tamaño de la pantalla
+    if (window.innerWidth < 768) {
+        document.getElementById('cortina-anuncios-container').style.display = 'none'; // Oculta la marquesina en móviles
+    }
+
+    // Ajustar el comportamiento de la marquesina para cambiar colores entre anuncios
+    const anuncios = document.querySelectorAll('#cortina-anuncios p');
+    anuncios.forEach((anuncio, index) => {
+        anuncio.style.backgroundColor = index % 2 === 0 ? '#f8d7da' : '#fff3cd';
+        anuncio.style.borderLeft = '5px solid ' + (index % 2 === 0 ? '#dc3545' : '#ffc107');
+    });
+});
+
+// Función para mostrar/ocultar el menú flotante
+function toggleMenu() {
+    const menu = document.getElementById('menu-flotante');
+    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+
+// Funciones simuladas para el menú flotante
+function iniciarSesion() {
+    // Mostrar el modal de inicio de sesión
+    $("#modalEmpleado").modal("show");
+    // Ocultar el menú flotante
+    $("#menu-flotante").hide();
+}
+
+
+function registrarse() {
+    window.location.href = '/Inicio/Registrarse';
+}
+
+
+function toggleMarquesina() {
+    const cortinaAnunciosContainer = document.getElementById('cortina-anuncios-container');
+
+    // Mostrar u ocultar la marquesina
+    cortinaAnunciosContainer.style.display = cortinaAnunciosContainer.style.display === 'none' ? 'block' : 'none';
+
+    // Ocultar el menú flotante
+    $("#menu-flotante").hide();
+}
