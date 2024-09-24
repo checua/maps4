@@ -52,12 +52,13 @@ function initializeMap() {
     const opciones = {
         center: defaultLatLng,
         zoom: 12,
-        mapTypeId: google.maps.MapTypeId.roadmap,
+        mapTypeId: google.maps.MapTypeId.ROADMAP, // Vista estándar por defecto,
         /*fullscreenControl: true, // Habilitar el control de pantalla completa*/
         disableDefaultUI: true
     };
 
     map = new google.maps.Map(document.getElementById('map_canvas'), opciones);
+
     geocoder = new google.maps.Geocoder();
     infowindow = new google.maps.InfoWindow();
 
@@ -1426,10 +1427,11 @@ document.querySelectorAll('#cortina-anuncios p.solicitar').forEach((element, ind
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Mostrar u ocultar la marquesina según el tamaño de la pantalla
-    if (window.innerWidth < 768) {
-        document.getElementById('cortina-anuncios-container').style.display = 'none'; // Oculta la marquesina en móviles
-    }
+    // Mostrar u ocultar la marquesina según el tamaño de la pantalla 
+    // La quité para que se vea en dispositivos móviles, ahora que tiene pestaña la marquesina
+    //if (window.innerWidth < 768) {
+    //    document.getElementById('cortina-anuncios-container').style.display = 'none'; // Oculta la marquesina en móviles
+    //}
 
     // Ajustar el comportamiento de la marquesina para cambiar colores entre anuncios
     const anuncios = document.querySelectorAll('#cortina-anuncios p');
@@ -1469,9 +1471,35 @@ function toggleMarquesina() {
     $("#menu-flotante").hide();
 }
 
+let isMarquesinaVisible = false; // Estado de visibilidad de la marquesina
+let currentSpeed = 20; // Velocidad predeterminada
+let isPaused = false; // Estado para pausar la marquesina
 
-let currentSpeed = 20; // Velocidad inicial en segundos
-let isPaused = false;  // Estado de pausa
+// Función para mostrar/ocultar la marquesina
+function toggleMarquesina() {
+    const cortinaAnunciosContainer = document.getElementById('cortina-anuncios-container');
+    const pestanaAnuncios = document.getElementById('pestana-anuncios');
+    const menuFlotante = document.getElementById('menu-flotante');
+
+    if (isMarquesinaVisible) {
+        cortinaAnunciosContainer.style.right = '-300px'; // Ocultar marquesina
+        pestanaAnuncios.style.right = '0'; // Regresar pestaña al borde derecho de la pantalla
+        pestanaAnuncios.classList.remove('expanded');
+        pestanaAnuncios.classList.add('collapsed');
+    } else {
+        cortinaAnunciosContainer.style.right = '0'; // Mostrar marquesina
+        pestanaAnuncios.style.right = '300px'; // Mover la pestaña al borde izquierdo de la marquesina
+        pestanaAnuncios.classList.remove('collapsed');
+        pestanaAnuncios.classList.add('expanded');
+    }
+
+    // Desaparecer menú flotante al mostrar la marquesina
+    if (menuFlotante) {
+        menuFlotante.style.display = 'none';
+    }
+
+    isMarquesinaVisible = !isMarquesinaVisible;
+}
 
 // Función para ajustar la velocidad de la animación
 function setAnimationSpeed(speed) {
@@ -1510,3 +1538,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// Función para alternar entre vista de satélite y vista normal
+window.toggleSatellite = function () {
+    var currentMapType = map.getMapTypeId();
+    if (currentMapType === google.maps.MapTypeId.SATELLITE) {
+        map.setMapTypeId(google.maps.MapTypeId.ROADMAP); // Cambia a vista estándar
+    } else {
+        map.setMapTypeId(google.maps.MapTypeId.SATELLITE); // Cambia a vista satélite
+    }
+};
