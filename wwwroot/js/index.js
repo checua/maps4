@@ -59,6 +59,38 @@ function initializeMap() {
 
     map = new google.maps.Map(document.getElementById('map_canvas'), opciones);
 
+    // Polígono
+
+    // Definición de coordenadas del polígono
+    const polygonCoords = [
+        { lat: 24.020000, lng: -104.660000 },
+        { lat: 24.025000, lng: -104.670000 },
+        { lat: 24.015000, lng: -104.675000 },
+        { lat: 24.010000, lng: -104.665000 },
+        { lat: 24.020000, lng: -104.660000 },
+    ];
+
+    // Creación del polígono con la opción 'editable'
+    const polygon = new google.maps.Polygon({
+        paths: polygonCoords,
+        strokeColor: "#FF0000",    // Color del borde
+        strokeOpacity: 0.8,        // Opacidad del borde
+        strokeWeight: 2,           // Ancho del borde
+        fillColor: "#FF0000",      // Color del relleno
+        fillOpacity: 0.35,         // Opacidad del relleno
+        editable: true,            // Habilita la edición para mover los vértices
+        draggable: false           // El polígono completo no es arrastrable, solo los vértices
+    });
+
+    // Añadir el polígono al mapa
+    polygon.setMap(map);
+
+    polygon.addListener('click', function () {
+        alert('Polígono clicado!');
+    });
+
+
+
     geocoder = new google.maps.Geocoder();
     infowindow = new google.maps.InfoWindow();
 
@@ -1547,3 +1579,5 @@ window.toggleSatellite = function () {
         map.setMapTypeId(google.maps.MapTypeId.SATELLITE); // Cambia a vista satélite
     }
 };
+
+
