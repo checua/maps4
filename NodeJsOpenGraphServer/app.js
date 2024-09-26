@@ -32,8 +32,8 @@ app.get('/share', async (req, res) => {
                 <!-- Metadatos Open Graph -->
                 <meta property="og:title" content="${inmuebleData.titulo}">
                 <meta property="og:description" content="${inmuebleData.descripcion}">
-                <meta property="og:image" content="https://your-domain.com/Cargas/${inmuebleData.id}_1.jpg">
-                <meta property="og:url" content="https://your-domain.com/share?inmuebleId=${inmuebleData.id}">
+                <meta property="og:image" content="https://rsmap.azurewebsites.net/Cargas/${inmuebleData.id}_1.jpg">
+                <meta property="og:url" content="https://rsmap.azurewebsites.net/share?inmuebleId=${inmuebleData.id}">
                 <meta property="og:type" content="website">
                 
                 <title>${inmuebleData.titulo}</title>
@@ -41,7 +41,7 @@ app.get('/share', async (req, res) => {
             <body>
                 <h1>${inmuebleData.titulo}</h1>
                 <p>${inmuebleData.descripcion}</p>
-                <img src="https://your-domain.com/Cargas/${inmuebleData.id}_1.jpg" alt="Vista previa del inmueble">
+                <img src="https://rsmap.azurewebsites.net/Cargas/${inmuebleData.id}_1.jpg" alt="Vista previa del inmueble">
                 <!-- Otros detalles del inmueble -->
             </body>
             </html>
