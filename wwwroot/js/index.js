@@ -383,17 +383,37 @@ function fetchMarkers() {
                     const handleLongPress = () => {
                         if (!mousedUp) { // Verifica que el mapa no se esté arrastrando
                             isLongPress = true;
-                            const url = `${window.location.origin}${window.location.pathname}?inmuebleId=${item.idInmueble}`;
+                            const inmuebleId = item.idInmueble;
+                            const url = `${window.location.origin}${window.location.pathname}share/?inmuebleId=${inmuebleId}`;
+                            const imageUrl = `${window.location.origin}/Cargas/${inmuebleId}_1.jpg`; // Ruta de la imagen previa
+
                             accumulatedUrls.push(url);
-                            accumulatedIds.push(item.idInmueble);
+                            accumulatedIds.push(inmuebleId);
+
                             const accumulatedIdsText = accumulatedIds.join(', ');
-                            const accumulatedUrlsText = `Tengo estas propiedades para ti:\n${accumulatedUrls.join('\n')}`;
+
+                            // Generar el texto con los enlaces y las imágenes para copiar al portapapeles
+                            const textToCopy = accumulatedIds.map(id => {
+                                const inmuebleUrl = `${window.location.origin}${window.location.pathname}share/?inmuebleId=${id}`;
+                                const imgSrc = `${window.location.origin}/Cargas/${id}_1.jpg`;
+                                // Enlace con imagen previa como "vista previa"
+                                return `[Ver Inmueble #${id}](${inmuebleUrl})\n![Vista previa]( ${imgSrc})`;
+                            }).join('\n\n'); // Separar los inmuebles con dos saltos de línea
+
+                            // Crear contenedor de imágenes previas para mostrar en el modal
+                            const imagePreviews = `
+            <div style="display: flex; overflow-x: auto; max-width: 100%; white-space: nowrap;">
+                ${accumulatedIds.map(id => {
+                                const imgSrc = `${window.location.origin}/Cargas/${id}_1.jpg`;
+                                return `<a href="${window.location.origin}${window.location.pathname}?inmuebleId=${id}" target="_blank"><img src="${imgSrc}" alt="Vista previa" style="height: 100px; width: auto; margin: 2px;" /></a>`;
+                            }).join('')}
+            </div>`;
 
                             if (navigator.clipboard && navigator.clipboard.writeText) {
-                                navigator.clipboard.writeText(accumulatedUrlsText).then(function () {
+                                navigator.clipboard.writeText(textToCopy).then(function () {
                                     Swal.fire({
-                                        title: `Copiado a memoria: Inmueble #${item.idInmueble}`,
-                                        html: `Inmuebles copiados: ${accumulatedIdsText}`,
+                                        title: `Copiado a memoria: Inmueble #${inmuebleId}`,
+                                        html: `Inmuebles copiados: ${accumulatedIdsText}<br>${imagePreviews}`,
                                         icon: 'success',
                                         confirmButtonText: 'Ok',
                                         allowOutsideClick: false,
@@ -412,14 +432,15 @@ function fetchMarkers() {
                             } else {
                                 // Fallback para navegadores que no soportan navigator.clipboard.writeText
                                 const textArea = document.createElement('textarea');
-                                textArea.value = accumulatedUrlsText;
+                                textArea.value = textToCopy;
                                 document.body.appendChild(textArea);
                                 textArea.select();
                                 document.execCommand('copy');
                                 document.body.removeChild(textArea);
+
                                 Swal.fire({
-                                    title: `Copiado a memoria: Inmueble #${item.idInmueble}`,
-                                    html: `Inmuebles copiados: ${accumulatedIdsText}`,
+                                    title: `Copiado a memoria: Inmueble #${inmuebleId}`,
+                                    html: `Inmuebles copiados: ${accumulatedIdsText}<br>${imagePreviews}`,
                                     icon: 'success',
                                     confirmButtonText: 'Ok',
                                     allowOutsideClick: false,
@@ -434,6 +455,63 @@ function fetchMarkers() {
                             }
                         }
                     };
+
+
+
+                    //const handleLongPress = () => {
+                    //    if (!mousedUp) { // Verifica que el mapa no se esté arrastrando
+                    //        isLongPress = true;
+                    //        const url = `${window.location.origin}${window.location.pathname}?inmuebleId=${item.idInmueble}`;
+                    //        accumulatedUrls.push(url);
+                    //        accumulatedIds.push(item.idInmueble);
+                    //        const accumulatedIdsText = accumulatedIds.join(', ');
+                    //        const accumulatedUrlsText = `Tengo estas propiedades para ti:\n${accumulatedUrls.join('\n')}`;
+
+                    //        if (navigator.clipboard && navigator.clipboard.writeText) {
+                    //            navigator.clipboard.writeText(accumulatedUrlsText).then(function () {
+                    //                Swal.fire({
+                    //                    title: `Copiado a memoria: Inmueble #${item.idInmueble}`,
+                    //                    html: `Inmuebles copiados: ${accumulatedIdsText}`,
+                    //                    icon: 'success',
+                    //                    confirmButtonText: 'Ok',
+                    //                    allowOutsideClick: false,
+                    //                    showCancelButton: true,
+                    //                    cancelButtonText: 'Vaciar memoria',
+                    //                    reverseButtons: true, // Esto coloca el botón de cancelar a la izquierda
+                    //                }).then((result) => {
+                    //                    if (result.dismiss === Swal.DismissReason.cancel) {
+                    //                        accumulatedUrls = [];
+                    //                        accumulatedIds = [];
+                    //                    }
+                    //                });
+                    //            }, function (err) {
+                    //                console.error('Error al copiar texto: ', err);
+                    //            });
+                    //        } else {
+                    //            // Fallback para navegadores que no soportan navigator.clipboard.writeText
+                    //            const textArea = document.createElement('textarea');
+                    //            textArea.value = accumulatedUrlsText;
+                    //            document.body.appendChild(textArea);
+                    //            textArea.select();
+                    //            document.execCommand('copy');
+                    //            document.body.removeChild(textArea);
+                    //            Swal.fire({
+                    //                title: `Copiado a memoria: Inmueble #${item.idInmueble}`,
+                    //                html: `Inmuebles copiados: ${accumulatedIdsText}`,
+                    //                icon: 'success',
+                    //                confirmButtonText: 'Ok',
+                    //                allowOutsideClick: false,
+                    //                showCancelButton: true,
+                    //                cancelButtonText: 'Vaciar memoria'
+                    //            }).then((result) => {
+                    //                if (result.dismiss === Swal.DismissReason.cancel) {
+                    //                    accumulatedUrls = [];
+                    //                    accumulatedIds = [];
+                    //                }
+                    //            });
+                    //        }
+                    //    }
+                    //};
 
                     const onPressStart = (event) => {
                         isLongPress = false;
