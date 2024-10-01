@@ -31,13 +31,10 @@
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="7.0.12" />
   </ItemGroup>
 
-  <!--<ItemGroup>
-    <Folder Include="wwwroot\cargas\" />
-  </ItemGroup>-->
-
+  <!-- Asegúrate de que este ItemGroup esté al final -->
   <ItemGroup>
-    <!-- Excluye todos los archivos en la carpeta Assets de la publicación -->
-    <Content Update="cargas\**\*" CopyToPublishDirectory="Never" />
+    <!-- Excluye todos los archivos en la carpeta wwwroot\Cargas de la publicación -->
+    <Content Remove="wwwroot\Cargas\**\*" />
   </ItemGroup>
 
 </Project>

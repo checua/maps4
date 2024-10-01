@@ -1,0 +1,26 @@
+﻿@* @model maps4.Models.Inmueble
+ *@
+<!DOCTYPE html>
+<html lang="es">
+<link href="~/css/og.css" rel="stylesheet" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Metadatos Open Graph -->
+    <meta property="og:title" content="Descubre esta propiedad_: @Model.IdTipo">
+    <meta property="og:description" content="@Model.Observaciones">
+    <meta property="og:image" content="https://rsmap.azurewebsites.net/cargas/@(Model.IdInmueble)_1.jpg">
+    <meta property="og:url" content="https://rsmap.azurewebsites.net/?inmuebleId=@Model.IdInmueble">
+    <meta property="og:type" content="website">
+    <title>@Model.IdTipo</title>
+</head>
+
+<body>
+    <h1>Descubre la siguiente propiedad, podría interesarte!!!_._: @Model.IdTipo </h1>
+    <p>@Model.Observaciones</p>
+    <img src="@($"https://rsmap.azurewebsites.net/cargas/{Model.IdInmueble}_1.jpg")" class="og-image" alt="Vista previa del inmueble">
+
+    <!-- Otros detalles del inmueble -->
+</body>
+</html>
