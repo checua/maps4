@@ -175,14 +175,13 @@ namespace maps4.Controllers
             return Ok(_lista);
         }
 
-        // Ruta para mostrar la página dinámica del inmueble
         [HttpGet("/share")]
         public async Task<IActionResult> Share(int inmuebleId)
         {
             // Obtener los datos del inmueble según su ID
             var inmueble = await _inmuebleRepository.GetInmuebleById(inmuebleId);
 
-            if (inmueble == null)
+            if (inmueble == null || inmueble.Count == 0)
             {
                 return NotFound("Inmueble no encontrado");
             }
@@ -190,6 +189,7 @@ namespace maps4.Controllers
             // Devolver una vista con los datos del inmueble
             return View(inmueble[0]);
         }
+
 
     }
 }
