@@ -395,11 +395,13 @@ function fetchMarkers() {
 
                             // Texto que será copiado al portapapeles
                             const textToCopy = accumulatedIds.map(id => {
-                                const inmuebleUrl = `${window.location.origin}${window.location.pathname}share/?inmuebleId=${id}`;
+                                const inmuebleUrl = `${window.location.origin}${window.location.pathname}/?inmuebleId=${id}`;
                                 const imgSrc = `${window.location.origin}/Cargas/${id}_1.jpg`;
                                 const inmuebleDesc = item.observaciones || "Descripción no disponible";
                                 // Texto formateado con enlace, descripción e imagen
-                                return `${inmuebleDesc}\n[Ver Inmueble #${id}](${inmuebleUrl})\n![Vista previa](${imgSrc})\n`;
+                                return `${inmuebleDesc}\n[Ver Inmueble #${id}](${inmuebleUrl})\n
+                            /*    ![Vista previa](${imgSrc})\n*/
+                                `;
                             }).join('\n\n'); // Separar los inmuebles con dos saltos de línea
 
                             // Crear contenedor de imágenes previas para mostrar en el modal
@@ -541,186 +543,6 @@ function fetchMarkers() {
 }
 
 
-
-
-//Origi Funcionando Ok, selecciona, lleva a memoria, pero está muy sensible cuando selecciona y arrastra, copia a memoria pero no debería hacerlo mientras arrastra
-
-//function fetchMarkers() {
-//    fetch("/Home/listaInmuebles")
-//        .then(response => response.ok ? response.json() : Promise.reject(response))
-//        .then(responseJson => {
-//            if (responseJson.length > 0) {
-//                responseJson.forEach((item) => {
-//                    let imageIcon;
-//                    switch (item.idTipo) {
-//                        case 2: imageIcon = "images/icon/casa_che.png"; typeofp = "Casa en venta"; break;
-//                        case 3: imageIcon = "images/icon/casa.png"; typeofp = "Casa en renta"; break;
-//                        case 4: imageIcon = "images/icon/apartment1.png"; typeofp = "Apartamento en venta"; break;
-//                        case 5: imageIcon = "images/icon/apartment2.png"; typeofp = "Apartamento en renta"; break;
-//                        case 6: imageIcon = "images/icon/terreno1b.png"; typeofp = "Terreno en venta"; break;
-//                        case 7: imageIcon = "images/icon/terreno2.png"; typeofp = "Terreno en renta"; break;
-//                        case 8: imageIcon = "images/icon/local.png"; typeofp = "Local en venta"; break;
-//                        case 9: imageIcon = "images/icon/local2.png"; typeofp = "Local en renta"; break;
-//                        case 10: imageIcon = "images/icon/building.png"; typeofp = "Edificio en venta"; break;
-//                        case 11: imageIcon = "images/icon/building2.png"; typeofp = "Edificio en renta"; break;
-//                        case 12: imageIcon = "images/icon/montacargas2.png"; typeofp = "Bodega en venta"; break;
-//                        case 13: imageIcon = "images/icon/montacargas.png"; typeofp = "Bodega en renta"; break;
-//                        case 14: imageIcon = "images/icon/desk.png"; typeofp = "Oficina en venta"; break;
-//                        case 15: imageIcon = "images/icon/desk2.png"; typeofp = "Oficina en renta"; break;
-//                        case 16: imageIcon = "images/icon/tractor1.png"; typeofp = "Rancho en venta"; break;
-//                        case 17: imageIcon = "images/icon/tractor2.png"; typeofp = "Rancho en renta"; break;
-//                    }
-
-//                    const latLng = new google.maps.LatLng(item.lat, item.lng);
-//                    const markerx = new google.maps.Marker({
-//                        position: latLng,
-//                        map,
-//                        title: String(item.idTipo),
-//                        icon: {
-//                            url: imageIcon,
-//                            scaledSize: new google.maps.Size(32, 32),
-//                            origin: new google.maps.Point(0, 0),
-//                            anchor: new google.maps.Point(16, 16)
-//                        },
-//                    });
-
-//                    markerx.customInfo = item.precio;
-//                    markersx[i] = markerx;
-//                    i++;
-
-//                    let longPressDuration = 1000; // Duración del long press en milisegundos (1 segundo)
-//                    let longPressTimer;
-//                    let isLongPress = false;
-
-//                    const handleLongPress = () => {
-//                        isLongPress = true;
-//                        const url = `${window.location.origin}${window.location.pathname}?inmuebleId=${item.idInmueble}`;
-//                        accumulatedUrls.push(url);
-//                        accumulatedIds.push(item.idInmueble);
-//                        const accumulatedIdsText = accumulatedIds.join(', ');
-//                        const accumulatedUrlsText = `Tengo estas propiedades para ti:\n${accumulatedUrls.join('\n')}`;
-
-//                        if (navigator.clipboard && navigator.clipboard.writeText) {
-//                            navigator.clipboard.writeText(accumulatedUrlsText).then(function () {
-//                                Swal.fire({
-//                                    title: `Copiado a memoria: Inmueble #${item.idInmueble}`,
-//                                    html: `Inmuebles copiados: ${accumulatedIdsText}`,
-//                                    icon: 'success',
-//                                    confirmButtonText: 'Ok',
-//                                    allowOutsideClick: false,
-//                                    showCancelButton: true,
-//                                    cancelButtonText: 'Vaciar memoria',
-//                                    reverseButtons: true, // Esto coloca el botón de cancelar a la izquierda
-//                                }).then((result) => {
-//                                    if (result.dismiss === Swal.DismissReason.cancel) {
-//                                        accumulatedUrls = [];
-//                                        accumulatedIds = [];
-//                                    }
-//                                });
-//                            }, function (err) {
-//                                console.error('Error al copiar texto: ', err);
-//                            });
-//                        } else {
-//                            // Fallback para navegadores que no soportan navigator.clipboard.writeText
-//                            const textArea = document.createElement('textarea');
-//                            textArea.value = accumulatedUrlsText;
-//                            document.body.appendChild(textArea);
-//                            textArea.select();
-//                            document.execCommand('copy');
-//                            document.body.removeChild(textArea);
-//                            Swal.fire({
-//                                title: `Copiado a memoria: Inmueble #${item.idInmueble}`,
-//                                html: `Inmuebles copiados: ${accumulatedIdsText}`,
-//                                icon: 'success',
-//                                confirmButtonText: 'Ok',
-//                                allowOutsideClick: false,
-//                                showCancelButton: true,
-//                                cancelButtonText: 'Vaciar memoria'
-//                            }).then((result) => {
-//                                if (result.dismiss === Swal.DismissReason.cancel) {
-//                                    accumulatedUrls = [];
-//                                    accumulatedIds = [];
-//                                }
-//                            });
-//                        }
-//                    };
-
-//                    const onPressStart = (event) => {
-//                        isLongPress = false;
-//                        longPressTimer = setTimeout(handleLongPress, longPressDuration);
-//                        if (event.type === 'touchstart') {
-//                            event.preventDefault(); // Previene el comportamiento predeterminado en dispositivos táctiles
-//                        }
-//                    };
-
-//                    const onPressEnd = () => {
-//                        clearTimeout(longPressTimer); // Cancelar el temporizador si se suelta antes de long press
-//                        setTimeout(() => { isLongPress = false; }, longPressDuration); // Reset after the click event
-//                    };
-
-//                    const onPressMove = () => {
-//                        clearTimeout(longPressTimer); // Cancelar el temporizador si el marcador se mueve
-//                        isLongPress = false;
-//                    };
-
-//                    markerx.addListener('click', function () {
-//                        if (!isLongPress) {
-//                            $('#btnClear').css('display', "none");
-//                            $('.btn-fileupload').css('display', "none");
-
-//                            currentInmueble = {
-//                                lat: item.lat,
-//                                lng: item.lng,
-//                                id: item.idInmueble
-//                            };
-
-//                            const str = document.getElementById("lnkAcceso").innerText;
-//                            const str2 = item.refUsuario.correo.toString();
-
-//                            const res = str.toUpperCase();
-//                            const res2 = str2.toUpperCase();
-
-//                            if (res != res2) {
-//                                $('.boton-eliminar-inmueble').css('display', "none");
-//                                $("#contacto_a").hide();
-//                                $('.boton-guardar-inmueble').css('display', "none");
-//                            } else {
-//                                $("#contacto_a").show();
-//                                $('.boton-guardar-inmueble').css('display', "inline");
-//                                $(".boton-eliminar-inmueble").show();
-
-//                                if (item) {
-//                                    $('.boton-guardar-inmueble').text('Actualizar');
-//                                    $('.boton-guardar-inmueble').attr('onclick', 'validateForm(event, true)');
-//                                    isUpdate = true;
-//                                } else {
-//                                    $('.boton-guardar-inmueble').text('Guardar');
-//                                    $('.boton-guardar-inmueble').attr('onclick', 'validateForm(event, false)');
-//                                    isUpdate = false;
-//                                }
-//                            }
-
-//                            selectedInmuebleId = item.idInmueble;
-//                            clikeado = 1;
-//                            var nom_tel = item.refUsuario.nombres + " " + item.refUsuario.aPaterno;
-//                            GetCode1(item.idTipo, item.idInmueble, nom_tel, item.telefono, item.terreno, item.construccion, item.precio, item.observaciones, item.contacto, item.imagenes);
-//                        }
-//                    });
-
-//                    markerx.addListener('mousedown', onPressStart);
-//                    markerx.addListener('mouseup', onPressEnd);
-//                    markerx.addListener('mousemove', onPressMove);
-//                    markerx.addListener('touchstart', onPressStart);
-//                    markerx.addListener('touchend', onPressEnd);
-//                    markerx.addListener('touchmove', onPressMove);
-//                });
-//                map.setCenter(latLng);
-//            }
-//        })
-//        .catch(error => {
-//            console.error('Error al obtener la lista de inmuebles:', error);
-//        });
-//}
 
 
 document.getElementById('copyIdToClipboard').addEventListener('change', function (event) {
