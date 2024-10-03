@@ -1,5 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
+
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -7,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="Views\Inicio\compartir.cshtml" />
+    <None Include="Pages\Test\Index.cshtml" />
     <None Include="wwwroot\images\icon\apartment1.png" />
     <None Include="wwwroot\images\icon\apartment2.png" />
     <None Include="wwwroot\images\icon\building.png" />
@@ -41,17 +42,14 @@
     <!-- Excluye todos los archivos en la carpeta wwwroot\Cargas de la publicación -->
     <Content Remove="wwwroot\Cargas\**\*" />
   </ItemGroup>
-  <ItemGroup>
-    <Content Remove="wwwroot\compartir.cshtml" />
-  </ItemGroup>
-  <ItemGroup>
-    <UpToDateCheckInput Remove="wwwroot\compartir.cshtml" />
-  </ItemGroup>
-  <ItemGroup>
-    <_ContentIncludedByDefault Remove="wwwroot\compartir.cshtml" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Views\Inicio\compartir.cshtml.cs" />
-  </ItemGroup>
+  
+ 
+<ItemGroup>
+  <Content Update="Pages\**\*.cshtml">
+    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+  </Content>
+</ItemGroup>
+
+
 
 </Project>
