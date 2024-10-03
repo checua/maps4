@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="Views\Inicio\compartir.cshtml" />
     <None Include="wwwroot\images\icon\apartment1.png" />
     <None Include="wwwroot\images\icon\apartment2.png" />
     <None Include="wwwroot\images\icon\building.png" />
@@ -28,6 +29,10 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.1.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="7.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="7.0.12" />
   </ItemGroup>
 
@@ -35,6 +40,18 @@
   <ItemGroup>
     <!-- Excluye todos los archivos en la carpeta wwwroot\Cargas de la publicación -->
     <Content Remove="wwwroot\Cargas\**\*" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Remove="wwwroot\compartir.cshtml" />
+  </ItemGroup>
+  <ItemGroup>
+    <UpToDateCheckInput Remove="wwwroot\compartir.cshtml" />
+  </ItemGroup>
+  <ItemGroup>
+    <_ContentIncludedByDefault Remove="wwwroot\compartir.cshtml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Views\Inicio\compartir.cshtml.cs" />
   </ItemGroup>
 
 </Project>
