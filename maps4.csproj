@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <None Include="Pages\Test\Index.cshtml" />
+    <None Include="Pages\Test\share.cshtml" />
     <None Include="wwwroot\images\icon\apartment1.png" />
     <None Include="wwwroot\images\icon\apartment2.png" />
     <None Include="wwwroot\images\icon\building.png" />
