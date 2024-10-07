@@ -398,7 +398,7 @@ function fetchMarkers() {
                                 const inmuebleUrl = `${window.location.origin}/Share/${id}`; // URL corregida
                                 const inmuebleDesc = item.observaciones || "Descripción no disponible";
                                 // Texto en formato plano con la URL directa
-                                return `${inmuebleDesc}\nVer Inmueble #${id}: ${inmuebleUrl}`;
+                                return `${inmuebleDesc}\n\n ${inmuebleUrl}`;
                             }).join('\n\n'); // Separar los inmuebles con dos saltos de línea
 
                             // Crear contenedor de imágenes previas para mostrar en el modal

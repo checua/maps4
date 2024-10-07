@@ -2,7 +2,8 @@
 @model maps4.Pages.Share.IndexModel
 
 @{
-    var tipoPropiedad = Model.Inmueble.IdTipo.HasValue ? $"Tipo: {Model.Inmueble.IdTipo}" : "Propiedad";
+    // Busca el nombre del tipo de propiedad que coincida con el idTipo del inmueble
+    var tipoPropiedad = Model.TiposPropiedades.FirstOrDefault(t => t.idTipoPropiedad == Model.Inmueble.IdTipo)?.nombre ?? "Propiedad";
     var observaciones = !string.IsNullOrEmpty(Model.Inmueble.Observaciones) ? Model.Inmueble.Observaciones : "Descripción no disponible";
     var idInmueble = Model.Inmueble.IdInmueble;
     var imageUrl = $"https://rsmap.azurewebsites.net/cargas/{idInmueble}_1.jpg";
@@ -14,12 +15,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@($"Descubre esta propiedad: {tipoPropiedad}")</title>
+    <title>@($"{tipoPropiedad}")</title>
 
     <!-- Metadatos Open Graph -->
     <meta property="og:image" content="@imageUrl" />
     <meta property="og:image:alt" content="Vista previa del inmueble" />
-    <meta property="og:title" content="@($"Descubre esta propiedad: {tipoPropiedad}")" />
+    <meta property="og:title" content="@($"{tipoPropiedad}")" />
     @* <meta property="og:description" content="@observaciones" /> *@
     <meta property="og:url" content="@pageUrl" />
     <meta property="og:type" content="website" />
@@ -30,7 +31,7 @@
     <!-- Metadatos adicionales para Twitter (opcional) -->
     <meta name="twitter:image" content="@imageUrl" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="@($"Descubre esta propiedad: {tipoPropiedad}")" />
+    <meta name="twitter:title" content="@($"{tipoPropiedad}")" />
     @* <meta name="twitter:description" content="@observaciones" /> *@
 
     <!-- Redirección automática con JavaScript -->
@@ -39,7 +40,7 @@
     </script>
 </head>
 <body>
-    <h1>@($"Descubre esta propiedad: {tipoPropiedad}")</h1>
+    <h1>@($"{tipoPropiedad}")</h1>
     <p>@observaciones</p>
     <img src="@imageUrl" alt="Vista previa del inmueble" style="max-width: 100%; height: auto;" />
 </body>
