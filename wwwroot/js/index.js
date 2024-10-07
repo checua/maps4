@@ -26,6 +26,7 @@ let currentInmueble = null;
 let currentInmuebleId = null;
 let selectedInmuebleId = null;
 
+const inmuebleDescriptions = {};
 
 
 // Función para cargar la API de Google Maps de manera asincrónica
@@ -384,27 +385,30 @@ function fetchMarkers() {
                         if (!mousedUp) { // Verifica que el mapa no se esté arrastrando
                             isLongPress = true;
                             const inmuebleId = item.idInmueble;
-                            const descripcion = item.observaciones || "Descripción no disponible";
-                            const url = `${window.location.origin}/Share/${inmuebleId}`; // URL corregida
-                            const imageUrl = `${window.location.origin}/Cargas/${inmuebleId}_1.jpg`; // Ruta de la imagen previa
 
+                            // Obtén la descripción específica para este inmueble o "Descripción no disponible"
+                            const descripcion = item.observaciones || "Descripción no disponible";
+                            // Guarda la descripción en el objeto, usando el id del inmueble como clave
+                            inmuebleDescriptions[inmuebleId] = descripcion;
+
+                            const url = `${window.location.origin}/Share/${inmuebleId}`; // URL corregida
                             accumulatedUrls.push(url);
                             accumulatedIds.push(inmuebleId);
 
                             const accumulatedIdsText = accumulatedIds.join(', ');
 
-                            // Texto que será copiado al portapapeles
+                            // Texto que será copiado al portapapeles (un mensaje que incluye todos los inmuebles)
                             const textToCopy = accumulatedIds.map(id => {
-                                const inmuebleUrl = `${window.location.origin}/Share/${id}`; // URL corregida
-                                const inmuebleDesc = item.observaciones || "Descripción no disponible";
-                                // Texto en formato plano con la URL directa
-                                return `${inmuebleDesc}\n\n ${inmuebleUrl}`;
-                            }).join('\n\n'); // Separar los inmuebles con dos saltos de línea
+                                const inmuebleUrl = `${window.location.origin}/Share/${id}`;
+                                // Usa la descripción correcta para cada id desde el objeto `inmuebleDescriptions`
+                                const inmuebleDesc = inmuebleDescriptions[id] || "Descripción no disponible";
+                                return `${inmuebleDesc}\n${inmuebleUrl}`;
+                            }).join('\n\n'); // Separar cada inmueble con dos saltos de línea
 
                             // Crear contenedor de imágenes previas para mostrar en el modal
                             const imagePreviews = `
         <div style="display: flex; overflow-x: auto; max-width: 100%; white-space: nowrap;">
-            ${accumulatedIds.map(id => {
+        ${accumulatedIds.map(id => {
                                 const imgSrc = `https://rsmap.azurewebsites.net/Cargas/${id}_1.jpg`;
                                 return `<a href="https://rsmap.azurewebsites.net/?inmuebleId=${id}" target="_blank"><img src="${imgSrc}" alt="Vista previa" style="height: 100px; width: auto; margin: 2px;" /></a>`;
                             }).join('')}
@@ -426,9 +430,11 @@ function fetchMarkers() {
                                         if (result.dismiss === Swal.DismissReason.cancel) {
                                             accumulatedUrls = [];
                                             accumulatedIds = [];
+                                            // Limpiar las descripciones almacenadas
+                                            Object.keys(inmuebleDescriptions).forEach(key => delete inmuebleDescriptions[key]);
                                         }
                                     });
-                                }, function (err) {
+                                }).catch(function (err) {
                                     console.error('Error al copiar texto: ', err);
                                 });
                             } else {
@@ -452,11 +458,14 @@ function fetchMarkers() {
                                     if (result.dismiss === Swal.DismissReason.cancel) {
                                         accumulatedUrls = [];
                                         accumulatedIds = [];
+                                        // Limpiar las descripciones almacenadas
+                                        Object.keys(inmuebleDescriptions).forEach(key => delete inmuebleDescriptions[key]);
                                     }
                                 });
                             }
                         }
                     };
+
 
 
 
@@ -540,23 +549,44 @@ function fetchMarkers() {
         });
 }
 
-
-
-
 document.getElementById('copyIdToClipboard').addEventListener('change', function (event) {
     if (event.target.checked) {
         if (currentInmueble) {
-            const url = `${window.location.origin}${window.location.pathname}?inmuebleId=${currentInmueble.id}`;
+            const inmuebleId = currentInmueble.id;
+
+            // Obtén la descripción desde el textarea con id="descripcion"
+            const descripcion = document.getElementById('descripcion').value || "Descripción no disponible";
+            // Guarda la descripción en el objeto, usando el id del inmueble como clave
+            inmuebleDescriptions[inmuebleId] = descripcion;
+
+            const url = `${window.location.origin}/Share/${inmuebleId}`; // URL corregida
             accumulatedUrls.push(url);
-            accumulatedIds.push(currentInmueble.id);
+            accumulatedIds.push(inmuebleId);
 
-            const accumulatedUrlsText = `Tengo estas propiedades para ti:\n${accumulatedUrls.join('\n')}`;
-            const accumulatedIdsText = `Inmuebles copiados: ${accumulatedIds.join(', ')}`;
+            const accumulatedIdsText = accumulatedIds.join(', ');
 
-            navigator.clipboard.writeText(accumulatedUrlsText).then(function () {
+            // Texto que será copiado al portapapeles (un mensaje que incluye todos los inmuebles)
+            const textToCopy = accumulatedIds.map(id => {
+                const inmuebleUrl = `${window.location.origin}/Share/${id}`;
+                // Usa la descripción correcta para cada id desde el objeto `inmuebleDescriptions`
+                const inmuebleDescripcion = inmuebleDescriptions[id] || "Descripción no disponible";
+                return `${inmuebleDescripcion}\n${inmuebleUrl}`;
+            }).join('\n\n'); // Separar cada inmueble con dos saltos de línea
+
+            // Crear contenedor de imágenes previas para mostrar en el modal
+            const imagePreviews = `
+            <div style="display: flex; overflow-x: auto; max-width: 100%; white-space: nowrap;">
+            ${accumulatedIds.map(id => {
+                const imgSrc = `https://rsmap.azurewebsites.net/Cargas/${id}_1.jpg`;
+                return `<a href="https://rsmap.azurewebsites.net/?inmuebleId=${id}" target="_blank"><img src="${imgSrc}" alt="Vista previa" style="height: 100px; width: auto; margin: 2px;" /></a>`;
+            }).join('')}
+            </div>`;
+
+            // Copiar al portapapeles y mostrar notificación
+            navigator.clipboard.writeText(textToCopy).then(function () {
                 Swal.fire({
-                    title: `ID #${currentInmueble.id} copiado a memoria`,
-                    html: accumulatedIdsText,
+                    title: `Inmuebles copiados a memoria`,
+                    html: `Inmuebles copiados: ${accumulatedIdsText}<br>${imagePreviews}`,
                     icon: 'success',
                     showCancelButton: true,
                     confirmButtonText: 'Ok',
@@ -566,6 +596,8 @@ document.getElementById('copyIdToClipboard').addEventListener('change', function
                     if (result.dismiss === Swal.DismissReason.cancel) {
                         accumulatedUrls = [];
                         accumulatedIds = [];
+                        // Limpiar las descripciones almacenadas
+                        Object.keys(inmuebleDescriptions).forEach(key => delete inmuebleDescriptions[key]);
                         // Desmarcar todos los checkboxes
                         document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => checkbox.checked = false);
                         Swal.fire({
@@ -586,6 +618,7 @@ document.getElementById('copyIdToClipboard').addEventListener('change', function
             if (index !== -1) {
                 accumulatedIds.splice(index, 1);
                 accumulatedUrls.splice(index, 1);
+                delete inmuebleDescriptions[currentInmueble.id]; // Remueve la descripción del inmueble desmarcado
             }
 
             const accumulatedUrlsText = `Tengo estas propiedades para ti:\n${accumulatedUrls.join('\n')}`;
@@ -604,6 +637,7 @@ document.getElementById('copyIdToClipboard').addEventListener('change', function
                     if (result.dismiss === Swal.DismissReason.cancel) {
                         accumulatedUrls = [];
                         accumulatedIds = [];
+                        Object.keys(inmuebleDescriptions).forEach(key => delete inmuebleDescriptions[key]);
                         // Desmarcar todos los checkboxes
                         document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => checkbox.checked = false);
                         Swal.fire({
