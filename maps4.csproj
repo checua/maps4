@@ -9,7 +9,8 @@
 
   <ItemGroup>
     <None Include="Pages\Test\Index.cshtml" />
-    <None Include="Pages\Test\share.cshtml" />
+    <None Include="Pages\Test\Default.cshtml" />
+    <None Include="Pages\Share\Index.cshtml" />
     <None Include="wwwroot\images\icon\apartment1.png" />
     <None Include="wwwroot\images\icon\apartment2.png" />
     <None Include="wwwroot\images\icon\building.png" />
@@ -41,7 +42,11 @@
   <!-- Asegúrate de que este ItemGroup esté al final -->
   <ItemGroup>
     <!-- Excluye todos los archivos en la carpeta wwwroot\Cargas de la publicación -->
+    <Compile Remove="Inmueble\**" />
+    <Content Remove="Inmueble\**" />
     <Content Remove="wwwroot\Cargas\**\*" />
+    <EmbeddedResource Remove="Inmueble\**" />
+    <None Remove="Inmueble\**" />
   </ItemGroup>
   
  

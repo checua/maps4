@@ -385,7 +385,7 @@ function fetchMarkers() {
                             isLongPress = true;
                             const inmuebleId = item.idInmueble;
                             const descripcion = item.observaciones || "Descripción no disponible";
-                            const url = `${window.location.origin}/share/?inmuebleId=${inmuebleId}`; // URL corregida
+                            const url = `${window.location.origin}/Share/${inmuebleId}`; // URL corregida
                             const imageUrl = `${window.location.origin}/Cargas/${inmuebleId}_1.jpg`; // Ruta de la imagen previa
 
                             accumulatedUrls.push(url);
@@ -395,7 +395,7 @@ function fetchMarkers() {
 
                             // Texto que será copiado al portapapeles
                             const textToCopy = accumulatedIds.map(id => {
-                                const inmuebleUrl = `${window.location.origin}/share/?inmuebleId=${id}`; // URL corregida
+                                const inmuebleUrl = `${window.location.origin}/Share/${id}`; // URL corregida
                                 const inmuebleDesc = item.observaciones || "Descripción no disponible";
                                 // Texto en formato plano con la URL directa
                                 return `${inmuebleDesc}\nVer Inmueble #${id}: ${inmuebleUrl}`;
