@@ -818,6 +818,10 @@ function GetCode1(a, b, c, d, e, f, g, h, i, j) {
         $('#descripcion').val(h);
     else
         $('#descripcion').val("");
+
+    // Llamar a autoResize para ajustar la altura del textarea
+    autoResize(document.getElementById('descripcion'));
+
     if (i != 0)
         $('#contacto_a').val(i);
     else
@@ -1425,4 +1429,26 @@ window.toggleSatellite = function () {
     }
 };
 
+
+function autoResize(textarea) {
+    // Usa setTimeout para esperar a que el navegador renderice el contenido
+    setTimeout(() => {
+        // Restablecer la altura del textarea para recalcular
+        textarea.style.height = 'auto';
+
+        // Calcular el alto mínimo y máximo (en px) basados en la altura de línea
+        const lineHeight = 20; // Ajusta según el tamaño de la línea real de tu textarea
+        const maxHeight = lineHeight * 5; // Máximo 5 líneas
+
+        // Ajustar la altura según el contenido hasta un máximo de 5 líneas
+        textarea.style.height = Math.min(textarea.scrollHeight, maxHeight) + 'px';
+
+        // Si el contenido excede 5 líneas, mostrar la barra de desplazamiento
+        if (textarea.scrollHeight > maxHeight) {
+            textarea.style.overflowY = 'auto';
+        } else {
+            textarea.style.overflowY = 'hidden';
+        }
+    }, 0); // Espera 0ms para asegurarse de que se ejecute después de la renderización
+}
 
