@@ -9,7 +9,7 @@ namespace maps4.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class ComentariosController : ControllerBase
+    public class ComentariosController : Controller
     {
         private readonly IComentarioService _comentarioService;
         private readonly IAntiforgery _antiforgery;
@@ -20,6 +20,14 @@ namespace maps4.Controllers
             _comentarioService = comentarioService;
             _antiforgery = antiforgery;
             _logger = logger;
+        }
+
+        // Método para servir la vista de comentarios
+        [HttpGet]
+        [Route("/comentarios")]
+        public IActionResult Index()
+        {
+            return View();
         }
 
         [HttpPost]
