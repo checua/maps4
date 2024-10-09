@@ -1,0 +1,99 @@
+﻿@model maps4.Models.Comentario
+
+<h2>Comentarios de los usuarios</h2>
+<div id="comentarios-container">
+    <!-- Los comentarios se cargarán aquí de manera dinámica -->
+</div>
+
+<form id="comentarioForm">
+    @Html.AntiForgeryToken()
+    <label for="comentario">Comentario:</label>
+    <textarea id="comentario" name="comentarioTexto" required minlength="5"></textarea>
+
+    <label for="plan">Selecciona tu plan:</label>
+    <select id="plan" name="plan" required>
+        <option value="Normal">Normal</option>
+        <option value="Plus">Plus</option>
+        <option value="Platino">Platino</option>
+    </select>
+
+    <button type="submit">Enviar Comentario</button>
+</form>
+
+<p id="mensaje-resultado" style="display:none;"></p>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        cargarComentarios();
+    });
+
+    // Cargar comentarios de manera dinámica
+    function cargarComentarios() {
+        fetch('/api/Comentarios')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error al cargar los comentarios');
+                }
+                return response.json();
+            })
+            .then(data => {
+                const container = document.getElementById('comentarios-container');
+                container.innerHTML = '';
+                data.forEach(comentario => {
+                    const comentarioDiv = document.createElement('div');
+                    comentarioDiv.className = 'comentario';
+                    comentarioDiv.innerHTML = `<p><strong>${comentario.plan}:</strong> ${comentario.comentarioTexto}</p>`;
+                    container.appendChild(comentarioDiv);
+                });
+            })
+            .catch(error => {
+                console.error(error);
+            });
+    }
+
+    // Manejar el envío del formulario de comentarios
+    document.getElementById('comentarioForm').addEventListener('submit', function (event) {
+        event.preventDefault();
+
+        const antiforgeryToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        const comentario = {
+            comentarioTexto: document.getElementById('comentario').value,
+            plan: document.getElementById('plan').value
+        };
+
+        fetch('/api/Comentarios', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': antiforgeryToken
+            },
+            body: JSON.stringify(comentario)
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error al registrar el comentario');
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('mensaje-resultado').innerText = 'Comentario registrado con éxito';
+                document.getElementById('mensaje-resultado').style.display = 'block';
+                cargarComentarios(); // Recargar los comentarios
+                document.getElementById('comentarioForm').reset();
+            })
+            .catch(error => {
+                console.error(error);
+                document.getElementById('mensaje-resultado').innerText = 'Error al registrar el comentario';
+                document.getElementById('mensaje-resultado').style.display = 'block';
+            });
+    });
+</script>
+
+<style>
+    .comentario {
+        border: 1px solid #ddd;
+        padding: 10px;
+        margin-bottom: 10px;
+        border-radius: 5px;
+    }
+</style>

@@ -347,3 +347,38 @@
         transform: translateY(-100%);
     }
 }
+
+
+/* Marquesina */
+
+#marquesina-container {
+    width: 100%;
+    overflow: hidden;
+    background-color: #f8f9fa;
+    border: 1px solid #ccc;
+    margin-bottom: 15px;
+}
+
+#marquesina {
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    animation: scroll-marquee 20s linear infinite;
+}
+
+#comentarios p {
+    display: inline-block;
+    margin-right: 30px;
+    font-size: 16px;
+    color: #333;
+}
+
+@keyframes scroll-marquee {
+    from {
+        transform: translateX(100%);
+    }
+
+    to {
+        transform: translateX(-100%);
+    }
+}

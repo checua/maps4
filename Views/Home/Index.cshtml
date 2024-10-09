@@ -1,6 +1,6 @@
 ﻿@model maps4.Models.Data;
 @{
-    ViewData["Title"] = "mapsMarkers";
+    ViewData["Title"] = "RSMaps";
 }
 
 @*<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" /> Hace el signo de + del i del float circulo verde*@
@@ -16,6 +16,13 @@
     <i class="fa fa-layer-group"></i>
 </div>
 
+<div id="marquesina-container">
+    <div id="marquesina">
+        <div id="comentarios">
+            <!-- Los comentarios se cargarán dinámicamente aquí -->
+        </div>
+    </div>
+</div>
 
 <div id="pestana-anuncios" onclick="toggleMarquesina()"></div>
 <div id="cortina-anuncios-container">
@@ -368,7 +375,29 @@
 </div>
 
 
+<script>
+    // Función para cargar comentarios desde el servidor
+    function cargarComentarios() {
+        fetch('/api/Comentarios')  // Aquí asegúrate que este endpoint exista en tu backend
+            .then(response => response.json())
+            .then(comentarios => {
+                const comentariosContainer = document.getElementById('comentarios');
+                comentariosContainer.innerHTML = '';  // Limpiar comentarios previos
+                comentarios.forEach(comentario => {
+                    const p = document.createElement('p');
+                    p.innerText = `${comentario.nombre}: ${comentario.comentarioTexto}`;
+                    comentariosContainer.appendChild(p);
+                });
+            })
+            .catch(error => console.error('Error cargando los comentarios:', error));
+    }
 
+    // Cargar los comentarios cada 30 segundos
+    setInterval(cargarComentarios, 30000);
+
+    // Cargar comentarios al iniciar
+    cargarComentarios();
+</script>
 
 
 @section Scripts {
