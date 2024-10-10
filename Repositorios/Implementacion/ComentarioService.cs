@@ -30,13 +30,14 @@ namespace maps4.Repositorios.Implementacion
                         comentarios.Add(new Comentario
                         {
                             IdComentario = Convert.ToInt32(reader["IdComentario"]),
+                            Correo = reader["Correo"].ToString(),
                             Nombre = reader["Nombre"].ToString(),
                             Telefono = reader["Telefono"].ToString(),
-                            ComentarioTexto = reader["Comentario"].ToString(),
+                            ComentarioTexto = reader["ComentarioTexto"].ToString(),
                             FechaComentario = Convert.ToDateTime(reader["FechaComentario"]),
-                            Planx = reader["Planx"].ToString(),
+                            Nivel = reader["Nivel"].ToString(),
                             FechaExpiracion = Convert.ToDateTime(reader["FechaExpiracion"]),
-                            Activo = Convert.ToBoolean(reader["Activo"])
+                            Activo = true // Solo se devuelven los activos
                         });
                     }
                 }
@@ -49,14 +50,12 @@ namespace maps4.Repositorios.Implementacion
         {
             using (var connection = new SqlConnection(_connectionString))
             {
-                SqlCommand cmd = new SqlCommand("RSMAPS_InsertComentario", connection);
+                SqlCommand cmd = new SqlCommand("RSMAPS_SaveComentario", connection);
                 cmd.CommandType = CommandType.StoredProcedure;
 
-                cmd.Parameters.AddWithValue("@Nombre", comentario.Nombre);
-                cmd.Parameters.AddWithValue("@Telefono", comentario.Telefono);
-                cmd.Parameters.AddWithValue("@Comentario", comentario.ComentarioTexto);
-                cmd.Parameters.AddWithValue("@Plan", comentario.Planx);
-                cmd.Parameters.AddWithValue("@FechaExpiracion", comentario.FechaExpiracion);
+                cmd.Parameters.AddWithValue("@Correo", comentario.Correo);
+                cmd.Parameters.AddWithValue("@ComentarioTexto", comentario.ComentarioTexto);
+                cmd.Parameters.AddWithValue("@Nivel", comentario.Nivel);
 
                 await connection.OpenAsync();
                 int rowsAffected = await cmd.ExecuteNonQueryAsync();
@@ -64,5 +63,4 @@ namespace maps4.Repositorios.Implementacion
             }
         }
     }
-
 }

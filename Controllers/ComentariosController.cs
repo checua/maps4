@@ -1,9 +1,10 @@
 ﻿using maps4.Models;
 using maps4.Repositorios.Contrato;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
+using System.Linq;
+using System.Security.Claims;
 
 namespace maps4.Controllers
 {
@@ -12,13 +13,11 @@ namespace maps4.Controllers
     public class ComentariosController : Controller
     {
         private readonly IComentarioService _comentarioService;
-        private readonly IAntiforgery _antiforgery;
         private readonly ILogger<ComentariosController> _logger;
 
-        public ComentariosController(IComentarioService comentarioService, IAntiforgery antiforgery, ILogger<ComentariosController> logger)
+        public ComentariosController(IComentarioService comentarioService, ILogger<ComentariosController> logger)
         {
             _comentarioService = comentarioService;
-            _antiforgery = antiforgery;
             _logger = logger;
         }
 
@@ -31,14 +30,25 @@ namespace maps4.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> RegistrarComentario([FromBody] Comentario comentario)
         {
-            if (!ModelState.IsValid)
+            if (string.IsNullOrEmpty(comentario.ComentarioTexto) || string.IsNullOrEmpty(comentario.Nivel))
             {
-                _logger.LogWarning("Modelo de comentario no válido: {@Comentario}", comentario);
-                return BadRequest(ModelState);
+                return BadRequest(new { success = false, message = "Comentario y plan son obligatorios" });
             }
+
+            // Obtener el correo electrónico del usuario autenticado
+            var userEmail = User.FindFirstValue(ClaimTypes.Email);
+            if (string.IsNullOrEmpty(userEmail))
+            {
+                return Unauthorized(new { success = false, message = "Usuario no autenticado" });
+            }
+
+            // Llenar los campos que se obtienen automáticamente
+            comentario.Correo = userEmail;
+            comentario.FechaComentario = DateTime.Now;
+            comentario.FechaExpiracion = DateTime.Now.AddMonths(1); // Suponiendo una fecha de expiración de un mes
+            comentario.Activo = true;
 
             try
             {
