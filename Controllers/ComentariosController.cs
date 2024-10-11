@@ -30,11 +30,12 @@ namespace maps4.Controllers
         }
 
         [HttpPost]
+        [Route("registrar")]
         public async Task<IActionResult> RegistrarComentario([FromBody] Comentario comentario)
         {
             if (string.IsNullOrEmpty(comentario.ComentarioTexto) || string.IsNullOrEmpty(comentario.Nivel))
             {
-                return BadRequest(new { success = false, message = "Comentario y plan son obligatorios" });
+                return BadRequest(new { success = false, message = "Comentario y nivel son obligatorios" });
             }
 
             // Obtener el correo electrónico del usuario autenticado
@@ -66,6 +67,7 @@ namespace maps4.Controllers
                 return StatusCode(500, new { success = false, message = "Ocurrió un error al procesar su solicitud" });
             }
         }
+
 
         [HttpGet]
         public async Task<IActionResult> GetComentariosActivos()

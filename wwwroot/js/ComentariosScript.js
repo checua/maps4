@@ -23,21 +23,27 @@
 
             const comentario = {
                 comentarioTexto: comentarioTexto,
-                nivel: nivel
+                nivel: nivel,
+                correo: "",
+                nombre: "",
+                telefono: "",
+                fechaComentario: "",
+                fechaExpiracion: "",
+                activo: false
             };
-            console.log("Datos enviados:", comentario);
 
             try {
-                const response = await fetch("/api/Comentarios", {
+                const response = await fetch("/Comentarios/RegistrarComentario", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        "X-CSRF-Token": antiforgeryToken // Cambiar de 'RequestVerificationToken' a 'X-CSRF-Token'
+                        "X-CSRF-Token": antiforgeryToken
                     },
                     body: JSON.stringify(comentario)
                 });
 
                 if (!response.ok) {
+
                     throw new Error("Error al registrar el comentario");
                 }
 
