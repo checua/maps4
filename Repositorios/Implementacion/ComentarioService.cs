@@ -59,7 +59,7 @@ namespace maps4.Repositorios.Implementacion
 
                 await connection.OpenAsync();
                 int rowsAffected = await cmd.ExecuteNonQueryAsync();
-                return rowsAffected > 0;
+                return rowsAffected != 0;
             }
         }
     }

@@ -1,4 +1,6 @@
-﻿<!DOCTYPE html>
+﻿@model maps4.Models.Comentario
+
+<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8" />
@@ -30,8 +32,8 @@
                     </div>
                     <div class="card-body">
                         <form id="comentarioForm">
-                            @Html.AntiForgeryToken()
-
+                            @* @Html.AntiForgeryToken() *@
+                            @* <input type="hidden" id="correoUsuario" value="@ViewData["CorreoUsuario"]" /> *@
                             <div class="form-group mt-3">
                                 <label for="comentario">Comentario:</label>
                                 <textarea id="comentario" name="comentarioTexto" class="form-control" required minlength="5" rows="3"></textarea>

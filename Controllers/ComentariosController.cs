@@ -8,8 +8,8 @@ using System.Security.Claims;
 
 namespace maps4.Controllers
 {
-    [ApiController]
-    [Route("api/[controller]")]
+    //[ApiController]
+    //[Route("api/[controller]")]
     public class ComentariosController : Controller
     {
         private readonly IComentarioService _comentarioService;
@@ -22,51 +22,51 @@ namespace maps4.Controllers
         }
 
         // Método para servir la vista de comentarios
-        [HttpGet]
-        [Route("/comentarios")]
+        //[HttpGet]
+        //[Route("/comentarios")]
         public IActionResult Index()
         {
             return View();
         }
 
         [HttpPost]
-        [Route("registrar")]
-        public async Task<IActionResult> RegistrarComentario([FromBody] Comentario comentario)
+        public async Task<IActionResult> RegistrarComentario(Comentario comentario)
         {
-            if (string.IsNullOrEmpty(comentario.ComentarioTexto) || string.IsNullOrEmpty(comentario.Nivel))
-            {
-                return BadRequest(new { success = false, message = "Comentario y nivel son obligatorios" });
-            }
+            _logger.LogInformation("Solicitud POST recibida para registrar un comentario.");
 
-            // Obtener el correo electrónico del usuario autenticado
-            var userEmail = User.FindFirstValue(ClaimTypes.Email);
-            if (string.IsNullOrEmpty(userEmail))
+            if (comentario == null || string.IsNullOrEmpty(comentario.ComentarioTexto) || string.IsNullOrEmpty(comentario.Nivel))
             {
-                return Unauthorized(new { success = false, message = "Usuario no autenticado" });
+                _logger.LogWarning("Comentario o Nivel faltan en la solicitud.");
+                return BadRequest(new { success = false, message = "Comentario y Nivel son obligatorios" });
             }
-
-            // Llenar los campos que se obtienen automáticamente
-            comentario.Correo = userEmail;
-            comentario.FechaComentario = DateTime.Now;
-            comentario.FechaExpiracion = DateTime.Now.AddMonths(1); // Suponiendo una fecha de expiración de un mes
-            comentario.Activo = true;
 
             try
             {
-                var result = await _comentarioService.RegistrarComentario(comentario);
+                // Completar los campos faltantes en el servidor
+                comentario.Correo = HttpContext.User.Identity.Name.ToString();
+                comentario.FechaComentario = DateTime.Now;
+                comentario.Activo = true;
+
+                // Guardar el comentario en la base de datos usando el servicio
+                bool result = await _comentarioService.RegistrarComentario(comentario);
+
                 if (result)
                 {
                     return Ok(new { success = true });
                 }
-                _logger.LogWarning("No se pudo registrar el comentario: {@Comentario}", comentario);
-                return BadRequest(new { success = false, message = "Error al registrar el comentario" });
+                else
+                {
+                    _logger.LogWarning("No se pudo registrar el comentario: {@Comentario}", comentario);
+                    return BadRequest(new { success = false, message = "No se pudo registrar el comentario" });
+                }
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al registrar el comentario: {@Comentario}", comentario);
-                return StatusCode(500, new { success = false, message = "Ocurrió un error al procesar su solicitud" });
+                _logger.LogError(ex, "Error al registrar el comentario.");
+                return StatusCode(500, new { success = false, message = "Error interno del servidor" });
             }
         }
+
 
 
         [HttpGet]

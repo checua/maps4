@@ -43,6 +43,12 @@ namespace maps4.Controllers
             //ViewData["nombreUsuario"] = nombreUsuario;
 
             //GetUserClaims();
+
+            // Obtener el correo del usuario autenticado
+            var userEmail = User.FindFirstValue(ClaimTypes.Email);
+
+            // Si el usuario está autenticado, se pasa el correo a la vista
+            ViewData["CorreoUsuario"] = userEmail;
             return View();
         }
 

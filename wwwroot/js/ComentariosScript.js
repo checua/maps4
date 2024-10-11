@@ -3,6 +3,8 @@
 
     const comentarioForm = document.getElementById("comentarioForm");
     if (comentarioForm) {
+
+        const formData = new FormData();
         comentarioForm.addEventListener("submit", async function (event) {
             event.preventDefault();
 
@@ -14,57 +16,46 @@
                 return;
             }
 
-            const antiforgeryTokenElement = document.querySelector('input[name="__RequestVerificationToken"]');
-            if (!antiforgeryTokenElement) {
-                console.error("El token antifalsificación no se encuentra en el DOM.");
-                return;
-            }
-            const antiforgeryToken = antiforgeryTokenElement.value;
+            formData.append('comentarioTexto', document.getElementById("comentario").value);
+            formData.append('nivel', document.getElementById("nivel").value);
+            formData.append('correo', "");
+            formData.append('nombre', "");
+            formData.append('telefono', "");
+            formData.append('fechaComentario', "");
+            formData.append('fechaExpiracion', "");
+            formData.append('activo', true);
 
-            const comentario = {
-                comentarioTexto: comentarioTexto,
-                nivel: nivel,
-                correo: "",
-                nombre: "",
-                telefono: "",
-                fechaComentario: "",
-                fechaExpiracion: "",
-                activo: false
-            };
-
-            try {
-                const response = await fetch("/Comentarios/RegistrarComentario", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-CSRF-Token": antiforgeryToken
-                    },
-                    body: JSON.stringify(comentario)
+            const url = "Comentarios/RegistrarComentario";
+            fetch(url, {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(response => {
+                    if (response.success) {
+                        //alert("Success");
+                    } else {
+                        //alert("Error");
+                    }
+                })
+                .catch(error => {
+                    console.error('Error al enviar datos:', error);
+                    alert("Error en la red o servidor");
                 });
 
-                if (!response.ok) {
-
-                    throw new Error("Error al registrar el comentario");
-                }
-
-                document.getElementById("mensaje-resultado").innerText = "Comentario registrado con éxito";
-                document.getElementById("mensaje-resultado").style.display = "block";
-                cargarComentarios(); // Recargar los comentarios
-                comentarioForm.reset();
-            } catch (error) {
-                console.error(error);
-                document.getElementById("mensaje-resultado").innerText = "Error al registrar el comentario";
-                document.getElementById("mensaje-resultado").style.display = "block";
-            }
         });
     } else {
         console.error("El formulario de comentario no se encuentra en el DOM.");
     }
+
 });
+
+
+
 
 async function cargarComentarios() {
     try {
-        const response = await fetch("/api/Comentarios/");
+        const response = await fetch("Comentarios/GetComentariosActivos");
         if (!response.ok) {
             throw new Error("Error al cargar los comentarios");
         }
