@@ -16,42 +16,45 @@
                 return;
             }
 
-            formData.append('comentarioTexto', document.getElementById("comentario").value);
-            formData.append('nivel', document.getElementById("nivel").value);
-            formData.append('correo', "");
-            formData.append('nombre', "");
-            formData.append('telefono', "");
-            formData.append('fechaComentario', "");
-            formData.append('fechaExpiracion', "");
-            formData.append('activo', true);
+            formData.set('comentarioTexto', comentarioTexto);
+            formData.set('nivel', nivel);
+            formData.set('correo', ""); // Se obtiene en el backend
+            formData.set('nombre', ""); // Se obtiene en el backend
+            formData.set('telefono', ""); // Se obtiene en el backend
+            formData.set('fechaComentario', "");
+            formData.set('fechaExpiracion', "");
+            formData.set('activo', true);
 
             const url = "Comentarios/RegistrarComentario";
-            fetch(url, {
-                method: 'POST',
-                body: formData
-            })
-                .then(response => response.json())
-                .then(response => {
-                    if (response.success) {
-                        //alert("Success");
-                    } else {
-                        //alert("Error");
-                    }
-                })
-                .catch(error => {
-                    console.error('Error al enviar datos:', error);
-                    alert("Error en la red o servidor");
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    body: formData
                 });
 
+                const responseData = await response.json();
+
+                if (response.ok && responseData.success) {
+                    document.getElementById("mensaje-resultado").innerText = "Comentario registrado con éxito";
+                    document.getElementById("mensaje-resultado").style.display = "block";
+
+                    // Recargar comentarios de manera asíncrona sin recargar toda la página
+                    await cargarComentarios();
+
+                    comentarioForm.reset();
+                } else {
+                    document.getElementById("mensaje-resultado").innerText = "Error al registrar el comentario";
+                    document.getElementById("mensaje-resultado").style.display = "block";
+                }
+            } catch (error) {
+                console.error('Error al enviar datos:', error);
+                alert("Error en la red o servidor");
+            }
         });
     } else {
         console.error("El formulario de comentario no se encuentra en el DOM.");
     }
-
 });
-
-
-
 
 async function cargarComentarios() {
     try {
@@ -71,6 +74,6 @@ async function cargarComentarios() {
             container.appendChild(comentarioDiv);
         });
     } catch (error) {
-        console.error(error);
+        console.error("Error al cargar los comentarios:", error);
     }
 }

@@ -15,6 +15,14 @@
             border-radius: 5px;
             background-color: #f9f9f9;
         }
+
+        #comentarios-container {
+            max-height: 400px; /* Limitar la altura para activar la barra de desplazamiento */
+            overflow-y: auto; /* Barra de desplazamiento vertical */
+            padding: 10px;
+            border: 1px solid #ccc;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
@@ -33,7 +41,7 @@
                     <div class="card-body">
                         <form id="comentarioForm">
                             @* @Html.AntiForgeryToken() *@
-                            @* <input type="hidden" id="correoUsuario" value="@ViewData["CorreoUsuario"]" /> *@
+
                             <div class="form-group mt-3">
                                 <label for="comentario">Comentario:</label>
                                 <textarea id="comentario" name="comentarioTexto" class="form-control" required minlength="5" rows="3"></textarea>
@@ -61,6 +69,6 @@
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/comentariosscript.js"></script>
-    
+
 </body>
 </html>
