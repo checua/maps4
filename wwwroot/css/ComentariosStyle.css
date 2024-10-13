@@ -1,0 +1,39 @@
+﻿body {
+    overflow-y: auto; /* Habilitar barra de desplazamiento en toda la página si no cabe en una pantalla */
+    height: 95vh;
+}
+
+.container {
+    height: calc(100% - 5px); /* Ajusta la altura del contenedor principal */
+    /*background-color: aqua;*/
+    overflow: hidden; /* Evita que los elementos hijos excedan el tamaño del contenedor */
+}
+
+.comentario {
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+
+#comentarios-container {
+    max-height: 100%; /* Limitar la altura para activar la barra de desplazamiento */
+    overflow-y: auto; /* Barra de desplazamiento vertical */
+    padding: 10px;
+    border: 1px solid #ccc;
+    /*background-color: brown;*/
+}
+
+.content-wrapper {
+    display: flex;
+    height: calc(100% - 50px); /* Ajusta el tamaño para que no exceda el container, restando el espacio necesario */
+    align-items: stretch; /* Asegura que ambas secciones ocupen la misma altura */
+    overflow: hidden; /* Evita que el contenido exceda el contenedor */
+}
+
+.content-section {
+    flex: 1;
+    padding: 10px;
+    /*overflow-y: auto;*/ /* Asegura que el contenido interno pueda desplazarse si es necesario */
+}

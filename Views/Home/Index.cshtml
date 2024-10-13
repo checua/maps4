@@ -3,7 +3,6 @@
     ViewData["Title"] = "RSMaps";
 }
 
-@*<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css" /> Hace el signo de + del i del float circulo verde*@
 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" /> @*Hace que los cajones del select se vean chidos*@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 
@@ -142,9 +141,10 @@
     <a href="#" id="btnModal" class="float" onclick="toggleMenu()"><i class="fa fa-plus my-float"></i></a>
 
     <div id="menu-flotante" class="menu-flotante" style="display: none;">
-        <button onclick="iniciarSesion()">Iniciar Sesión</button>
-        <button onclick="registrarse()">Registrarse</button>
-        <button onclick="toggleMarquesina()">Ver Anuncios</button>
+        <a href="javascript:void(0);" onclick="iniciarSesion()" class="btn btn-info">Iniciar Sesión</a>
+        <a href="javascript:void(0);" onclick="registrarse()" class="btn btn-info">Registrarse</a>
+        <a href="javascript:void(0);" onclick="toggleMarquesina()" class="btn btn-info">Ver Anuncios</a>
+        <a href="/comentarios" class="btn btn-info">Ver Comentarios</a>
     </div>
 
     <div class="tipo1">

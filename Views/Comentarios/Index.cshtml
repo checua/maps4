@@ -1,5 +1,4 @@
-﻿@model maps4.Models.Comentario
-
+﻿@using Microsoft.CodeAnalysis.Differencing
 <!DOCTYPE html>
 <html>
 <head>
@@ -7,34 +6,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Comentarios de los Usuarios</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
-    <style>
-        .comentario {
-            border: 1px solid #ddd;
-            padding: 10px;
-            margin-bottom: 10px;
-            border-radius: 5px;
-            background-color: #f9f9f9;
-        }
-
-        #comentarios-container {
-            max-height: 400px; /* Limitar la altura para activar la barra de desplazamiento */
-            overflow-y: auto; /* Barra de desplazamiento vertical */
-            padding: 10px;
-            border: 1px solid #ccc;
-            margin-bottom: 20px;
-        }
-    </style>
+    <link href="~/css/comentariosstyle.css" rel="stylesheet" />
 </head>
 <body>
     <div class="container mt-5">
-        <h2 class="text-center">Comentarios de los usuarios</h2>
-        <div id="comentarios-container" class="mt-4">
-            <!-- Los comentarios se cargarán aquí de manera dinámica -->
-        </div>
+       @*  <h2 class="text-center">Comentarios de los usuarios</h2> *@
+        <div class="content-wrapper">
+            <div class="content-section">
+                <div id="comentarios-container">
+                    <!-- Los comentarios se cargarán aquí de manera dinámica -->
+                </div>
+            </div>
 
-        <div class="row justify-content-center mt-5">
-            <div class="col-12 col-md-8 col-lg-6">
-                <div class="card shadow">
+            <div class="content-section">
+                <div class="card shadow h-100">
                     <div class="card-header text-center bg-primary text-white">
                         <h4>Deja tu comentario</h4>
                     </div>
@@ -69,6 +54,6 @@
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/comentariosscript.js"></script>
-
+    
 </body>
 </html>
