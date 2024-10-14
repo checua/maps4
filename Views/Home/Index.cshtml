@@ -32,7 +32,7 @@
     </div>
     <div id="anuncios-scroll-container">
         <div id="cortina-anuncios">
-            <p class="solicitar">Buen día busco terreno por el domingo Arrieta , Soriana madero , valle del sur pago en efectivo presupuesto 700,000.</p>
+@*             <p class="solicitar">Buen día busco terreno por el domingo Arrieta , Soriana madero , valle del sur pago en efectivo presupuesto 700,000.</p>
             <p class="solicitar">
                 Hola buen día
                 Busco Casa en Venta por la zona de San Isidro, que pueda dar diferencia, presupuesto de $968,000
@@ -120,7 +120,7 @@
                 Buen dia
                 Busco casa en renta por salida a Mazatlán, Analco, Tierra Blanca o centro
                 Presupuesto 10mil. 6181514324
-            </p>
+            </p> *@
         </div>
     </div>
 </div>
@@ -143,7 +143,7 @@
     <div id="menu-flotante" class="menu-flotante" style="display: none;">
         <a href="javascript:void(0);" onclick="iniciarSesion()" class="btn btn-info">Iniciar Sesión</a>
         <a href="javascript:void(0);" onclick="registrarse()" class="btn btn-info">Registrarse</a>
-        <a href="javascript:void(0);" onclick="toggleMarquesina()" class="btn btn-info">Ver Anuncios</a>
+@*         <a href="javascript:void(0);" onclick="toggleMarquesina()" class="btn btn-info">Ver Anuncios</a> *@
         <a href="/comentarios" class="btn btn-info">Ver Comentarios</a>
     </div>
 
@@ -377,19 +377,26 @@
 
 <script>
     // Función para cargar comentarios desde el servidor
-    function cargarComentarios() {
-        fetch('/api/Comentarios')  // Aquí asegúrate que este endpoint exista en tu backend
-            .then(response => response.json())
-            .then(comentarios => {
-                const comentariosContainer = document.getElementById('comentarios');
-                comentariosContainer.innerHTML = '';  // Limpiar comentarios previos
-                comentarios.forEach(comentario => {
-                    const p = document.createElement('p');
-                    p.innerText = `${comentario.nombre}: ${comentario.comentarioTexto}`;
-                    comentariosContainer.appendChild(p);
-                });
-            })
-            .catch(error => console.error('Error cargando los comentarios:', error));
+    async function cargarComentarios() {
+        try {
+            const response = await fetch("Comentarios/GetComentariosActivos");
+            if (!response.ok) {
+                throw new Error("Error al cargar los comentarios");
+            }
+
+            const comentarios = await response.json();
+            const container = document.getElementById("cortina-anuncios");
+            container.innerHTML = "";
+
+            comentarios.forEach(comentario => {
+                const comentarioDiv = document.createElement("div");
+                comentarioDiv.className = "comentario";
+                comentarioDiv.innerHTML = `<p><strong>${comentario.nivel}:</strong> ${comentario.comentarioTexto}</p>`;
+                container.appendChild(comentarioDiv);
+            });
+        } catch (error) {
+            console.error("Error al cargar los comentarios:", error);
+        }
     }
 
     // Cargar los comentarios cada 30 segundos

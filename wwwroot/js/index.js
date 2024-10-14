@@ -703,10 +703,10 @@ fetch('/Home/GetUserClaims', {
         console.error('Error al obtener los claims del usuario:', error);
     });
 
-
-
 function shareItem() {
-    let inmuebleId
+    let inmuebleId;
+
+    // Obtener el ID del inmueble según el contexto
     if (clikeado != 1) {
         const queryParams = getQueryParams();
         inmuebleId = queryParams.inmuebleId;
@@ -714,32 +714,44 @@ function shareItem() {
         if (!inmuebleId && selectedInmuebleId) {
             inmuebleId = selectedInmuebleId;
         }
-    }
-    else {
+    } else {
         inmuebleId = selectedInmuebleId;
     }
 
     if (inmuebleId) {
-        const url = `${window.location.origin}${window.location.pathname}?inmuebleId=${inmuebleId}`;
+        // Obtener la URL del inmueble
+        const url = `${window.location.origin}/Share/${inmuebleId}`;
 
+        // Obtener la descripción desde el textarea con id="descripcion"
+        const descripcion = document.getElementById('descripcion').value || "Descripción no disponible";
+
+        // Crear el mensaje con la descripción y la URL del inmueble
+        const textToShare = `${descripcion}\n\n${url}`;
+
+        // Verificar si el navegador soporta la API de compartir (navigator.share)
         if (navigator.share) {
             navigator.share({
                 title: 'Compartir Inmueble',
-                text: 'Mira este inmueble que encontré:',
+                text: descripcion,
                 url: url
             }).then(() => {
-                console.log('Gracias por compartir.');
+                console.log('Inmueble compartido con éxito.');
             }).catch((error) => {
                 console.error('Error al compartir:', error);
             });
         } else {
-            copyToClipboard(url);
-            alert(`Compartir enlace: ${url}`);
+            // Copiar al portapapeles si la API de compartir no está disponible
+            navigator.clipboard.writeText(textToShare).then(function () {
+                console.log('Inmueble copiado al portapapeles.');
+            }).catch(function (error) {
+                console.error('Error al copiar el inmueble:', error);
+            });
         }
     } else {
         alert("No hay un inmueble seleccionado para compartir.");
     }
 }
+
 
 function getQueryParams() {
     const params = {};
