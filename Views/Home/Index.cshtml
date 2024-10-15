@@ -15,13 +15,13 @@
     <i class="fa fa-layer-group"></i>
 </div>
 
-<div id="marquesina-container">
+@* <div id="marquesina-container">
     <div id="marquesina">
         <div id="comentarios">
             <!-- Los comentarios se cargarán dinámicamente aquí -->
         </div>
     </div>
-</div>
+</div> *@
 
 <div id="pestana-anuncios" onclick="toggleMarquesina()"></div>
 <div id="cortina-anuncios-container">
@@ -286,67 +286,10 @@
     </div>
 </div>
 
-
-<script>
-
-    const coloresPorNivel = {
-        "Nivel 1": "red",
-        "Nivel 2": "blue",
-        "Nivel 3": "green",
-        // Añade más niveles si es necesario
-    };
-
-    const fondosPorNivel = {
-        "Nivel 1": "#f9ecec",
-        "Nivel 2": "#e3f2fd",
-        "Nivel 3": "#e8f5e9",
-        // Añade más niveles si es necesario
-    };
-
-    // Función para cargar comentarios desde el servidor
-    async function cargarComentarios() {
-        try {
-            const response = await fetch("Comentarios/GetComentariosActivos");
-            if (!response.ok) {
-                throw new Error("Error al cargar los comentarios");
-            }
-
-            const comentarios = await response.json();
-            const container = document.getElementById("cortina-anuncios");
-            container.innerHTML = "";
-
-            comentarios.forEach(comentario => {
-                const comentarioDiv = document.createElement("div");
-                comentarioDiv.className = "comentario";
-
-                // Asignar el color y el fondo en función del nivel del comentario
-                const nivelColor = coloresPorNivel[comentario.nivel] || "black"; // Por defecto negro si no está el nivel
-                const fondoColor = fondosPorNivel[comentario.nivel] || "#fff";   // Fondo blanco por defecto
-
-                comentarioDiv.style.color = nivelColor;
-                comentarioDiv.style.backgroundColor = fondoColor;
-                comentarioDiv.style.padding = "10px"; // Añadir padding para estética
-                comentarioDiv.style.marginBottom = "10px"; // Separación entre comentarios
-
-                comentarioDiv.innerHTML = `<p><strong>${comentario.nivel}:</strong> ${comentario.comentarioTexto}</p>`;
-                container.appendChild(comentarioDiv);
-            });
-        } catch (error) {
-            console.error("Error al cargar los comentarios:", error);
-        }
-    }
-
-    // Cargar los comentarios cada 30 segundos
-    setInterval(cargarComentarios, 30000);
-
-    // Cargar comentarios al iniciar
-    cargarComentarios();
-</script>
-
-
 @section Scripts {
     <script src="~/js/index.js"></script>
     <script src="~/js/javascriptx.js"></script>
+    <script src="~/js/comentariosindexscript.js"></script>
     <!-- Scripts de Bootstrap -->
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.bundle.min.js"></script>
 

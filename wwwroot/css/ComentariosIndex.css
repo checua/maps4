@@ -1,11 +1,206 @@
-﻿/*.comentario {
-    border-radius: 5px;
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);*/ /* Sombra suave */
-    /*transition: background-color 0.3s ease;*/ /* Transición suave de fondo */
-/*}
+﻿/* Estilos generales para los comentarios */
+.comentario {
+    padding: 15px; /* Aumentar el padding para más espacio */
+    margin-bottom: 15px; /* Mayor separación entre comentarios */
+    border-radius: 8px; /* Bordes más redondeados */
+    box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.15); /* Sombra más suave y difusa */
+    transition: background-color 0.3s ease, box-shadow 0.3s ease; /* Suavizar las transiciones */
+    color: black; /* Color de texto predeterminado */
+    font-family: 'Arial', sans-serif; /* Fuente clara y profesional */
+    font-size: 14px; /* Tamaño de fuente moderado */
+    line-height: 1.6; /* Mayor espacio entre líneas */
+}
 
-    .comentario p {
+    /* Estilos específicos para cada nivel */
+    .comentario.premium {
+        background-color: #ffe4e1; /* Fondo suave rosado */
+        color: #8b0000; /* Color de texto oscuro para Premium */
+        border-left: 6px solid #ff4500; /* Borde rojo oscuro */
+        
+    }
+
+    .comentario.plus {
+        background-color: #e3f2fd; /* Fondo azul claro */
+        color: #0d47a1; /* Color de texto azul oscuro */
+        border-left: 6px solid #1e88e5; /* Borde azul más fuerte */
+       
+    }
+
+    .comentario.basico {
+        background-color: #e8f5e9; /* Fondo verde claro */
+        color: #2e7d32; /* Color de texto verde oscuro */
+        border-left: 6px solid #43a047; /* Borde verde fuerte */
+        
+    }
+
+    /* Efecto de hover para los comentarios */
+    .comentario:hover {
+        box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2); /* Mayor sombra en hover */
+        transform: translateY(-2px); /* Efecto sutil de levantamiento */
+    }
+
+/* Contenedor de desplazamiento de anuncios */
+#anuncios-scroll-container {
+    height: calc(100% - 50px); /* Ajuste para el espacio del título */
+    overflow-y: auto; /* Permitir desplazamiento vertical manual */
+    padding: 10px; /* Añadir espacio interno */
+    background-color: #f9f9f9; /* Fondo suave para el contenedor */
+    border-radius: 10px; /* Bordes redondeados para el contenedor */
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1); /* Sombra para el contenedor */
+}
+
+
+
+/* Contenedor principal oculto inicialmente */
+#cortina-anuncios-container {
+    position: fixed;
+    top: 100px;
+    right: -300px; /* Fuera de la pantalla */
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 10px 0 0 10px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+    width: 300px;
+    height: 200px;
+    overflow: hidden;
+    z-index: 1000;
+    transition: right 0.5s ease;
+}
+
+/* Pestaña visible en el lado derecho */
+#pestana-anuncios {
+    position: fixed;
+    top: 150px;
+    right: 0;
+    width: 30px;
+    height: 100px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    line-height: 100px;
+    cursor: pointer;
+    border-radius: 5px 0 0 5px;
+    z-index: 1001;
+    transition: right 0.5s ease;
+}
+
+    /* Por defecto, la pestaña estará colapsada (flecha apuntando hacia la derecha) */
+    #pestana-anuncios::before {
+        content: '◀'; /* Flecha hacia la izquierda */
+    }
+
+    #pestana-anuncios.expanded::before {
+        content: '▶'; /* Flecha hacia la izquierda (expandido) */
+    }
+
+    #pestana-anuncios.collapsed::before {
+        content: '◀'; /* Flecha hacia la derecha (colapsado) */
+    }
+
+
+/* Título fijo con flechas a los lados */
+#anuncios-titulo {
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    padding: 10px;
+    border-top-left-radius: 10px;
+    z-index: 1;
+    position: relative;
+}
+
+.btn-flecha {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 16px;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    z-index: 2;
+}
+
+#btn-disminuir {
+    left: 5px;
+}
+
+#btn-aumentar {
+    right: 5px;
+}
+
+/* Contenedor de desplazamiento de anuncios */
+#anuncios-scroll-container {
+    height: calc(100% - 50px); /* Resta el espacio del título */
+    overflow-y: scroll; /* Permitir desplazamiento vertical manual */
+    position: relative;
+}
+
+/* Contenedor de los anuncios */
+/*#cortina-anuncios {
+    position: absolute;
+    width: 100%;
+    animation: scrollAnuncios linear infinite;
+    animation-duration: 20s;*/ /* Ajusta según la velocidad */
+/*}*/
+
+    /* Estilo general de los anuncios */
+    /*#cortina-anuncios p {
+        font-size: 14px;
         margin: 0;
-        font-family: Arial, sans-serif;
         line-height: 1.5;
+        padding: 5px;
+        color: #555;
     }*/
+
+        /* Estilo para anuncios */
+        /*#cortina-anuncios p.solicitar {
+            background-color: #f8d7da;
+            border-left: 5px solid #dc3545;
+        }*/
+
+/* Animación de desplazamiento vertical */
+@keyframes scrollAnuncios {
+    0% {
+        transform: translateY(0%);
+    }
+
+    100% {
+        transform: translateY(-100%);
+    }
+}
+
+
+/* Marquesina */
+
+#marquesina-container {
+    width: 100%;
+    overflow: hidden;
+    background-color: #f8f9fa;
+    border: 1px solid #ccc;
+    margin-bottom: 15px;
+}
+
+#marquesina {
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    animation: scroll-marquee 20s linear infinite;
+}
+
+#comentarios p {
+    display: inline-block;
+    margin-right: 30px;
+    font-size: 16px;
+    color: #333;
+}
+
+@keyframes scroll-marquee {
+    from {
+        transform: translateX(100%);
+    }
+
+    to {
+        transform: translateX(-100%);
+    }
+}
+

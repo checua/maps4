@@ -1319,54 +1319,7 @@ $(document).on("click", ".boton-eliminar-inmueble", function () {
 
 
 
-let isScrollingManually = false;
-const cortinaAnuncios = document.getElementById('cortina-anuncios');
-const anunciosScrollContainer = document.getElementById('anuncios-scroll-container');
 
-// Función para pausar y reanudar el desplazamiento automático
-function toggleScroll() {
-    const currentState = cortinaAnuncios.style.animationPlayState;
-    cortinaAnuncios.style.animationPlayState = currentState === 'running' ? 'paused' : 'running';
-}
-
-// Detectar desplazamiento manual
-anunciosScrollContainer.addEventListener('scroll', () => {
-    isScrollingManually = true;
-    cortinaAnuncios.style.animationPlayState = 'paused';
-
-    // Detiene el desplazamiento automático mientras el usuario está interactuando
-    clearTimeout(anunciosScrollContainer.autoScrollTimeout);
-    anunciosScrollContainer.autoScrollTimeout = setTimeout(() => {
-        isScrollingManually = false;
-        cortinaAnuncios.style.animationPlayState = 'running';
-    }, 2000); // Reanudar después de 2 segundos sin interacción
-});
-
-document.querySelectorAll('#cortina-anuncios p.solicitar').forEach((element, index) => {
-    // Alterna colores según el índice
-    if (index % 2 === 0) {
-        element.style.backgroundColor = '#d1ecf1'; // Azul claro
-        element.style.borderLeft = '5px solid #17a2b8';
-    } else {
-        element.style.backgroundColor = '#f8d7da'; // Rojo claro
-        element.style.borderLeft = '5px solid #dc3545';
-    }
-});
-
-document.addEventListener('DOMContentLoaded', () => {
-    // Mostrar u ocultar la marquesina según el tamaño de la pantalla 
-    // La quité para que se vea en dispositivos móviles, ahora que tiene pestaña la marquesina
-    //if (window.innerWidth < 768) {
-    //    document.getElementById('cortina-anuncios-container').style.display = 'none'; // Oculta la marquesina en móviles
-    //}
-
-    // Ajustar el comportamiento de la marquesina para cambiar colores entre anuncios
-    const anuncios = document.querySelectorAll('#cortina-anuncios p');
-    anuncios.forEach((anuncio, index) => {
-        anuncio.style.backgroundColor = index % 2 === 0 ? '#f8d7da' : '#fff3cd';
-        anuncio.style.borderLeft = '5px solid ' + (index % 2 === 0 ? '#dc3545' : '#ffc107');
-    });
-});
 
 // Función para mostrar/ocultar el menú flotante
 function toggleMenu() {
@@ -1388,82 +1341,6 @@ function registrarse() {
 }
 
 
-function toggleMarquesina() {
-    const cortinaAnunciosContainer = document.getElementById('cortina-anuncios-container');
-
-    // Mostrar u ocultar la marquesina
-    cortinaAnunciosContainer.style.display = cortinaAnunciosContainer.style.display === 'none' ? 'block' : 'none';
-
-    // Ocultar el menú flotante
-    $("#menu-flotante").hide();
-}
-
-let isMarquesinaVisible = false; // Estado de visibilidad de la marquesina
-let currentSpeed = 20; // Velocidad predeterminada
-let isPaused = false; // Estado para pausar la marquesina
-
-// Función para mostrar/ocultar la marquesina
-function toggleMarquesina() {
-    const cortinaAnunciosContainer = document.getElementById('cortina-anuncios-container');
-    const pestanaAnuncios = document.getElementById('pestana-anuncios');
-    const menuFlotante = document.getElementById('menu-flotante');
-
-    if (isMarquesinaVisible) {
-        cortinaAnunciosContainer.style.right = '-300px'; // Ocultar marquesina
-        pestanaAnuncios.style.right = '0'; // Regresar pestaña al borde derecho de la pantalla
-        pestanaAnuncios.classList.remove('expanded');
-        pestanaAnuncios.classList.add('collapsed');
-    } else {
-        cortinaAnunciosContainer.style.right = '0'; // Mostrar marquesina
-        pestanaAnuncios.style.right = '300px'; // Mover la pestaña al borde izquierdo de la marquesina
-        pestanaAnuncios.classList.remove('collapsed');
-        pestanaAnuncios.classList.add('expanded');
-    }
-
-    // Desaparecer menú flotante al mostrar la marquesina
-    if (menuFlotante) {
-        menuFlotante.style.display = 'none';
-    }
-
-    isMarquesinaVisible = !isMarquesinaVisible;
-}
-
-// Función para ajustar la velocidad de la animación
-function setAnimationSpeed(speed) {
-    cortinaAnuncios.style.animationDuration = `${speed}s`; // Cambia la duración de la animación
-    localStorage.setItem('scrollSpeed', speed); // Guarda la velocidad en localStorage
-}
-
-// Función para cambiar la velocidad
-function cambiarVelocidad(accion, event) {
-    event.stopPropagation(); // Evitar que se pause al hacer clic en las flechas
-
-    if (accion === 'aumentar' && currentSpeed > 5) {
-        currentSpeed -= 5; // Aumenta la velocidad reduciendo el tiempo
-        isPaused = false;  // Reanuda el movimiento si estaba pausado
-    } else if (accion === 'disminuir') {
-        if (currentSpeed < 60) {
-            currentSpeed += 5; // Disminuye la velocidad aumentando el tiempo
-        }
-        if (currentSpeed >= 60) {
-            isPaused = true;  // Pausa el movimiento cuando la velocidad es máxima
-        }
-    }
-
-    cortinaAnuncios.style.animationPlayState = isPaused ? 'paused' : 'running'; // Pausar si la velocidad es máxima
-    setAnimationSpeed(currentSpeed);
-}
-
-// Al cargar la página, leer la velocidad guardada
-document.addEventListener('DOMContentLoaded', () => {
-    const savedSpeed = localStorage.getItem('scrollSpeed');
-    if (savedSpeed) {
-        currentSpeed = parseInt(savedSpeed, 10);
-        setAnimationSpeed(currentSpeed);
-    } else {
-        setAnimationSpeed(currentSpeed); // Usa la velocidad predeterminada
-    }
-});
 
 // Función para alternar entre vista de satélite y vista normal
 window.toggleSatellite = function () {
