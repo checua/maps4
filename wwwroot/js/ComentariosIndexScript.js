@@ -18,17 +18,24 @@ async function cargarComentarios() {
         comentarios.forEach(comentario => {
             const comentarioDiv = document.createElement("div");
             comentarioDiv.className = `comentario ${comentario.nivel.toLowerCase()}`; // Asigna clase según nivel
-            comentarioDiv.innerHTML = `<p><strong>${comentario.nivel}:</strong> ${comentario.comentarioTexto}</p>`;
+
+            // Agregar el contenido del comentario con el nombre y teléfono
+            comentarioDiv.innerHTML = `
+                <p><strong>${comentario.nivel}:</strong> ${comentario.comentarioTexto}</p>
+                <p><strong>Nombre:</strong> ${comentario.nombre}<br>${comentario.telefono}</p>
+            `;
+
             container.appendChild(comentarioDiv);
         });
 
-        // Iniciar animación de desplazamiento
-        startScrollAnimation();
+        // Activar la posibilidad de desplazarse manualmente
+        enableManualScrolling();
 
     } catch (error) {
         console.error("Error al cargar los comentarios:", error);
     }
 }
+
 
 // Inicia la animación de desplazamiento hacia arriba
 function startScrollAnimation() {
@@ -43,6 +50,7 @@ function toggleScroll() {
     isPaused = !isPaused;
     cortinaAnuncios.style.animationPlayState = isPaused ? 'paused' : 'running';
 }
+
 
 // Escuchar clics en los comentarios para pausar/reanudar
 document.getElementById('cortina-anuncios').addEventListener('click', toggleScroll);
@@ -160,4 +168,30 @@ function cambiarVelocidad(accion, event) {
 }
 
 
+
+// Función para habilitar el desplazamiento manual
+function enableManualScrolling() {
+    const anunciosScrollContainer = document.getElementById('anuncios-scroll-container');
+
+    // Detectar desplazamiento manual
+    anunciosScrollContainer.addEventListener('scroll', () => {
+        isScrollingManually = true;
+
+        // Pausar el desplazamiento automático si se está desplazando manualmente
+        if (!isPaused) {
+            cortinaAnuncios.style.animationPlayState = 'paused';
+        }
+
+        // Detener el desplazamiento automático mientras el usuario está interactuando
+        clearTimeout(anunciosScrollContainer.autoScrollTimeout);
+        anunciosScrollContainer.autoScrollTimeout = setTimeout(() => {
+            isScrollingManually = false;
+
+            // Reanudar el desplazamiento automático solo si no está pausado
+            if (!isPaused) {
+                cortinaAnuncios.style.animationPlayState = 'running';
+            }
+        }, 2000); // Reanudar después de 2 segundos sin interacción
+    });
+}
 
