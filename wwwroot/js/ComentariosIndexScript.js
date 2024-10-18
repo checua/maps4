@@ -1,7 +1,10 @@
 ﻿let isScrollingManually = false;
+let isPaused = false; // Para pausar el desplazamiento
+let isMarquesinaVisible = false; // Estado de visibilidad de la marquesina
 const cortinaAnuncios = document.getElementById('cortina-anuncios');
 const anunciosScrollContainer = document.getElementById('anuncios-scroll-container');
-let isPaused = false; // Para pausar el desplazamiento
+let scrollSpeed = 1; // Velocidad estándar lenta
+
 
 // Función para cargar comentarios desde el servidor
 async function cargarComentarios() {
@@ -28,29 +31,38 @@ async function cargarComentarios() {
             container.appendChild(comentarioDiv);
         });
 
-        // Activar la posibilidad de desplazarse manualmente
-        enableManualScrolling();
-
+        // Iniciar desplazamiento automático
+        startAutoScroll(); //Set autoscroll para que inicie solo o manual
     } catch (error) {
         console.error("Error al cargar los comentarios:", error);
     }
 }
 
+// Inicia el desplazamiento automático
+function startAutoScroll() {
+    const containerHeight = anunciosScrollContainer.scrollHeight;
+    anunciosScrollContainer.scrollTop = 0; // Empezar desde arriba
 
-// Inicia la animación de desplazamiento hacia arriba
-function startScrollAnimation() {
-    const cortinaAnuncios = document.getElementById('cortina-anuncios');
-    cortinaAnuncios.style.animationPlayState = 'running';
-    cortinaAnuncios.style.animation = 'scrollAnuncios 30s linear infinite'; // Ajusta la velocidad de desplazamiento
+    const scroll = () => {
+        if (!isScrollingManually && !isPaused) {
+            // Desplazar hacia abajo
+            anunciosScrollContainer.scrollTop += scrollSpeed;
+
+            // Si llegamos al final, regresar al principio
+            if (anunciosScrollContainer.scrollTop >= containerHeight - anunciosScrollContainer.clientHeight) {
+                anunciosScrollContainer.scrollTop = 0;
+            }
+        }
+    };
+
+    // Ejecutar el desplazamiento cada 50ms para un movimiento suave
+    setInterval(scroll, 60);
 }
 
-// Pausa y reanuda la animación al hacer clic
+// Pausa y reanuda la animación al hacer clic en cualquier comentario
 function toggleScroll() {
-    const cortinaAnuncios = document.getElementById('cortina-anuncios');
     isPaused = !isPaused;
-    cortinaAnuncios.style.animationPlayState = isPaused ? 'paused' : 'running';
 }
-
 
 // Escuchar clics en los comentarios para pausar/reanudar
 document.getElementById('cortina-anuncios').addEventListener('click', toggleScroll);
@@ -58,62 +70,15 @@ document.getElementById('cortina-anuncios').addEventListener('click', toggleScro
 // Detectar desplazamiento manual
 anunciosScrollContainer.addEventListener('scroll', () => {
     isScrollingManually = true;
-    cortinaAnuncios.style.animationPlayState = 'paused';
+    isPaused = true; // Pausar el desplazamiento automático mientras se usa el scroll manual
 
-    // Detiene el desplazamiento automático mientras el usuario está interactuando
+    // Detener el desplazamiento automático mientras el usuario está interactuando
     clearTimeout(anunciosScrollContainer.autoScrollTimeout);
     anunciosScrollContainer.autoScrollTimeout = setTimeout(() => {
         isScrollingManually = false;
-        cortinaAnuncios.style.animationPlayState = 'running';
-    }, 2000); // Reanudar después de 2 segundos sin interacción
-});
-
-//document.querySelectorAll('#cortina-anuncios p.solicitar').forEach((element, index) => {
-//    // Alterna colores según el índice
-//    if (index % 2 === 0) {
-//        element.style.backgroundColor = '#d1ecf1'; // Azul claro
-//        element.style.borderLeft = '5px solid #17a2b8';
-//    } else {
-//        element.style.backgroundColor = '#f8d7da'; // Rojo claro
-//        element.style.borderLeft = '5px solid #dc3545';
-//    }
-//});
-
-document.addEventListener('DOMContentLoaded', () => {
-
-    cargarComentarios();
-    setInterval(cargarComentarios, 30000); // Recarga los comentarios cada 30 segundos
-
-
-    const savedSpeed = localStorage.getItem('scrollSpeed');
-    if (savedSpeed) {
-        currentSpeed = parseInt(savedSpeed, 10);
-        setAnimationSpeed(currentSpeed);
-    } else {
-        setAnimationSpeed(currentSpeed); // Usa la velocidad predeterminada
-    }
-
-    // Ajustar el comportamiento de la marquesina para cambiar colores entre anuncios
-    const anuncios = document.querySelectorAll('#cortina-anuncios p');
-    anuncios.forEach((anuncio, index) => {
-        anuncio.style.backgroundColor = index % 2 === 0 ? '#f8d7da' : '#fff3cd';
-        anuncio.style.borderLeft = '5px solid ' + (index % 2 === 0 ? '#dc3545' : '#ffc107');
+        isPaused = false; // Reanudar el desplazamiento después de 2 segundos sin interacción
     });
 });
-
-//function toggleMarquesina() {
-//    const cortinaAnunciosContainer = document.getElementById('cortina-anuncios-container');
-
-//    // Mostrar u ocultar la marquesina
-//    cortinaAnunciosContainer.style.display = cortinaAnunciosContainer.style.display === 'none' ? 'block' : 'none';
-
-//    // Ocultar el menú flotante
-//    $("#menu-flotante").hide();
-//}
-
-let isMarquesinaVisible = false; // Estado de visibilidad de la marquesina
-let currentSpeed = 20; // Velocidad predeterminada
-//let isPaused = false; // Estado para pausar la marquesina
 
 // Función para mostrar/ocultar la marquesina
 function toggleMarquesina() {
@@ -141,57 +106,7 @@ function toggleMarquesina() {
     isMarquesinaVisible = !isMarquesinaVisible;
 }
 
-// Función para ajustar la velocidad de la animación
-function setAnimationSpeed(speed) {
-    cortinaAnuncios.style.animationDuration = `${speed}s`; // Cambia la duración de la animación
-    localStorage.setItem('scrollSpeed', speed); // Guarda la velocidad en localStorage
-}
-
-// Función para cambiar la velocidad
-function cambiarVelocidad(accion, event) {
-    event.stopPropagation(); // Evitar que se pause al hacer clic en las flechas
-
-    if (accion === 'aumentar' && currentSpeed > 5) {
-        currentSpeed -= 5; // Aumenta la velocidad reduciendo el tiempo
-        isPaused = false;  // Reanuda el movimiento si estaba pausado
-    } else if (accion === 'disminuir') {
-        if (currentSpeed < 60) {
-            currentSpeed += 5; // Disminuye la velocidad aumentando el tiempo
-        }
-        if (currentSpeed >= 60) {
-            isPaused = true;  // Pausa el movimiento cuando la velocidad es máxima
-        }
-    }
-
-    cortinaAnuncios.style.animationPlayState = isPaused ? 'paused' : 'running'; // Pausar si la velocidad es máxima
-    setAnimationSpeed(currentSpeed);
-}
-
-
-
-// Función para habilitar el desplazamiento manual
-function enableManualScrolling() {
-    const anunciosScrollContainer = document.getElementById('anuncios-scroll-container');
-
-    // Detectar desplazamiento manual
-    anunciosScrollContainer.addEventListener('scroll', () => {
-        isScrollingManually = true;
-
-        // Pausar el desplazamiento automático si se está desplazando manualmente
-        if (!isPaused) {
-            cortinaAnuncios.style.animationPlayState = 'paused';
-        }
-
-        // Detener el desplazamiento automático mientras el usuario está interactuando
-        clearTimeout(anunciosScrollContainer.autoScrollTimeout);
-        anunciosScrollContainer.autoScrollTimeout = setTimeout(() => {
-            isScrollingManually = false;
-
-            // Reanudar el desplazamiento automático solo si no está pausado
-            if (!isPaused) {
-                cortinaAnuncios.style.animationPlayState = 'running';
-            }
-        }, 2000); // Reanudar después de 2 segundos sin interacción
-    });
-}
-
+// Inicializar al cargar la página
+document.addEventListener('DOMContentLoaded', () => {
+    cargarComentarios();
+});

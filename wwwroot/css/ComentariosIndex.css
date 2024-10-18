@@ -34,10 +34,10 @@
     }
 
     /* Efecto de hover para los comentarios */
-    .comentario:hover {
-        box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2); /* Mayor sombra en hover */
-        transform: translateY(-2px); /* Efecto sutil de levantamiento */
-    }
+    /*.comentario:hover {
+        box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);*/ /* Mayor sombra en hover */
+        /*transform: translateY(-2px);*/ /* Efecto sutil de levantamiento */
+    /*}*/
 
 /* Contenedor de desplazamiento de anuncios */
 #anuncios-scroll-container {
