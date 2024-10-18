@@ -29,6 +29,22 @@ namespace maps4.Controllers
             return View();
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetComentariosActivos(int? tipoInmuebleSolicitado)
+        {
+            try
+            {
+                var comentarios = await _comentarioService.GetComentariosActivos(tipoInmuebleSolicitado);
+                return Ok(comentarios);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener los comentarios");
+                return StatusCode(500, new { success = false, message = "Error al obtener comentarios" });
+            }
+        }
+
+
         [HttpPost]
         public async Task<IActionResult> RegistrarComentario(Comentario comentario)
         {
@@ -43,11 +59,10 @@ namespace maps4.Controllers
             try
             {
                 // Completar los campos faltantes en el servidor
-                comentario.Correo = HttpContext.User.Identity.Name.ToString();
+                comentario.Correo = HttpContext.User.Identity.Name;
                 comentario.FechaComentario = DateTime.Now;
                 comentario.Activo = true;
 
-                // Guardar el comentario en la base de datos usando el servicio
                 bool result = await _comentarioService.RegistrarComentario(comentario);
 
                 if (result)
@@ -67,21 +82,5 @@ namespace maps4.Controllers
             }
         }
 
-
-
-        [HttpGet]
-        public async Task<IActionResult> GetComentariosActivos()
-        {
-            try
-            {
-                var comentarios = await _comentarioService.GetComentariosActivos();
-                return Ok(comentarios);
-            }
-            catch (System.Exception ex)
-            {
-                _logger.LogError(ex, "Error al obtener comentarios activos");
-                return StatusCode(500, new { success = false, message = "Ocurrió un error al obtener los comentarios" });
-            }
-        }
     }
 }

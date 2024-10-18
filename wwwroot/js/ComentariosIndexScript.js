@@ -7,7 +7,7 @@ let scrollSpeed = 1; // Velocidad estándar lenta
 
 
 // Función para cargar comentarios desde el servidor
-async function cargarComentarios() {
+async function cargarComentarios(tipoPropiedadId = 0) {
     try {
         const response = await fetch("Comentarios/GetComentariosActivos");
         if (!response.ok) {
@@ -16,23 +16,20 @@ async function cargarComentarios() {
 
         const comentarios = await response.json();
         const container = document.getElementById("cortina-anuncios");
-        container.innerHTML = ""; // Limpiar contenedor antes de cargar los nuevos comentarios
+        container.innerHTML = ""; // Limpiar contenedor antes de cargar los comentarios
 
-        comentarios.forEach(comentario => {
-            const comentarioDiv = document.createElement("div");
-            comentarioDiv.className = `comentario ${comentario.nivel.toLowerCase()}`; // Asigna clase según nivel
+        comentarios
+            .filter(comentario => tipoPropiedadId == 0 || comentario.tipoInmuebleSolicitado == tipoPropiedadId)
+            .forEach(comentario => {
+                const comentarioDiv = document.createElement("div");
+                comentarioDiv.className = `comentario ${comentario.nivel.toLowerCase()}`;
 
-            // Agregar el contenido del comentario con el nombre y teléfono
-            comentarioDiv.innerHTML = `
-                <p><strong>${comentario.nivel}:</strong> ${comentario.comentarioTexto}</p>
-                <p><strong>Nombre:</strong> ${comentario.nombre}<br>${comentario.telefono}</p>
-            `;
-
-            container.appendChild(comentarioDiv);
-        });
-
-        // Iniciar desplazamiento automático
-        startAutoScroll(); //Set autoscroll para que inicie solo o manual
+                comentarioDiv.innerHTML = `
+                    <p><strong>${comentario.nivel}:</strong> ${comentario.comentarioTexto}</p>
+                    <p><strong>Nombre:</strong> ${comentario.nombre}<br>${comentario.telefono}</p>
+                `;
+                container.appendChild(comentarioDiv);
+            });
     } catch (error) {
         console.error("Error al cargar los comentarios:", error);
     }

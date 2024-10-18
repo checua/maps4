@@ -204,6 +204,31 @@ function initializeMap() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+
+
+    // Escuchar el cambio de selección en el select "cboTipoPropiedad2"
+    document.getElementById('cboTipoPropiedad2').addEventListener('change', async function () {
+        const tipoInmueble = this.value;
+
+        const url = `Comentarios/GetComentariosActivos?tipoInmuebleSolicitado=${tipoInmueble}`;
+        const response = await fetch(url);
+        const comentarios = await response.json();
+
+        const container = document.getElementById("cortina-anuncios");
+        container.innerHTML = ""; // Limpiar contenedor antes de cargar los nuevos comentarios
+
+        comentarios.forEach(comentario => {
+            const comentarioDiv = document.createElement("div");
+            comentarioDiv.className = `comentario ${comentario.nivel.toLowerCase()}`; // Asigna clase según nivel
+            comentarioDiv.innerHTML = `
+            <p><strong>${comentario.nivel}:</strong> ${comentario.comentarioTexto}</p>
+            <p><strong>Nombre:</strong> ${comentario.nombre}<br>${comentario.telefono}</p>
+        `;
+            container.appendChild(comentarioDiv);
+        });
+    });
+
+
     const queryParams = getQueryParams();
     if (queryParams.inmuebleId) {
         loadInmueble(queryParams.inmuebleId);
@@ -667,6 +692,10 @@ fetch("/Home/listaTipoPropiedades")
             responseJson.forEach((item) => {
 
                 $("#cboTipoPropiedad").append(
+                    $("<option>").val(item.idTipoPropiedad).text(item.nombre)
+                )
+
+                $("#cboTipoPropiedad2").append(
                     $("<option>").val(item.idTipoPropiedad).text(item.nombre)
                 )
 

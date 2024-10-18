@@ -23,6 +23,25 @@
     border: 1px solid #ccc;
 }
 
+/* Estilos específicos para cada nivel */
+.comentario.premium {
+    background-color: #ffe4e1; /* Fondo suave rosado */
+    color: #8b0000; /* Color de texto oscuro para Premium */
+    border-left: 6px solid #ff4500; /* Borde rojo oscuro */
+}
+
+.comentario.plus {
+    background-color: #e3f2fd; /* Fondo azul claro */
+    color: #0d47a1; /* Color de texto azul oscuro */
+    border-left: 6px solid #1e88e5; /* Borde azul más fuerte */
+}
+
+.comentario.basico {
+    background-color: #e8f5e9; /* Fondo verde claro */
+    color: #2e7d32; /* Color de texto verde oscuro */
+    border-left: 6px solid #43a047; /* Borde verde fuerte */
+}
+
 .content-wrapper {
     display: flex;
     height: calc(100% - 50px);
