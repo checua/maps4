@@ -5,7 +5,7 @@
 
 .container {
     height: calc(100% - 5px);
-    overflow: hidden;
+    /*overflow: hidden;*/
 }
 
 .comentario {
@@ -75,7 +75,7 @@
 
     /* Asegura que la lista de comentarios tenga scroll si es necesario */
     #comentarios-container {
-        max-height: 50vh; /* Ajusta la altura máxima en pantallas pequeñas para permitir el desplazamiento */
+        max-height: 90vh; /* Ajusta la altura máxima en pantallas pequeñas para permitir el desplazamiento */
         overflow-y: auto; /* Barra de desplazamiento si hay muchos comentarios */
     }
 }

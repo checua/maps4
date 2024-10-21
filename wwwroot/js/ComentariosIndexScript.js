@@ -37,24 +37,44 @@ async function cargarComentarios(tipoPropiedadId = 0) {
 
 // Inicia el desplazamiento automático
 function startAutoScroll() {
-    const containerHeight = anunciosScrollContainer.scrollHeight;
-    anunciosScrollContainer.scrollTop = 0; // Empezar desde arriba
+    const scrollSpeed = 1; // Puedes ajustar la velocidad según lo que necesites
+    let containerHeight = anunciosScrollContainer.scrollHeight;
+    let scrolling = true; // Variable para controlar el ciclo de autoscroll
+
+    // Empezar desde arriba
+    anunciosScrollContainer.scrollTop = 0;
 
     const scroll = () => {
-        if (!isScrollingManually && !isPaused) {
+        // Actualizar la altura del contenedor dinámicamente
+        containerHeight = anunciosScrollContainer.scrollHeight;
+
+        if (!isScrollingManually && !isPaused && scrolling) {
             // Desplazar hacia abajo
             anunciosScrollContainer.scrollTop += scrollSpeed;
 
-            // Si llegamos al final, regresar al principio
+            // Si llegamos al final, detener el scroll y esperar 3 segundos antes de reiniciar
             if (anunciosScrollContainer.scrollTop >= containerHeight - anunciosScrollContainer.clientHeight) {
-                anunciosScrollContainer.scrollTop = 0;
+                scrolling = false; // Detener el ciclo de scroll
+                setTimeout(() => {
+                    anunciosScrollContainer.scrollTop = 0; // Reiniciar el scroll
+                    scrolling = true; // Reanudar el ciclo de scroll
+                    requestAnimationFrame(scroll); // Continuar el ciclo de desplazamiento
+                }, 3000); // Esperar 3 segundos antes de reiniciar
+            } else {
+                // Continuar desplazándose
+                requestAnimationFrame(scroll);
             }
+        } else if (scrolling) {
+            // Continuar el ciclo si no está pausado ni en scroll manual
+            requestAnimationFrame(scroll);
         }
     };
 
-    // Ejecutar el desplazamiento cada 50ms para un movimiento suave
-    setInterval(scroll, 60);
+    // Iniciar el desplazamiento usando requestAnimationFrame
+    requestAnimationFrame(scroll);
 }
+
+
 
 // Pausa y reanuda la animación al hacer clic en cualquier comentario
 function toggleScroll() {
@@ -106,4 +126,5 @@ function toggleMarquesina() {
 // Inicializar al cargar la página
 document.addEventListener('DOMContentLoaded', () => {
     cargarComentarios();
+    startAutoScroll();
 });
