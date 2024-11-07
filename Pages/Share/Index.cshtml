@@ -19,7 +19,7 @@
 
     <!-- Metadatos Open Graph -->
     <meta property="og:image" content="@imageUrl" />
-    <meta property="og:image:alt" content="Vista previa del inmueble" />
+    @*<meta property="og:image:alt" content="Vista previa del inmueble" />*@
     <meta property="og:title" content="@($"{tipoPropiedad}")" />
     @* <meta property="og:description" content="@observaciones" /> *@
     <meta property="og:url" content="@pageUrl" />
@@ -40,8 +40,8 @@
     </script>
 </head>
 <body>
-    <h1>@($"{tipoPropiedad}")</h1>
+    <h1>Propiedad: @($"{tipoPropiedad}")</h1>
     <p>@observaciones</p>
-    <img src="@imageUrl" alt="Vista previa del inmueble" style="max-width: 100%; height: auto;" />
+    @*<img src="@imageUrl" alt="Vista previa del inmueble" style="max-width: 100%; height: auto;" /> *@
 </body>
 </html>
