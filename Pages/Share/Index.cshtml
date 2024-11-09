@@ -7,7 +7,8 @@
     var observaciones = !string.IsNullOrEmpty(Model.Inmueble.Observaciones) ? Model.Inmueble.Observaciones : "Descripción no disponible";
     var idInmueble = Model.Inmueble.IdInmueble;
     var imageUrl = $"https://rsmap.azurewebsites.net/cargas/{idInmueble}_1.jpg";
-    var pageUrl = $"https://rsmap.azurewebsites.net/?inmuebleId={idInmueble}";
+    var pageUrl = $"https://rsmap.azurewebsites.net/Share/{idInmueble}";
+    var pageOri = $"https://rsmap.azurewebsites.net/?inmuebleId={idInmueble}";
 }
 
 <!DOCTYPE html>
@@ -16,32 +17,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@($"{tipoPropiedad}")</title>
-
-    <!-- Metadatos Open Graph -->
-    <meta property="og:image" content="@imageUrl" />
-    @*<meta property="og:image:alt" content="Vista previa del inmueble" />*@
-    <meta property="og:title" content="@($"{tipoPropiedad}")" />
-    @* <meta property="og:description" content="@observaciones" /> *@
-    <meta property="og:url" content="@pageUrl" />
+    <meta property="og:title" content="@tipoPropiedad" />
     <meta property="og:type" content="website" />
-
-    <!-- Etiqueta canónica para la redirección -->
+    <meta property="og:url" content="@pageUrl" />
+    <meta property="og:image" content="@imageUrl" />
+    <meta property="og:image:width" content="1200" />  <!-- Tamaño recomendado por Facebook -->
+    <meta property="og:image:height" content="630" />
+    <meta property="og:description" content="@observaciones" />
     <link rel="canonical" href="@pageUrl" />
-
-    <!-- Metadatos adicionales para Twitter (opcional) -->
-    <meta name="twitter:image" content="@imageUrl" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="@($"{tipoPropiedad}")" />
-    @* <meta name="twitter:description" content="@observaciones" /> *@
 
     <!-- Redirección automática con JavaScript -->
     <script type="text/javascript">
-        window.location.href = "@pageUrl";
+        window.location.href = "@pageOri";
     </script>
 </head>
 <body>
     <h1>Propiedad: @($"{tipoPropiedad}")</h1>
     <p>@observaciones</p>
-    @*<img src="@imageUrl" alt="Vista previa del inmueble" style="max-width: 100%; height: auto;" /> *@
+    <img src="@imageUrl" alt="Vista previa del inmueble" style="max-width: 100%; height: auto;" />
 </body>
 </html>
+
