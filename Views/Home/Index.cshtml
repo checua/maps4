@@ -32,15 +32,11 @@
 
 
 <div id="contenido-superior-derecho" class="boton-nuevo-acceso">
-    <a id="lnkAcceso" class="btn-acceso boton-nuevo-acceso" data-bs-dismiss="modal">Iniciar Sesión</a>
-    @if (ViewData["Mensaje"] != null)
-    {
-
-        <a id="lnkAcceso" class="btn-acceso boton-nuevo-acceso" data-bs-dismiss="modal">
-            @ViewData["Mensaje"]
-        </a>
-    }
+    <a id="lnkAcceso" class="btn-acceso boton-nuevo-acceso" data-bs-dismiss="modal">
+        @(ViewData["Mensaje"] != null ? ViewData["Mensaje"] : "Iniciar Sesión")
+    </a>
 </div>
+
 <div id="over_map">
 
     <a href="#" id="btnModal" class="float" onclick="toggleMenu()"><i class="fa fa-plus my-float"></i></a>
@@ -48,7 +44,7 @@
     <div id="menu-flotante" class="menu-flotante" style="display: none;">
         <a href="javascript:void(0);" onclick="iniciarSesion()" class="btn btn-info">Iniciar Sesión</a>
         <a href="javascript:void(0);" onclick="registrarse()" class="btn btn-info">Registrarse</a>
-@*         <a href="javascript:void(0);" onclick="toggleMarquesina()" class="btn btn-info">Ver Anuncios</a> *@
+        @*         <a href="javascript:void(0);" onclick="toggleMarquesina()" class="btn btn-info">Ver Anuncios</a> *@
         <a href="/comentarios" class="btn btn-info">Ver Comentarios</a>
     </div>
 
