@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Authentication;
 using System.Security.Claims;
 using maps4.Recursos;
 using maps4.Repositorios.Implementacion;
-using NuGet.Protocol.Core.Types;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace maps4.Controllers
