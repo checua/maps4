@@ -234,7 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadInmueble(queryParams.inmuebleId);
     }
 
-    const apiKey = 'AIzaSyAiEPIpKUewZTon1DeYNod3M63NB_HRcU4';  // Reemplaza con tu clave API de Google Maps
+    const apiKey = 'AIzaSyAZ7HVHi9uywPRyEgtb9U-0Ul0C_v5zQXg'; // 'AIzaSyAiEPIpKUewZTon1DeYNod3M63NB_HRcU4';  // Reemplaza con tu clave API de Google Maps
     loadGoogleMapsAPI(apiKey)
         .then(() => {
             console.log('Google Maps API loaded successfully');
