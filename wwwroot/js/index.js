@@ -64,11 +64,10 @@ function initializeMap() {
 
     // Definición de coordenadas del polígono
     const polygonCoords = [
-        { lat: 24.020000, lng: -104.660000 },
-        { lat: 24.025000, lng: -104.670000 },
-        { lat: 24.015000, lng: -104.675000 },
-        { lat: 24.010000, lng: -104.665000 },
-        { lat: 24.020000, lng: -104.660000 },
+        { lat: 24.044384, lng: -104.708408 },
+        { lat: 24.043503, lng: -104.707587 },
+        { lat: 24.043931, lng: -104.706450 },
+        { lat: 24.045076, lng: -104.707064 },
     ];
 
     // Creación del polígono con la opción 'editable'
@@ -234,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadInmueble(queryParams.inmuebleId);
     }
 
-    const apiKey = 'AIzaSyAZ7HVHi9uywPRyEgtb9U-0Ul0C_v5zQXg'; // 'AIzaSyAiEPIpKUewZTon1DeYNod3M63NB_HRcU4';  // Reemplaza con tu clave API de Google Maps
+    const apiKey = 'AIzaSyAZ7HVHi9uywPRyEgtb9U-0Ul0C_v5zQXg';
     loadGoogleMapsAPI(apiKey)
         .then(() => {
             console.log('Google Maps API loaded successfully');
