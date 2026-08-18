@@ -34,11 +34,13 @@ namespace maps4.Repositorios.Implementacion
                             nombres = dr["nombres"].ToString(),
                             aPaterno = dr["aPaterno"].ToString(),
                             aMaterno = dr["aMaterno"].ToString(),
-                            refInmobiliaria = new Inmobiliaria()
-                            {
-                                idInmobiliaria = Convert.ToInt32(dr["idInmobiliaria"]),
-                                nombre = dr["nombre"].ToString()
-                            },
+                            refInmobiliaria = dr["idInmobiliaria"] == DBNull.Value
+                                ? null
+                                : new Inmobiliaria()
+                                {
+                                    idInmobiliaria = Convert.ToInt32(dr["idInmobiliaria"]),
+                                    nombre = dr["nombre"].ToString()
+                                },
                             nick = dr["nick"].ToString(),
                             contra = dr["contra"].ToString(),
                             telefono = dr["telefono"].ToString(),
@@ -46,7 +48,11 @@ namespace maps4.Repositorios.Implementacion
                             foto = dr["foto"].ToString(),
                             obs = dr["obs"].ToString(),
                             dob = dr["fechaNacimiento"].ToString(),
-                            revisado = dr["revisado"].ToString()
+                            revisado = dr["revisado"].ToString(),
+                            IdCuenta = dr["IdCuenta"] == DBNull.Value ? null : Convert.ToInt32(dr["IdCuenta"]),
+                            CuentaNombre = dr["CuentaNombre"].ToString(),
+                            TipoCuenta = dr["TipoCuenta"].ToString(),
+                            RolCodigo = dr["RolCodigo"].ToString()
                         });
                     }
                 }
