@@ -68,38 +68,31 @@ namespace maps4.Repositorios.Implementacion
                 {
                     conexion.Open();
                     SqlCommand cmd = new SqlCommand("RSMAPS_sp_GuardarUsuario", conexion);
-                    cmd.Parameters.AddWithValue("nombres", modelo.nombres);
-                    cmd.Parameters.AddWithValue("aPaterno", modelo.aPaterno);
-                    cmd.Parameters.AddWithValue("aMaterno", "");
-                    cmd.Parameters.AddWithValue("idInmobiliaria", 1);
-                    cmd.Parameters.AddWithValue("nick", "nick");
-                    cmd.Parameters.AddWithValue("contra", modelo.contra);
-                    cmd.Parameters.AddWithValue("telefono", modelo.telefono);
-                    cmd.Parameters.AddWithValue("correo", modelo.correo);
-                    cmd.Parameters.AddWithValue("foto", "foto");
-                    cmd.Parameters.AddWithValue("obs", "obs");
+                    cmd.Parameters.AddWithValue("nombres", modelo.nombres ?? string.Empty);
+                    cmd.Parameters.AddWithValue("aPaterno", modelo.aPaterno ?? string.Empty);
+                    cmd.Parameters.AddWithValue("aMaterno", modelo.aMaterno ?? string.Empty);
+                    cmd.Parameters.AddWithValue("nick", string.IsNullOrWhiteSpace(modelo.nick) ? "nick" : modelo.nick);
+                    cmd.Parameters.AddWithValue("contra", modelo.contra ?? string.Empty);
+                    cmd.Parameters.AddWithValue("telefono", modelo.telefono ?? string.Empty);
+                    cmd.Parameters.AddWithValue("correo", modelo.correo ?? string.Empty);
+                    cmd.Parameters.AddWithValue("foto", modelo.foto ?? string.Empty);
+                    cmd.Parameters.AddWithValue("obs", modelo.obs ?? string.Empty);
                     cmd.Parameters.AddWithValue("dob", DateTime.Now);
                     cmd.Parameters.AddWithValue("revisado", 1);
-
                     cmd.CommandType = CommandType.StoredProcedure;
 
-                    int filas_afectadas = await cmd.ExecuteNonQueryAsync();
-                    if (filas_afectadas > 0)
-                    {
-                        return modelo;
-                    }
-                    else
-                    {
-                        modelo.correo = "";
-                        modelo.revisado = "No se afectaron filas en la base de datos.";
-                        return modelo;
-                    }
+                    // El procedimiento es transaccional: si no lanza excepción,
+                    // Usuario + Cuenta INDIVIDUAL + membresía fueron creados juntos.
+                    await cmd.ExecuteNonQueryAsync();
+                    return modelo;
                 }
             }
             catch (Exception ex)
             {
                 modelo.correo = "";
-                if (ex.Message.Contains("Violation of UNIQUE KEY constraint"))
+
+                if (ex is SqlException sqlEx &&
+                    (sqlEx.Number == 50811 || sqlEx.Number == 2601 || sqlEx.Number == 2627))
                 {
                     modelo.revisado = "Este correo ya ha sido registrado";
                 }
@@ -107,6 +100,7 @@ namespace maps4.Repositorios.Implementacion
                 {
                     modelo.revisado = $"Error al guardar usuario: {ex.Message}";
                 }
+
                 return modelo;
             }
         }
