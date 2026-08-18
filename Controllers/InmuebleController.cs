@@ -1,12 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using maps4.Models;
+﻿using maps4.Models;
 using maps4.Repositorios.Contrato;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication;
-using System.Security.Claims;
-using maps4.Recursos;
-using maps4.Repositorios.Implementacion;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 
 namespace maps4.Controllers
 {
@@ -17,126 +13,131 @@ namespace maps4.Controllers
         public InmuebleController(IInmuebleServicio<Inmueble> inmuebleRepository)
         {
             _inmuebleRepository = inmuebleRepository;
-
         }
+
         public IActionResult Index()
         {
             return View();
         }
 
+        [Authorize]
         [HttpPost]
         public async Task<IActionResult> RegistrarInmueble(InmuebleData data)
         {
-            Inmueble modelo = new Inmueble();
-            modelo.IdInmueble = 1;
-            modelo.Direccion = "";
-            modelo.Lat = data.Datax.Lat;
-            modelo.Lng = data.Datax.Lng;
-            modelo.IdTipo = data.Datax.IdTipo;
-            modelo.Telefono = "";
-            modelo.Terreno = data.Datax.Terreno;
-            modelo.Construccion = data.Datax.Construccion;
-            modelo.Precio = data.Datax.Precio;
-            modelo.Observaciones = data.Datax.Observaciones;
-            modelo.Exclusiva = 1;
-            modelo.Link = "";
-            modelo.Contacto = data.Datax.Contacto;
-
-            //if(data.Files != null)
-            //modelo.Imagenes = data.Files.Count;
-            //else
-            //{
-            //    modelo.Imagenes = 0;
-            //}
-
-            modelo.Imagenes = data.Files?.Count ?? 0;
-
-
-            modelo.RefUsuario = new Usuario();
-            modelo.RefUsuario.correo = data.Correo;
-
-            var archivos = data.Files;
-
-            if (modelo == null)
+            if (data.Datax == null)
             {
-                return BadRequest("Datos inválidos recibidos.");
+                return BadRequest(new { success = false, message = "Datos inválidos recibidos." });
             }
+
+            string? correoAutenticado = User.Identity?.Name;
+            if (string.IsNullOrWhiteSpace(correoAutenticado))
+            {
+                return Unauthorized(new { success = false, message = "Se requiere iniciar sesión." });
+            }
+
+            Inmueble modelo = new Inmueble
+            {
+                IdInmueble = 1,
+                Direccion = "",
+                Lat = data.Datax.Lat,
+                Lng = data.Datax.Lng,
+                IdTipo = data.Datax.IdTipo,
+                Telefono = "",
+                Terreno = data.Datax.Terreno,
+                Construccion = data.Datax.Construccion,
+                Precio = data.Datax.Precio,
+                Observaciones = data.Datax.Observaciones,
+                Exclusiva = 1,
+                Link = "",
+                Contacto = data.Datax.Contacto,
+                Imagenes = data.Files?.Count ?? 0,
+                RefUsuario = new Usuario { correo = correoAutenticado }
+            };
+
+            var archivos = data.Files ?? new List<IFormFile>();
 
             try
             {
-                // Guarda el inmueble en la base de datos
-                Inmueble inmueble_creado = await _inmuebleRepository.SaveInmueble(modelo);
+                Inmueble inmuebleCreado = await _inmuebleRepository.SaveInmueble(modelo);
 
-                // Guarda los archivos
-                if (inmueble_creado != null)
+                if (modelo.Imagenes != 0)
                 {
-                    if (modelo.Imagenes != 0)
+                    int fileCounter = 1;
+                    foreach (var file in archivos)
                     {
-                        int fileCounter = 1;
-                        foreach (var file in archivos)
-                        {
-                            if (file.Length > 0)
-                            {
-                                // Generar el nombre del archivo con la extensión .jpg
-                                var fileName = $"{inmueble_creado.IdInmueble}_{fileCounter}.jpg";
-                                var filePath = Path.Combine("wwwroot/cargas", fileName);
+                        if (file.Length <= 0)
+                            continue;
 
-                                using (var stream = new FileStream(filePath, FileMode.Create))
-                                {
-                                    await file.CopyToAsync(stream);
-                                }
-                                fileCounter++;
-                            }
-                        }
+                        var fileName = $"{inmuebleCreado.IdInmueble}_{fileCounter}.jpg";
+                        var filePath = Path.Combine("wwwroot/cargas", fileName);
+
+                        using var stream = new FileStream(filePath, FileMode.Create);
+                        await file.CopyToAsync(stream);
+                        fileCounter++;
                     }
                 }
 
-                return Json(new { success = true, message = "Inmueble y imágenes guardados correctamente!" });
+                return Ok(new { success = true, message = "Inmueble e imágenes guardados correctamente." });
+            }
+            catch (SqlException ex) when (EsErrorAutorizacion(ex))
+            {
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    new { success = false, message = "No tienes permiso para realizar esta operación." });
             }
             catch (Exception ex)
             {
                 Console.Error.WriteLine($"Error en RegistrarInmueble: {ex.Message}");
-                return Json(new { success = false, message = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { success = false, message = "No fue posible guardar el inmueble." });
             }
         }
 
+        [Authorize]
         [HttpPost]
         public async Task<IActionResult> ActualizarInmueble(InmuebleData data, int idInmueble)
         {
-            Inmueble modelo = new Inmueble();
-            //Inmueble modelo = await _inmuebleRepository.GetInmuebleById(data.IdInmueble);
-            if (modelo == null)
+            if (data.Datax == null || idInmueble <= 0)
             {
-                return BadRequest("Inmueble no encontrado.");
+                return BadRequest(new { success = false, message = "Datos de inmueble inválidos." });
             }
 
-            modelo.IdInmueble = idInmueble;
-            modelo.IdTipo = data.Datax.IdTipo;
-            modelo.Terreno = data.Datax.Terreno;
-            modelo.Construccion = data.Datax.Construccion;
-            modelo.Precio = data.Datax.Precio;
-            modelo.Observaciones = data.Datax.Observaciones;
-            modelo.Contacto = data.Datax.Contacto;
+            string? correoAutenticado = User.Identity?.Name;
+            if (string.IsNullOrWhiteSpace(correoAutenticado))
+            {
+                return Unauthorized(new { success = false, message = "Se requiere iniciar sesión." });
+            }
 
-            // No actualizamos Lat, Lng y Files en este método.
-
-            modelo.RefUsuario = new Usuario();
-            modelo.RefUsuario.correo = data.Correo;
+            Inmueble modelo = new Inmueble
+            {
+                IdInmueble = idInmueble,
+                IdTipo = data.Datax.IdTipo,
+                Terreno = data.Datax.Terreno,
+                Construccion = data.Datax.Construccion,
+                Precio = data.Datax.Precio,
+                Observaciones = data.Datax.Observaciones,
+                Contacto = data.Datax.Contacto,
+                RefUsuario = new Usuario { correo = correoAutenticado }
+            };
 
             try
             {
-                // Actualiza el inmueble en la base de datos
                 await _inmuebleRepository.UpdateInmueble(modelo);
-
-                return Json(new { success = true, message = "Inmueble actualizado correctamente!" });
+                return Ok(new { success = true, message = "Inmueble actualizado correctamente." });
+            }
+            catch (SqlException ex) when (EsErrorAutorizacion(ex))
+            {
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    new { success = false, message = "No tienes permiso para modificar este inmueble." });
             }
             catch (Exception ex)
             {
                 Console.Error.WriteLine($"Error en ActualizarInmueble: {ex.Message}");
-                return Json(new { success = false, message = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { success = false, message = "No fue posible actualizar el inmueble." });
             }
         }
 
+        [Authorize]
         [HttpDelete]
         public async Task<IActionResult> Eliminar(int idInmueble)
         {
@@ -145,15 +146,31 @@ namespace maps4.Controllers
                 return BadRequest(new { success = false, message = "ID de inmueble inválido." });
             }
 
-            bool eliminado = await _inmuebleRepository.EliminarInmueble(idInmueble);
-
-            if (eliminado)
+            string? correoAutenticado = User.Identity?.Name;
+            if (string.IsNullOrWhiteSpace(correoAutenticado))
             {
-                return Ok(new { success = true, message = "Inmueble eliminado correctamente." });
+                return Unauthorized(new { success = false, message = "Se requiere iniciar sesión." });
             }
-            else
+
+            try
             {
-                return StatusCode(500, new { success = false, message = "Error al eliminar el inmueble." });
+                bool eliminado = await _inmuebleRepository.EliminarInmueble(idInmueble, correoAutenticado);
+
+                return eliminado
+                    ? Ok(new { success = true, message = "Inmueble eliminado correctamente." })
+                    : StatusCode(StatusCodes.Status500InternalServerError,
+                        new { success = false, message = "No fue posible eliminar el inmueble." });
+            }
+            catch (SqlException ex) when (EsErrorAutorizacion(ex))
+            {
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    new { success = false, message = "No tienes permiso para eliminar este inmueble." });
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Error en Eliminar: {ex.Message}");
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { success = false, message = "No fue posible eliminar el inmueble." });
             }
         }
 
@@ -165,19 +182,18 @@ namespace maps4.Controllers
                 return BadRequest("Invalid Inmueble ID");
             }
 
-            List<Inmueble> _lista = await _inmuebleRepository.GetInmuebleById(id);
-            if (_lista == null || _lista.Count == 0)
+            List<Inmueble> lista = await _inmuebleRepository.GetInmuebleById(id);
+            if (lista == null || lista.Count == 0)
             {
                 return NotFound("Inmueble not found");
             }
 
-            return Ok(_lista);
+            return Ok(lista);
         }
 
         [HttpGet("/share")]
         public async Task<IActionResult> Share(int inmuebleId)
         {
-            // Obtener los datos del inmueble según su ID
             var inmueble = await _inmuebleRepository.GetInmuebleById(inmuebleId);
 
             if (inmueble == null || inmueble.Count == 0)
@@ -185,10 +201,13 @@ namespace maps4.Controllers
                 return NotFound("Inmueble no encontrado");
             }
 
-            // Devolver una vista con los datos del inmueble
             return View(inmueble[0]);
         }
 
-
+        private static bool EsErrorAutorizacion(SqlException ex)
+        {
+            return ex.Number is 51020 or 51021 or 51022 or 51023 or 51024
+                or 51030 or 51031 or 51032 or 51033 or 51034 or 51035;
+        }
     }
 }
