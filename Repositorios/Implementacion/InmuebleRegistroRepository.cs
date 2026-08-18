@@ -24,9 +24,8 @@ namespace maps4.Repositorios.Implementacion
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
 
-                    // Agregar los parámetros de entrada
+                    // La cuenta se resuelve en SQL desde la membresía activa/predeterminada del usuario.
                     cmd.Parameters.AddWithValue("@correo", data.RefUsuario.correo);
-                    cmd.Parameters.AddWithValue("@idInmobiliaria", 1);
                     cmd.Parameters.AddWithValue("@lat", data.Lat);
                     cmd.Parameters.AddWithValue("@lng", data.Lng);
                     cmd.Parameters.AddWithValue("@idTipo", data.IdTipo);
@@ -65,8 +64,8 @@ namespace maps4.Repositorios.Implementacion
                     cmd.CommandType = CommandType.StoredProcedure;
 
                     cmd.Parameters.AddWithValue("@idInmueble", data.IdInmueble);
+                    // La cuenta se resuelve en SQL desde la membresía activa/predeterminada del usuario.
                     cmd.Parameters.AddWithValue("@correo", data.RefUsuario.correo);
-                    cmd.Parameters.AddWithValue("@idInmobiliaria", 1);
                     //cmd.Parameters.AddWithValue("@lat", data.Lat);
                     //cmd.Parameters.AddWithValue("@lng", data.Lng);
                     cmd.Parameters.AddWithValue("@idTipo", data.IdTipo);
@@ -77,18 +76,8 @@ namespace maps4.Repositorios.Implementacion
                     cmd.Parameters.AddWithValue("@contacto", data.Contacto);
                     //cmd.Parameters.AddWithValue("@numImagenes", data.Imagenes);
 
-                    // Agregar el parámetro de salida para obtener el idInmueble
-                    //var idInmuebleParam = new SqlParameter("@idInmueble", SqlDbType.Int)
-                    //{
-                    //    Direction = ParameterDirection.Output
-                    //};
-                    //cmd.Parameters.Add(idInmuebleParam);
-
                     // Ejecutar el comando
                     await cmd.ExecuteNonQueryAsync();
-
-                    // Recuperar el idInmueble generado
-                    //data.IdInmueble = (int)idInmuebleParam.Value;
 
                     return true;
                 }
