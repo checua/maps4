@@ -6,7 +6,7 @@
         public string? nombres { get; set; }
         public string? aPaterno { get; set; }
         public string? aMaterno { get; set; }
-        public Inmobiliaria? refInmobiliaria { get; set; } //Referencia al Modelo Inmobiliaria
+        public Inmobiliaria? refInmobiliaria { get; set; } // Referencia legacy a Inmobiliaria
         public string? nick { get; set; }
         public string? contra { get; set; }
         public string? telefono { get; set; }
@@ -15,5 +15,11 @@
         public string? obs { get; set; }
         public string? dob { get; set; }
         public string? revisado { get; set; }
+
+        // Contexto multi-tenant RSMaps 2.0
+        public int? IdCuenta { get; set; }
+        public string? CuentaNombre { get; set; }
+        public string? TipoCuenta { get; set; }
+        public string? RolCodigo { get; set; }
     }
 }
