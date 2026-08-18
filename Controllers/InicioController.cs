@@ -40,7 +40,7 @@ namespace maps4.Controllers
                     _lista = await _usuarioRepositoryLogin.GetUsuario(correo, contra);
                 }
 
-                Usuario usuario_encontrado = _lista.FirstOrDefault();
+                Usuario? usuario_encontrado = _lista.FirstOrDefault();
 
                 if (usuario_encontrado == null)
                 {
@@ -48,10 +48,21 @@ namespace maps4.Controllers
                     return View();
                 }
 
+                if (!usuario_encontrado.IdCuenta.HasValue || string.IsNullOrWhiteSpace(usuario_encontrado.RolCodigo))
+                {
+                    ViewData["Mensaje"] = "El usuario no tiene una cuenta activa configurada";
+                    return View();
+                }
+
                 List<Claim> claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.Name, usuario_encontrado.correo)
-        };
+                {
+                    new Claim(ClaimTypes.Name, usuario_encontrado.correo ?? string.Empty),
+                    new Claim(ClaimTypes.NameIdentifier, usuario_encontrado.idAsesor.ToString()),
+                    new Claim("IdCuenta", usuario_encontrado.IdCuenta.Value.ToString()),
+                    new Claim(ClaimTypes.Role, usuario_encontrado.RolCodigo),
+                    new Claim("TipoCuenta", usuario_encontrado.TipoCuenta ?? string.Empty),
+                    new Claim("CuentaNombre", usuario_encontrado.CuentaNombre ?? string.Empty)
+                };
 
                 ClaimsIdentity claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                 AuthenticationProperties properties = new AuthenticationProperties
