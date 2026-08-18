@@ -109,11 +109,13 @@ namespace maps4.Repositorios.Implementacion
                         _lista.Add(new Inmueble
                         {
                             IdInmueble = Convert.ToInt32(dr["idInmueble"]),
-                            refInmobiliaria = new Inmobiliaria()
-                            {
-                                idInmobiliaria = Convert.ToInt32(dr["idInmobiliaria"]),
-                                nombre = dr["nombre"].ToString()
-                            },
+                            refInmobiliaria = dr["idInmobiliaria"] == DBNull.Value
+                                ? null
+                                : new Inmobiliaria()
+                                {
+                                    idInmobiliaria = Convert.ToInt32(dr["idInmobiliaria"]),
+                                    nombre = dr["nombre"].ToString()
+                                },
                             RefUsuario = new Usuario()
                             {
                                 idAsesor = Convert.ToInt32(dr["idAsesor"]),
