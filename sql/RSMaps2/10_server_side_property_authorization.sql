@@ -11,6 +11,7 @@
      administrativos.
    - Crear un procedimiento seguro de eliminacion que valide Cuenta + asesor
      antes de invocar el procedimiento legacy de eliminacion.
+   - Evitar que una actualizacion con ID inexistente cree un inmueble nuevo.
    - Preparar una politica conservadora y portable para Web / Android / iOS.
 
    IMPORTANTE:
@@ -47,7 +48,7 @@ BEGIN TRY
     BEGIN TRANSACTION;
 
     /* ------------------------------------------------------------
-       1. Alta / edicion: conservar propietario en actualizaciones
+       1. Alta / edicion: identidad y propietario protegidos
        ------------------------------------------------------------ */
     DECLARE @sqlWrite nvarchar(max) = N'
 ALTER PROCEDURE [dbo].[RSMAPS_sp_insertar_coordenadas]
@@ -123,13 +124,8 @@ BEGIN
             THROW 51022, ''El usuario autenticado pertenece a varias Cuentas y no tiene una predeterminada.'', 1;
     END;
 
+    /* Alta: solamente cuando no se proporciona Id. */
     IF @idInmueble IS NULL
-       OR NOT EXISTS
-          (
-              SELECT 1
-              FROM dbo.RSMAPS_Inmueble
-              WHERE idInmueble = @idInmueble
-          )
     BEGIN
         INSERT INTO dbo.RSMAPS_Inmueble
         (
@@ -175,6 +171,14 @@ BEGIN
     END
     ELSE
     BEGIN
+        IF NOT EXISTS
+        (
+            SELECT 1
+            FROM dbo.RSMAPS_Inmueble
+            WHERE idInmueble = @idInmueble
+        )
+            THROW 51025, ''El inmueble solicitado para actualizar no existe.'', 1;
+
         IF EXISTS
         (
             SELECT 1
@@ -321,6 +325,7 @@ DECLARE @Precio FLOAT;
 DECLARE @PrecioPrueba FLOAT;
 DECLARE @Observaciones VARCHAR(MAX);
 DECLARE @Contacto VARCHAR(MAX);
+DECLARE @IdInexistente INT = 2147483647;
 
 SELECT TOP (1)
     @IdInmueblePrueba = i.idInmueble,
@@ -441,7 +446,31 @@ BEGIN CATCH
         THROW;
 END CATCH;
 
-/* D. Confirmar que el inmueble sigue intacto. */
+/* D. Una actualizacion con ID inexistente NO crea un inmueble nuevo. */
+BEGIN TRY
+    EXEC dbo.RSMAPS_sp_insertar_coordenadas
+        @idInmueble = @IdInexistente,
+        @correo = @CorreoPropietario,
+        @idTipo = @IdTipo,
+        @terreno = @Terreno,
+        @construccion = @Construccion,
+        @precio = @PrecioPrueba,
+        @observaciones = 'NO DEBE INSERTARSE',
+        @contacto = @Contacto;
+
+    SELECT 'ERROR - ID INEXISTENTE NO FUE BLOQUEADO' AS EstadoIdInexistente;
+END TRY
+BEGIN CATCH
+    IF ERROR_NUMBER() = 51025
+        SELECT
+            'OK - ID INEXISTENTE NO CREA INMUEBLE' AS EstadoIdInexistente,
+            ERROR_NUMBER() AS NumeroError,
+            ERROR_MESSAGE() AS MensajeError;
+    ELSE
+        THROW;
+END CATCH;
+
+/* E. Confirmar que el inmueble original sigue intacto. */
 SELECT
     i.idInmueble,
     i.IdCuenta,
