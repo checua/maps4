@@ -35,6 +35,7 @@ DECLARE
     @Terreno float,
     @Construccion float,
     @PrecioOriginal float,
+    @PrecioPrueba float,
     @ObservacionesOriginal varchar(max),
     @ContactoOriginal varchar(max),
     @IdCuentaOriginal int,
@@ -58,6 +59,8 @@ WHERE i.idInmueble = @IdInmueble;
 IF @Correo IS NULL
     THROW 50502, 'No se pudo resolver el correo del asesor del inmueble 1.', 1;
 
+SET @PrecioPrueba = ISNULL(@PrecioOriginal, 0) + 1;
+
 /* ============================================================
    PRUEBA A - EDICION VALIDA + ROLLBACK
    ============================================================ */
@@ -71,7 +74,7 @@ EXEC dbo.RSMAPS_sp_insertar_coordenadas
     @idTipo = @IdTipo,
     @terreno = @Terreno,
     @construccion = @Construccion,
-    @precio = @PrecioOriginal + 1,
+    @precio = @PrecioPrueba,
     @observaciones = 'PRUEBA PASO 05 - DEBE HACER ROLLBACK',
     @contacto = @ContactoOriginal;
 
@@ -85,7 +88,7 @@ SELECT
     CASE
         WHEN i.IdCuenta = @IdCuentaOriginal
          AND i.idAsesor = @IdAsesorOriginal
-         AND i.precio = @PrecioOriginal + 1
+         AND i.precio = @PrecioPrueba
          AND i.observaciones = 'PRUEBA PASO 05 - DEBE HACER ROLLBACK'
         THEN 'OK - EDICION VALIDA'
         ELSE 'REVISAR'
