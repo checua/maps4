@@ -28,35 +28,7 @@ namespace maps4.Repositorios.Implementacion
                 {
                     while (await dr.ReadAsync())
                     {
-                        _lista.Add(new Inmueble
-                        {
-                            IdInmueble = Convert.ToInt32(dr["idInmueble"]),
-                            refInmobiliaria = new Inmobiliaria()
-                            {
-                                idInmobiliaria = Convert.ToInt32(dr["idInmobiliaria"]),
-                                nombre = dr["nombre"].ToString()
-                            },
-                            RefUsuario = new Usuario()
-                            {
-                                idAsesor = Convert.ToInt32(dr["idAsesor"]),
-                                nombres = dr["nombres"].ToString(),
-                                aPaterno = dr["aPaterno"].ToString(),
-                                correo = dr["correo"].ToString(),
-                            },
-                            Direccion = dr["direccion"].ToString(),
-                            Lat = dr["lat"] as decimal?,
-                            Lng = dr["lng"] as decimal?,
-                            IdTipo = dr["idTipo"] as int?,
-                            Telefono = dr["telefono"].ToString(),
-                            Terreno = float.Parse(dr["terreno"].ToString()),
-                            Construccion = float.Parse(dr["construccion"].ToString()),
-                            Precio = float.Parse(dr["precio"].ToString()),
-                            Observaciones = dr["observaciones"].ToString(),
-                            Exclusiva = dr["exclusiva"] as int?,
-                            Link = dr["link"].ToString(),
-                            Contacto = dr["contacto_a"].ToString(),
-                            Imagenes = Convert.ToInt32(dr["imagenes"]),
-                        });
+                        _lista.Add(MapearInmueble(dr));
                     }
                 }
             }
@@ -79,41 +51,46 @@ namespace maps4.Repositorios.Implementacion
                 {
                     while (await dr.ReadAsync())
                     {
-                        _lista.Add(new Inmueble
-                        {
-                            IdInmueble = Convert.ToInt32(dr["idInmueble"]),
-                            refInmobiliaria = new Inmobiliaria()
-                            {
-                                idInmobiliaria = Convert.ToInt32(dr["idInmobiliaria"]),
-                                nombre = dr["nombre"].ToString()
-                            },
-                            RefUsuario = new Usuario()
-                            {
-                                idAsesor = Convert.ToInt32(dr["idAsesor"]),
-                                nombres = dr["nombres"].ToString(),
-                                aPaterno = dr["aPaterno"].ToString(),
-                                correo = dr["correo"].ToString(),
-                            },
-                            Direccion = dr["direccion"].ToString(),
-                            Lat = dr["lat"] as decimal?,
-                            Lng = dr["lng"] as decimal?,
-                            IdTipo = dr["idTipo"] as int?,
-                            Telefono = dr["telefono"].ToString(),
-                            Terreno = float.Parse(dr["terreno"].ToString()),
-                            Construccion = float.Parse(dr["construccion"].ToString()),
-                            Precio = float.Parse(dr["precio"].ToString()),
-                            Observaciones = dr["observaciones"].ToString(),
-                            Exclusiva = dr["exclusiva"] as int?,
-                            Link = dr["link"].ToString(),
-                            Contacto = dr["contacto_a"].ToString(),
-                            Imagenes = Convert.ToInt32(dr["imagenes"]),
-                        });
+                        _lista.Add(MapearInmueble(dr));
                     }
                 }
             }
             return _lista;
         }
 
+        private static Inmueble MapearInmueble(SqlDataReader dr)
+        {
+            return new Inmueble
+            {
+                IdInmueble = Convert.ToInt32(dr["idInmueble"]),
+                refInmobiliaria = dr["idInmobiliaria"] == DBNull.Value
+                    ? null
+                    : new Inmobiliaria()
+                    {
+                        idInmobiliaria = Convert.ToInt32(dr["idInmobiliaria"]),
+                        nombre = dr["nombre"].ToString()
+                    },
+                RefUsuario = new Usuario()
+                {
+                    idAsesor = Convert.ToInt32(dr["idAsesor"]),
+                    nombres = dr["nombres"].ToString(),
+                    aPaterno = dr["aPaterno"].ToString(),
+                    correo = dr["correo"].ToString(),
+                },
+                Direccion = dr["direccion"].ToString(),
+                Lat = dr["lat"] as decimal?,
+                Lng = dr["lng"] as decimal?,
+                IdTipo = dr["idTipo"] as int?,
+                Telefono = dr["telefono"].ToString(),
+                Terreno = float.Parse(dr["terreno"].ToString()),
+                Construccion = float.Parse(dr["construccion"].ToString()),
+                Precio = float.Parse(dr["precio"].ToString()),
+                Observaciones = dr["observaciones"].ToString(),
+                Exclusiva = dr["exclusiva"] as int?,
+                Link = dr["link"].ToString(),
+                Contacto = dr["contacto_a"].ToString(),
+                Imagenes = Convert.ToInt32(dr["imagenes"]),
+            };
+        }
     }
-
 }
