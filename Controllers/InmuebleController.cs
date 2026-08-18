@@ -124,6 +124,10 @@ namespace maps4.Controllers
                 await _inmuebleRepository.UpdateInmueble(modelo);
                 return Ok(new { success = true, message = "Inmueble actualizado correctamente." });
             }
+            catch (SqlException ex) when (EsErrorNoEncontrado(ex))
+            {
+                return NotFound(new { success = false, message = "El inmueble ya no existe o no está activo." });
+            }
             catch (SqlException ex) when (EsErrorAutorizacion(ex))
             {
                 return StatusCode(StatusCodes.Status403Forbidden,
@@ -160,6 +164,10 @@ namespace maps4.Controllers
                     ? Ok(new { success = true, message = "Inmueble eliminado correctamente." })
                     : StatusCode(StatusCodes.Status500InternalServerError,
                         new { success = false, message = "No fue posible eliminar el inmueble." });
+            }
+            catch (SqlException ex) when (EsErrorNoEncontrado(ex))
+            {
+                return NotFound(new { success = false, message = "El inmueble ya no existe o no está activo." });
             }
             catch (SqlException ex) when (EsErrorAutorizacion(ex))
             {
@@ -207,7 +215,12 @@ namespace maps4.Controllers
         private static bool EsErrorAutorizacion(SqlException ex)
         {
             return ex.Number is 51020 or 51021 or 51022 or 51023 or 51024
-                or 51030 or 51031 or 51032 or 51033 or 51034 or 51035;
+                or 51030 or 51031 or 51032 or 51034 or 51035;
+        }
+
+        private static bool EsErrorNoEncontrado(SqlException ex)
+        {
+            return ex.Number is 51025 or 51033;
         }
     }
 }
