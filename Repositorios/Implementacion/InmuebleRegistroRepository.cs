@@ -2,7 +2,6 @@
 using maps4.Repositorios.Contrato;
 using Microsoft.Data.SqlClient;
 using System.Data;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace maps4.Repositorios.Implementacion
 {
@@ -24,8 +23,9 @@ namespace maps4.Repositorios.Implementacion
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
 
-                    // La cuenta se resuelve en SQL desde la membresía activa/predeterminada del usuario.
-                    cmd.Parameters.AddWithValue("@correo", data.RefUsuario.correo);
+                    // La identidad llega desde la sesión autenticada del servidor.
+                    // SQL resuelve la Cuenta desde la membresía activa/predeterminada.
+                    cmd.Parameters.AddWithValue("@correo", data.RefUsuario?.correo ?? string.Empty);
                     cmd.Parameters.AddWithValue("@lat", data.Lat);
                     cmd.Parameters.AddWithValue("@lng", data.Lng);
                     cmd.Parameters.AddWithValue("@idTipo", data.IdTipo);
@@ -36,19 +36,15 @@ namespace maps4.Repositorios.Implementacion
                     cmd.Parameters.AddWithValue("@contacto", data.Contacto);
                     cmd.Parameters.AddWithValue("@numImagenes", data.Imagenes);
 
-                    // Agregar el parámetro de salida para obtener el idInmueble
                     var idInmuebleParam = new SqlParameter("@idInmueble", SqlDbType.Int)
                     {
                         Direction = ParameterDirection.Output
                     };
                     cmd.Parameters.Add(idInmuebleParam);
 
-                    // Ejecutar el comando
                     await cmd.ExecuteNonQueryAsync();
 
-                    // Recuperar el idInmueble generado
                     data.IdInmueble = (int)idInmuebleParam.Value;
-
                     return data;
                 }
             }
@@ -64,41 +60,32 @@ namespace maps4.Repositorios.Implementacion
                     cmd.CommandType = CommandType.StoredProcedure;
 
                     cmd.Parameters.AddWithValue("@idInmueble", data.IdInmueble);
-                    // La cuenta se resuelve en SQL desde la membresía activa/predeterminada del usuario.
-                    cmd.Parameters.AddWithValue("@correo", data.RefUsuario.correo);
-                    //cmd.Parameters.AddWithValue("@lat", data.Lat);
-                    //cmd.Parameters.AddWithValue("@lng", data.Lng);
+                    cmd.Parameters.AddWithValue("@correo", data.RefUsuario?.correo ?? string.Empty);
                     cmd.Parameters.AddWithValue("@idTipo", data.IdTipo);
                     cmd.Parameters.AddWithValue("@terreno", data.Terreno);
                     cmd.Parameters.AddWithValue("@construccion", data.Construccion);
                     cmd.Parameters.AddWithValue("@precio", data.Precio);
                     cmd.Parameters.AddWithValue("@observaciones", data.Observaciones);
                     cmd.Parameters.AddWithValue("@contacto", data.Contacto);
-                    //cmd.Parameters.AddWithValue("@numImagenes", data.Imagenes);
 
-                    // Ejecutar el comando
                     await cmd.ExecuteNonQueryAsync();
-
                     return true;
                 }
             }
         }
 
-        public async Task<bool> EliminarInmueble(int idInmueble)
+        public async Task<bool> EliminarInmueble(int idInmueble, string correoAutenticado)
         {
             using (var conexion = new SqlConnection(_cadenaSQL))
             {
                 await conexion.OpenAsync();
-                using (var cmd = new SqlCommand("RSMAPS_sp_delete_inmueble", conexion))
+                using (var cmd = new SqlCommand("RSMAPS_sp_delete_inmueble_seguro", conexion))
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
-
-                    // Agregar el parámetro de entrada
                     cmd.Parameters.AddWithValue("@idInmueble", idInmueble);
+                    cmd.Parameters.AddWithValue("@correo", correoAutenticado);
 
-                    // Ejecutar el comando
                     await cmd.ExecuteNonQueryAsync();
-
                     return true;
                 }
             }
@@ -153,6 +140,5 @@ namespace maps4.Repositorios.Implementacion
             }
             return _lista;
         }
-
     }
 }
