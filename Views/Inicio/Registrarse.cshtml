@@ -8,7 +8,7 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width" />
-    <title>Registrarse</title>
+    <title>Crear cuenta</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
 </head>
 <body>
@@ -20,9 +20,13 @@
 
                 <div class="card">
                     <div class="card-header">
-                        Iniciar Sesion
+                        Crear cuenta
                     </div>
                     <div class="card-body">
+
+                        <p class="text-muted small">
+                            Empieza con tu espacio personal en RSMaps. Si trabajas con una inmobiliaria, después podrás unirte mediante invitación sin crear otro usuario.
+                        </p>
 
                         <form asp-controller="Inicio" asp-action="Registrarse" method="post" id="registrationForm">
 
@@ -34,7 +38,7 @@
                             <input class="form-control mb-3" type="email" placeholder="Correo" required asp-for="correo" id="email" />
                             <div id="error-message" class="text-danger mb-3"></div>
                             <div class="d-grid gap-2 mb-3">
-                                <button class="btn btn-primary" type="submit" id="registerBtn" disabled>Registrate</button>
+                                <button class="btn btn-primary" type="submit" id="registerBtn" disabled>Crear mi cuenta</button>
                             </div>
                             @if (ViewData["Mensaje"] != null)
                             {
@@ -44,7 +48,7 @@
                                     </div>
                                 </div>
                             }
-                            ¿Ya tienes una cuenta? <a href="@Url.Action("Index","Home")">Iniciar Sesion</a>
+                            ¿Ya tienes una cuenta? <a href="@Url.Action("Index","Home")">Iniciar sesión</a>
 
                         </form>
 
@@ -58,6 +62,6 @@
     </div>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/registerscript.js"></script>
+    <script src="~/js/RegisterScript.js"></script>
 </body>
 </html>
