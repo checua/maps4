@@ -92,6 +92,10 @@ BEGIN TRY
 
     /* ------------------------------------------------------------
        3. IdCuenta ya puede ser obligatorio
+
+       Paso 02 ya creo una FK y un indice sobre IdCuenta. SQL Server
+       exige retirar temporalmente esos objetos antes de ALTER COLUMN.
+       Se recrean dentro de la misma transaccion inmediatamente despues.
        ------------------------------------------------------------ */
     IF EXISTS
     (
@@ -102,6 +106,30 @@ BEGIN TRY
           AND is_nullable = 1
     )
     BEGIN
+        IF EXISTS
+        (
+            SELECT 1
+            FROM sys.foreign_keys
+            WHERE parent_object_id = OBJECT_ID(N'dbo.RSMAPS_Inmueble')
+              AND name = N'FK_RSMAPS_Inmueble_Cuenta'
+        )
+        BEGIN
+            ALTER TABLE dbo.RSMAPS_Inmueble
+                DROP CONSTRAINT FK_RSMAPS_Inmueble_Cuenta;
+        END;
+
+        IF EXISTS
+        (
+            SELECT 1
+            FROM sys.indexes
+            WHERE object_id = OBJECT_ID(N'dbo.RSMAPS_Inmueble')
+              AND name = N'IX_RSMAPS_Inmueble_IdCuenta'
+        )
+        BEGIN
+            DROP INDEX IX_RSMAPS_Inmueble_IdCuenta
+                ON dbo.RSMAPS_Inmueble;
+        END;
+
         ALTER TABLE dbo.RSMAPS_Inmueble
             ALTER COLUMN IdCuenta int NOT NULL;
     END;
@@ -190,12 +218,22 @@ BEGIN TRY
             REFERENCES dbo.RSMAPS_Inmobiliaria(idInmobiliaria);
     END;
 
-    /* Asegurar que las restricciones existentes/nuevas queden confiables. */
-    ALTER TABLE dbo.RSMAPS_Inmueble CHECK CONSTRAINT ALL;
+    ALTER TABLE dbo.RSMAPS_Inmueble WITH CHECK CHECK CONSTRAINT ALL;
 
     /* ------------------------------------------------------------
        6. Indices para inventario privado y filtros frecuentes
        ------------------------------------------------------------ */
+    IF NOT EXISTS
+    (
+        SELECT 1 FROM sys.indexes
+        WHERE object_id = OBJECT_ID(N'dbo.RSMAPS_Inmueble')
+          AND name = N'IX_RSMAPS_Inmueble_IdCuenta'
+    )
+    BEGIN
+        CREATE INDEX IX_RSMAPS_Inmueble_IdCuenta
+            ON dbo.RSMAPS_Inmueble(IdCuenta);
+    END;
+
     IF NOT EXISTS
     (
         SELECT 1 FROM sys.indexes
