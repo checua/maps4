@@ -8,17 +8,20 @@ namespace maps4.Repositorios.Implementacion
     public class UsuarioRepositoryLogin : IUsuarioServicio<Usuario>
     {
         private readonly string _cadenaSQL = "";
+
         public UsuarioRepositoryLogin(IConfiguration configuration)
         {
             _cadenaSQL = configuration.GetConnectionString("cadenaSQL");
         }
+
         public async Task<List<Usuario>> GetUsuario(string correo, string contra)
         {
             List<Usuario> _lista = new List<Usuario>();
 
             using (var conexion = new SqlConnection(_cadenaSQL))
             {
-                conexion.Open();
+                await conexion.OpenAsync();
+
                 SqlCommand cmd = new SqlCommand("RSMAPS_sp_ListaUsuarioLogin", conexion);
                 cmd.Parameters.AddWithValue("correo", correo);
                 cmd.Parameters.AddWithValue("contra", contra);
@@ -42,7 +45,6 @@ namespace maps4.Repositorios.Implementacion
                                     nombre = dr["nombre"].ToString()
                                 },
                             nick = dr["nick"].ToString(),
-                            contra = dr["contra"].ToString(),
                             telefono = dr["telefono"].ToString(),
                             correo = dr["correo"].ToString(),
                             foto = dr["foto"].ToString(),
@@ -57,6 +59,7 @@ namespace maps4.Repositorios.Implementacion
                     }
                 }
             }
+
             return _lista;
         }
 
@@ -66,7 +69,8 @@ namespace maps4.Repositorios.Implementacion
             {
                 using (var conexion = new SqlConnection(_cadenaSQL))
                 {
-                    conexion.Open();
+                    await conexion.OpenAsync();
+
                     SqlCommand cmd = new SqlCommand("RSMAPS_sp_GuardarUsuario", conexion);
                     cmd.Parameters.AddWithValue("nombres", modelo.nombres ?? string.Empty);
                     cmd.Parameters.AddWithValue("aPaterno", modelo.aPaterno ?? string.Empty);
