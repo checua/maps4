@@ -15,8 +15,9 @@
    - NO modifica procedimientos almacenados todavía.
    - NO modifica el código .NET.
    - IdCuenta permanece NULLABLE temporalmente porque el procedimiento
-     legacy de alta todavía no envía/escribe IdCuenta. Esto se corregirá
-     en el siguiente paso antes de hacer la columna obligatoria.
+     legacy de alta todavía no envía/escribe IdCuenta.
+   - Las sentencias que usan IdCuenta se ejecutan con SQL dinámico para
+     evitar el error de compilación del mismo batch en SQL Server.
    ============================================================ */
 
 SET NOCOUNT ON;
@@ -41,35 +42,41 @@ BEGIN TRY
 
     /* ------------------------------------------------------------
        2. Agregar IdCuenta de forma compatible
+       SQL dinámico evita que SQL Server intente resolver la columna
+       antes de que el ALTER TABLE haya sido ejecutado.
        ------------------------------------------------------------ */
     IF COL_LENGTH(N'dbo.RSMAPS_Inmueble', N'IdCuenta') IS NULL
     BEGIN
-        ALTER TABLE dbo.RSMAPS_Inmueble
-            ADD IdCuenta int NULL;
+        EXEC sys.sp_executesql
+            N'ALTER TABLE dbo.RSMAPS_Inmueble ADD IdCuenta int NULL;';
     END;
 
     /* ------------------------------------------------------------
        3. Migrar las propiedades existentes
        ------------------------------------------------------------ */
-    UPDATE i
-       SET i.IdCuenta = c.IdCuenta
-    FROM dbo.RSMAPS_Inmueble i
-    INNER JOIN dbo.RSMAPS_Cuenta c
-        ON c.IdInmobiliariaLegacy = i.idInmobiliaria
-    WHERE i.IdCuenta IS NULL;
+    EXEC sys.sp_executesql N'
+        UPDATE i
+           SET i.IdCuenta = c.IdCuenta
+        FROM dbo.RSMAPS_Inmueble i
+        INNER JOIN dbo.RSMAPS_Cuenta c
+            ON c.IdInmobiliariaLegacy = i.idInmobiliaria
+        WHERE i.IdCuenta IS NULL;
+    ';
 
     /* ------------------------------------------------------------
        4. No continuar si alguna propiedad actual no pudo mapearse
        ------------------------------------------------------------ */
-    IF EXISTS
-    (
-        SELECT 1
-        FROM dbo.RSMAPS_Inmueble i
-        WHERE i.IdCuenta IS NULL
-    )
-    BEGIN
+    DECLARE @SinCuenta int;
+
+    EXEC sys.sp_executesql
+        N'SELECT @Cantidad = COUNT(*)
+          FROM dbo.RSMAPS_Inmueble
+          WHERE IdCuenta IS NULL;',
+        N'@Cantidad int OUTPUT',
+        @Cantidad = @SinCuenta OUTPUT;
+
+    IF @SinCuenta > 0
         THROW 50203, 'Existen inmuebles activos sin una Cuenta mapeada. Revisar antes de continuar.', 1;
-    END;
 
     /* ------------------------------------------------------------
        5. Crear relación formal Cuenta -> Inmueble
@@ -82,13 +89,15 @@ BEGIN TRY
           AND name = N'FK_RSMAPS_Inmueble_Cuenta'
     )
     BEGIN
-        ALTER TABLE dbo.RSMAPS_Inmueble WITH CHECK
-            ADD CONSTRAINT FK_RSMAPS_Inmueble_Cuenta
-            FOREIGN KEY (IdCuenta)
-            REFERENCES dbo.RSMAPS_Cuenta(IdCuenta);
+        EXEC sys.sp_executesql N'
+            ALTER TABLE dbo.RSMAPS_Inmueble WITH CHECK
+                ADD CONSTRAINT FK_RSMAPS_Inmueble_Cuenta
+                FOREIGN KEY (IdCuenta)
+                REFERENCES dbo.RSMAPS_Cuenta(IdCuenta);
 
-        ALTER TABLE dbo.RSMAPS_Inmueble
-            CHECK CONSTRAINT FK_RSMAPS_Inmueble_Cuenta;
+            ALTER TABLE dbo.RSMAPS_Inmueble
+                CHECK CONSTRAINT FK_RSMAPS_Inmueble_Cuenta;
+        ';
     END;
 
     /* ------------------------------------------------------------
@@ -102,8 +111,10 @@ BEGIN TRY
           AND name = N'IX_RSMAPS_Inmueble_IdCuenta'
     )
     BEGIN
-        CREATE INDEX IX_RSMAPS_Inmueble_IdCuenta
-            ON dbo.RSMAPS_Inmueble(IdCuenta);
+        EXEC sys.sp_executesql N'
+            CREATE INDEX IX_RSMAPS_Inmueble_IdCuenta
+                ON dbo.RSMAPS_Inmueble(IdCuenta);
+        ';
     END;
 
     COMMIT TRANSACTION;
@@ -111,34 +122,36 @@ BEGIN TRY
     /* ------------------------------------------------------------
        7. Validación final
        ------------------------------------------------------------ */
-    SELECT
-        COUNT(*) AS TotalInmuebles,
-        SUM(CASE WHEN IdCuenta IS NOT NULL THEN 1 ELSE 0 END) AS ConCuenta,
-        SUM(CASE WHEN IdCuenta IS NULL THEN 1 ELSE 0 END) AS SinCuenta
-    FROM dbo.RSMAPS_Inmueble;
+    EXEC sys.sp_executesql N'
+        SELECT
+            COUNT(*) AS TotalInmuebles,
+            SUM(CASE WHEN IdCuenta IS NOT NULL THEN 1 ELSE 0 END) AS ConCuenta,
+            SUM(CASE WHEN IdCuenta IS NULL THEN 1 ELSE 0 END) AS SinCuenta
+        FROM dbo.RSMAPS_Inmueble;
 
-    SELECT
-        c.IdCuenta,
-        c.Nombre AS Cuenta,
-        c.TipoCuenta,
-        COUNT(i.idInmueble) AS PropiedadesActivas
-    FROM dbo.RSMAPS_Cuenta c
-    LEFT JOIN dbo.RSMAPS_Inmueble i
-        ON i.IdCuenta = c.IdCuenta
-    GROUP BY c.IdCuenta, c.Nombre, c.TipoCuenta
-    ORDER BY c.IdCuenta;
+        SELECT
+            c.IdCuenta,
+            c.Nombre AS Cuenta,
+            c.TipoCuenta,
+            COUNT(i.idInmueble) AS PropiedadesActivas
+        FROM dbo.RSMAPS_Cuenta c
+        LEFT JOIN dbo.RSMAPS_Inmueble i
+            ON i.IdCuenta = c.IdCuenta
+        GROUP BY c.IdCuenta, c.Nombre, c.TipoCuenta
+        ORDER BY c.IdCuenta;
 
-    SELECT
-        i.idInmueble,
-        i.IdCuenta,
-        c.Nombre AS Cuenta,
-        i.idInmobiliaria AS IdInmobiliariaLegacy,
-        i.idAsesor,
-        i.precio
-    FROM dbo.RSMAPS_Inmueble i
-    LEFT JOIN dbo.RSMAPS_Cuenta c
-        ON c.IdCuenta = i.IdCuenta
-    ORDER BY i.idInmueble;
+        SELECT
+            i.idInmueble,
+            i.IdCuenta,
+            c.Nombre AS Cuenta,
+            i.idInmobiliaria AS IdInmobiliariaLegacy,
+            i.idAsesor,
+            i.precio
+        FROM dbo.RSMAPS_Inmueble i
+        LEFT JOIN dbo.RSMAPS_Cuenta c
+            ON c.IdCuenta = i.IdCuenta
+        ORDER BY i.idInmueble;
+    ';
 
     PRINT 'Paso 02 RSMaps 2.0 terminado correctamente.';
 END TRY
