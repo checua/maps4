@@ -1,5 +1,6 @@
 @model maps4.Models.InventarioIndexViewModel
 @using System.Globalization
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 @{
     ViewData["Title"] = "Mi inventario - RSMaps";
     var cultura = CultureInfo.GetCultureInfo("es-MX");
@@ -9,6 +10,11 @@
     var pausados = Model.Inmuebles.Count(x => x.EstadoCodigo == "PAUSADO");
     var retirados = Model.Inmuebles.Count(x => x.EstadoCodigo == "RETIRADO");
     var cerrados = Model.Inmuebles.Count(x => x.EstadoCodigo == "VENDIDO" || x.EstadoCodigo == "RENTADO");
+    var necesitanAtencion = Model.Inmuebles.Count(x => x.NecesitaAtencion);
+    var sinPrecio = Model.Inmuebles.Count(x => !x.TienePrecio);
+    var sinFotos = Model.Inmuebles.Count(x => !x.TieneFotos);
+    var sinUbicacion = Model.Inmuebles.Count(x => !x.TieneUbicacion);
+    var publicAssetBaseUrl = (Configuration["RSMaps:PublicAssetBaseUrl"] ?? string.Empty).TrimEnd('/');
 }
 
 <style>
@@ -20,28 +26,38 @@
     .inventory-actions { display: flex; gap: 10px; }
     .inventory-actions a { text-decoration: none; }
     .back-map { background: white; border: 1px solid #d8dde5; color: #27303f; padding: 10px 14px; border-radius: 12px; }
-    .summary-grid { display: grid; grid-template-columns: repeat(5, minmax(130px, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .summary-grid { display: grid; grid-template-columns: repeat(6, minmax(125px, 1fr)); gap: 12px; margin-bottom: 14px; }
     .summary-card { border: 1px solid #e1e5ea; background: white; border-radius: 16px; padding: 16px; cursor: pointer; transition: .15s ease; }
     .summary-card:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(16,24,40,.07); }
     .summary-card .number { font-size: 25px; font-weight: 750; }
     .summary-card .label { color: #667085; font-size: 13px; margin-top: 3px; }
+    .health-strip { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 18px; color: #667085; font-size: 13px; }
+    .health-chip { background: #fff; border: 1px solid #e1e5ea; border-radius: 999px; padding: 6px 10px; }
     .toolbar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
     .toolbar input, .toolbar select { border: 1px solid #d8dde5; background: white; border-radius: 12px; padding: 11px 13px; min-height: 44px; }
     .toolbar input { flex: 1; min-width: 240px; }
     .inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px; }
-    .property-card { background: white; border: 1px solid #e1e5ea; border-radius: 18px; overflow: hidden; box-shadow: 0 2px 8px rgba(16,24,40,.03); }
+    .property-card { background: white; border: 1px solid #e1e5ea; border-radius: 18px; overflow: hidden; box-shadow: 0 2px 8px rgba(16,24,40,.03); display:flex; flex-direction:column; }
     .property-media { height: 156px; background: #e9edf2; position: relative; overflow: hidden; }
     .property-media img { width: 100%; height: 100%; object-fit: cover; }
     .property-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #7c8796; font-size: 34px; }
     .property-status { position: absolute; top: 10px; left: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
     .pill { display: inline-flex; align-items: center; border-radius: 999px; padding: 5px 9px; font-size: 11px; font-weight: 700; letter-spacing: .2px; background: rgba(255,255,255,.94); border: 1px solid rgba(0,0,0,.07); }
-    .property-body { padding: 16px; }
+    .property-body { padding: 16px; flex:1; }
     .property-price { font-size: 23px; font-weight: 780; margin-bottom: 4px; }
+    .property-price.pending { color:#9a6700; font-size:18px; }
     .property-address { color: #4b5565; min-height: 42px; }
+    .property-type { color:#344054; font-size:13px; font-weight:650; margin-top:6px; }
     .property-meta { display: flex; gap: 12px; flex-wrap: wrap; color: #667085; font-size: 13px; margin-top: 13px; padding-top: 12px; border-top: 1px solid #eef0f3; }
     .property-id { color: #98a2b3; font-size: 12px; margin-top: 10px; }
+    .quality-box { margin-top:12px; border-radius:12px; padding:9px 10px; font-size:12px; line-height:1.45; }
+    .quality-box.attention { background:#fff8e8; color:#7a4d00; }
+    .quality-box.ready { background:#eef9f1; color:#24613a; }
+    .property-footer { border-top:1px solid #eef0f3; padding:12px 16px; display:flex; justify-content:flex-end; }
+    .property-footer a { text-decoration:none; font-size:13px; font-weight:650; color:#344054; }
     .empty-state { background: white; border: 1px dashed #cfd5dd; border-radius: 18px; padding: 60px 24px; text-align: center; color: #667085; }
     .no-results { display: none; }
+    @@media (max-width: 1100px) { .summary-grid { grid-template-columns: repeat(3, 1fr); } }
     @@media (max-width: 850px) {
         .inventory-shell { padding: 14px; }
         .summary-grid { grid-template-columns: repeat(2, 1fr); }
@@ -66,10 +82,17 @@
         <div class="summary-card" data-summary-state="BORRADOR"><div class="number">@borradores</div><div class="label">Borradores</div></div>
         <div class="summary-card" data-summary-state="PAUSADO"><div class="number">@pausados</div><div class="label">Pausados</div></div>
         <div class="summary-card" data-summary-state="CIERRE"><div class="number">@cerrados</div><div class="label">Vendidos / rentados</div></div>
+        <div class="summary-card" data-summary-state="ATENCION"><div class="number">@necesitanAtencion</div><div class="label">Necesitan atención</div></div>
+    </div>
+
+    <div class="health-strip">
+        <span class="health-chip">Sin precio: <strong>@sinPrecio</strong></span>
+        <span class="health-chip">Sin fotos: <strong>@sinFotos</strong></span>
+        <span class="health-chip">Sin ubicación: <strong>@sinUbicacion</strong></span>
     </div>
 
     <div class="toolbar">
-        <input id="inventorySearch" type="search" placeholder="Buscar por dirección, observación o ID…" autocomplete="off" />
+        <input id="inventorySearch" type="search" placeholder="Buscar por dirección, descripción, tipo o ID…" autocomplete="off" />
         <select id="inventoryState">
             <option value="TODOS">Todos los estados</option>
             <option value="PUBLICADO">Publicados</option>
@@ -78,6 +101,7 @@
             <option value="RETIRADO">Retirados (@retirados)</option>
             <option value="VENDIDO">Vendidos</option>
             <option value="RENTADO">Rentados</option>
+            <option value="ATENCION">Necesitan atención</option>
         </select>
     </div>
 
@@ -93,13 +117,28 @@
         <div id="inventoryGrid" class="inventory-grid">
             @foreach (var item in Model.Inmuebles)
             {
-                var searchable = $"{item.IdInmueble} {item.Direccion} {item.Observaciones}".ToLowerInvariant();
-                <article class="property-card" data-state="@item.EstadoCodigo" data-search="@searchable">
+                var searchable = $"{item.IdInmueble} {item.Direccion} {item.Observaciones} {item.TipoNombre}".ToLowerInvariant();
+                var fallbackImage = string.IsNullOrWhiteSpace(publicAssetBaseUrl)
+                    ? string.Empty
+                    : $"{publicAssetBaseUrl}/cargas/{item.IdInmueble}_1.jpg";
+                var calidadPendiente = new List<string>();
+                if (!item.TienePrecio) calidadPendiente.Add("precio");
+                if (!item.TieneFotos) calidadPendiente.Add("fotos");
+                if (!item.TieneUbicacion) calidadPendiente.Add("ubicación");
+                if (!item.TieneDescripcionUtil) calidadPendiente.Add("descripción");
+
+                <article class="property-card"
+                         data-state="@item.EstadoCodigo"
+                         data-attention="@(item.NecesitaAtencion ? "true" : "false")"
+                         data-search="@searchable">
                     <div class="property-media">
                         @if (item.Imagenes > 0)
                         {
-                            <img src="@($"/cargas/{item.IdInmueble}_1.jpg")" alt="Inmueble @item.IdInmueble"
-                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                            <img src="@($"/cargas/{item.IdInmueble}_1.jpg")"
+                                 data-fallback-src="@fallbackImage"
+                                 loading="lazy"
+                                 alt="Inmueble @item.IdInmueble"
+                                 onerror="handleInventoryImageError(this)" />
                             <div class="property-placeholder" style="display:none;">⌂</div>
                         }
                         else
@@ -112,14 +151,51 @@
                         </div>
                     </div>
                     <div class="property-body">
-                        <div class="property-price">@(item.Precio.HasValue ? item.Precio.Value.ToString("C0", cultura) : "Sin precio")</div>
-                        <div class="property-address">@(string.IsNullOrWhiteSpace(item.Direccion) ? "Dirección pendiente" : item.Direccion)</div>
+                        @if (item.TienePrecio)
+                        {
+                            <div class="property-price">@item.Precio!.Value.ToString("C0", cultura)</div>
+                        }
+                        else
+                        {
+                            <div class="property-price pending">Precio pendiente</div>
+                        }
+
+                        <div class="property-address">
+                            @if (item.TieneDireccionUtil)
+                            {
+                                @item.Direccion
+                            }
+                            else if (item.TieneUbicacion)
+                            {
+                                <span>Ubicación registrada en mapa</span>
+                            }
+                            else
+                            {
+                                <span>Ubicación pendiente</span>
+                            }
+                        </div>
+
+                        <div class="property-type">@(string.IsNullOrWhiteSpace(item.TipoNombre) ? $"Tipo {item.IdTipo}" : item.TipoNombre)</div>
+
                         <div class="property-meta">
-                            @if (item.Terreno.HasValue) { <span>Terreno: @item.Terreno.Value.ToString("N0") m²</span> }
-                            @if (item.Construccion.HasValue) { <span>Construcción: @item.Construccion.Value.ToString("N0") m²</span> }
+                            @if (item.Terreno.HasValue && item.Terreno.Value > 0) { <span>Terreno: @item.Terreno.Value.ToString("N0") m²</span> }
+                            @if (item.Construccion.HasValue && item.Construccion.Value > 0) { <span>Construcción: @item.Construccion.Value.ToString("N0") m²</span> }
                             <span>@item.Imagenes foto@(item.Imagenes == 1 ? "" : "s")</span>
                         </div>
-                        <div class="property-id">ID @item.IdInmueble · Tipo @item.IdTipo</div>
+
+                        @if (item.NecesitaAtencion)
+                        {
+                            <div class="quality-box attention">⚠ Revisar: @string.Join(", ", calidadPendiente).</div>
+                        }
+                        else
+                        {
+                            <div class="quality-box ready">✓ Datos básicos listos para comercializar.</div>
+                        }
+
+                        <div class="property-id">ID @item.IdInmueble</div>
+                    </div>
+                    <div class="property-footer">
+                        <a href="@($"/?inmuebleId={item.IdInmueble}")">Ver en mapa →</a>
                     </div>
                 </article>
             }
@@ -131,6 +207,19 @@
 </div>
 
 <script>
+    function handleInventoryImageError(img) {
+        const fallback = img.dataset.fallbackSrc || '';
+        if (fallback && img.dataset.fallbackTried !== 'true' && img.src !== fallback) {
+            img.dataset.fallbackTried = 'true';
+            img.src = fallback;
+            return;
+        }
+
+        img.style.display = 'none';
+        const placeholder = img.nextElementSibling;
+        if (placeholder) placeholder.style.display = 'flex';
+    }
+
     (() => {
         const search = document.getElementById('inventorySearch');
         const state = document.getElementById('inventoryState');
@@ -146,9 +235,11 @@
 
             cards.forEach(card => {
                 const cardState = card.dataset.state || '';
+                const needsAttention = card.dataset.attention === 'true';
                 const stateMatches = selected === 'TODOS'
                     || cardState === selected
-                    || (selected === 'CIERRE' && (cardState === 'VENDIDO' || cardState === 'RENTADO'));
+                    || (selected === 'CIERRE' && (cardState === 'VENDIDO' || cardState === 'RENTADO'))
+                    || (selected === 'ATENCION' && needsAttention);
                 const textMatches = !text || (card.dataset.search || '').includes(text);
                 const show = stateMatches && textMatches;
                 card.style.display = show ? '' : 'none';
