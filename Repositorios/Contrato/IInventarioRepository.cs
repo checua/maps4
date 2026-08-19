@@ -12,5 +12,13 @@ namespace maps4.Repositorios.Contrato
             string? estadoNuevo,
             string? visibilidadNueva,
             string? motivo);
+
+        Task CerrarOperacionAsync(
+            int idInmueble,
+            string correo,
+            string tipoOperacion,
+            decimal precioCierre,
+            DateTime fechaCierreUtc,
+            string? notasCierre);
     }
 }
