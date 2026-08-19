@@ -3,12 +3,12 @@
    ALCANCE DE INVENTARIO BASADO EN ROL (RBAC - FASE 1)
 
    Objetivo:
-   - Crear catálogo explícito de permisos.
+   - Crear catalogo explicito de permisos.
    - Relacionar Rol -> Permiso.
-   - Resolver desde SQL qué inventario puede LEER un usuario autenticado.
-   - Mantener mínimo privilegio para ASESOR.
+   - Resolver desde SQL que inventario puede LEER un usuario autenticado.
+   - Mantener minimo privilegio para ASESOR.
    - Permitir vista de equipo a CAPTURISTA / ADMINISTRADOR / PROPIETARIO.
-   - No abrir todavía edición/cierre de propiedades ajenas.
+   - No abrir todavia edicion/cierre de propiedades ajenas.
 
    Regla inicial de lectura:
    - ASESOR        -> INVENTARIO_VER_PROPIO
@@ -17,11 +17,12 @@
    - PROPIETARIO   -> INVENTARIO_VER_CUENTA
 
    IMPORTANTE:
-   - PROPIETARIO es el código técnico histórico del rol; en UI podrá
-     mostrarse como "Titular de cuenta" para evitar confusión con el
-     propietario físico de un inmueble.
+   - PROPIETARIO es el codigo tecnico historico del rol; en UI se muestra
+     como "Titular de cuenta" para evitar confusion con el propietario
+     fisico de un inmueble.
    - Las pruebas cambian temporalmente un rol dentro de TRANSACTION y
      hacen ROLLBACK. No dejan privilegios adicionales persistentes.
+   - El script es idempotente y puede volver a ejecutarse.
    ============================================================ */
 
 SET NOCOUNT ON;
@@ -40,7 +41,7 @@ IF OBJECT_ID(N'dbo.RSMAPS_Inmueble', N'U') IS NULL
     THROW 52103, 'No existe dbo.RSMAPS_Inmueble.', 1;
 
 /* ------------------------------------------------------------
-   1. Catálogo de permisos
+   1. Catalogo de permisos
    ------------------------------------------------------------ */
 IF OBJECT_ID(N'dbo.RSMAPS_Permiso', N'U') IS NULL
 BEGIN
@@ -57,40 +58,33 @@ END;
 
 IF NOT EXISTS (SELECT 1 FROM dbo.RSMAPS_Permiso WHERE Codigo = 'INVENTARIO_VER_PROPIO')
     INSERT dbo.RSMAPS_Permiso (Codigo, Nombre, Descripcion)
-    VALUES
-    ('INVENTARIO_VER_PROPIO', N'Ver inventario propio',
-     N'Permite consultar únicamente inmuebles cuyo asesor responsable es el usuario autenticado.');
+    VALUES ('INVENTARIO_VER_PROPIO', N'Ver inventario propio',
+            N'Permite consultar unicamente inmuebles cuyo asesor responsable es el usuario autenticado.');
 
 IF NOT EXISTS (SELECT 1 FROM dbo.RSMAPS_Permiso WHERE Codigo = 'INVENTARIO_VER_CUENTA')
     INSERT dbo.RSMAPS_Permiso (Codigo, Nombre, Descripcion)
-    VALUES
-    ('INVENTARIO_VER_CUENTA', N'Ver inventario de la cuenta',
-     N'Permite consultar el inventario completo de la cuenta activa. No implica permiso para modificar inmuebles ajenos.');
+    VALUES ('INVENTARIO_VER_CUENTA', N'Ver inventario de la cuenta',
+            N'Permite consultar el inventario completo de la cuenta activa. No implica permiso para modificar inmuebles ajenos.');
 
-/* Permisos futuros reservados. Se catalogan pero NO se conceden todavía. */
 IF NOT EXISTS (SELECT 1 FROM dbo.RSMAPS_Permiso WHERE Codigo = 'INMUEBLE_EDITAR_CUENTA')
     INSERT dbo.RSMAPS_Permiso (Codigo, Nombre, Descripcion)
-    VALUES
-    ('INMUEBLE_EDITAR_CUENTA', N'Editar inventario de la cuenta',
-     N'Reservado para una fase posterior, cuando la auditoría distinga asesor responsable y usuario actor.');
+    VALUES ('INMUEBLE_EDITAR_CUENTA', N'Editar inventario de la cuenta',
+            N'Reservado para una fase posterior, cuando la auditoria distinga asesor responsable y usuario actor.');
 
 IF NOT EXISTS (SELECT 1 FROM dbo.RSMAPS_Permiso WHERE Codigo = 'INMUEBLE_CAMBIAR_ESTADO_CUENTA')
     INSERT dbo.RSMAPS_Permiso (Codigo, Nombre, Descripcion)
-    VALUES
-    ('INMUEBLE_CAMBIAR_ESTADO_CUENTA', N'Cambiar estado de inventario de la cuenta',
-     N'Reservado para una fase posterior con auditoría completa del usuario actor.');
+    VALUES ('INMUEBLE_CAMBIAR_ESTADO_CUENTA', N'Cambiar estado de inventario de la cuenta',
+            N'Reservado para una fase posterior con auditoria completa del usuario actor.');
 
 IF NOT EXISTS (SELECT 1 FROM dbo.RSMAPS_Permiso WHERE Codigo = 'OPERACION_CERRAR_CUENTA')
     INSERT dbo.RSMAPS_Permiso (Codigo, Nombre, Descripcion)
-    VALUES
-    ('OPERACION_CERRAR_CUENTA', N'Cerrar operaciones de la cuenta',
-     N'Reservado para una fase posterior; requiere conservar por separado asesor responsable y usuario que registra el cierre.');
+    VALUES ('OPERACION_CERRAR_CUENTA', N'Cerrar operaciones de la cuenta',
+            N'Reservado para una fase posterior; requiere conservar por separado asesor responsable y usuario que registra el cierre.');
 
 IF NOT EXISTS (SELECT 1 FROM dbo.RSMAPS_Permiso WHERE Codigo = 'INMUEBLE_CAPTURAR_PARA_OTRO')
     INSERT dbo.RSMAPS_Permiso (Codigo, Nombre, Descripcion)
-    VALUES
-    ('INMUEBLE_CAPTURAR_PARA_OTRO', N'Capturar para otro asesor',
-     N'Reservado para el futuro modelo de capturista con asesor responsable distinto del usuario creador.');
+    VALUES ('INMUEBLE_CAPTURAR_PARA_OTRO', N'Capturar para otro asesor',
+            N'Reservado para el futuro modelo de capturista con asesor responsable distinto del usuario creador.');
 
 /* ------------------------------------------------------------
    2. Rol -> Permiso
@@ -109,7 +103,6 @@ BEGIN
     );
 END;
 
-/* ASESOR: mínimo privilegio. */
 IF NOT EXISTS
 (
     SELECT 1 FROM dbo.RSMAPS_RolPermiso
@@ -118,7 +111,6 @@ IF NOT EXISTS
     INSERT dbo.RSMAPS_RolPermiso (RolCodigo, PermisoCodigo)
     VALUES ('ASESOR', 'INVENTARIO_VER_PROPIO');
 
-/* Roles de equipo: lectura completa de la cuenta. */
 IF NOT EXISTS
 (
     SELECT 1 FROM dbo.RSMAPS_RolPermiso
@@ -143,17 +135,13 @@ IF NOT EXISTS
     INSERT dbo.RSMAPS_RolPermiso (RolCodigo, PermisoCodigo)
     VALUES ('PROPIETARIO', 'INVENTARIO_VER_CUENTA');
 
-/* Nombre humano en UI sin cambiar el código técnico estable. */
 UPDATE dbo.RSMAPS_Rol
 SET Nombre = N'Titular de cuenta',
     Descripcion = N'Titular de la cuenta con control administrativo principal.'
 WHERE Codigo = 'PROPIETARIO';
 
 /* ------------------------------------------------------------
-   3. Lectura autorizada de inventario por identidad autenticada
-
-   No recibe IdCuenta ni IdAsesor desde el cliente.
-   Resuelve usuario -> cuenta activa -> rol -> permiso -> alcance.
+   3. Lectura autorizada por identidad autenticada
    ------------------------------------------------------------ */
 DECLARE @sql nvarchar(max) = N'
 CREATE OR ALTER PROCEDURE dbo.RSMAPS_sp_ListaInmueblesAutorizados
@@ -208,7 +196,8 @@ BEGIN
                 ON c.IdCuenta = cu.IdCuenta
             WHERE cu.IdAsesor = @IdAsesor
               AND cu.Activo = 1
-              AND c.Activo = 1;
+              AND c.Activo = 1
+            ORDER BY cu.IdCuenta;
         END
         ELSE IF @MembresiasActivas = 0
             THROW 52121, ''El usuario autenticado no pertenece a ninguna cuenta activa.'', 1;
@@ -220,8 +209,7 @@ BEGIN
     (
         SELECT 1
         FROM dbo.RSMAPS_RolPermiso rp
-        INNER JOIN dbo.RSMAPS_Permiso p
-            ON p.Codigo = rp.PermisoCodigo
+        INNER JOIN dbo.RSMAPS_Permiso p ON p.Codigo = rp.PermisoCodigo
         WHERE rp.RolCodigo = @RolCodigo
           AND rp.PermisoCodigo = ''INVENTARIO_VER_CUENTA''
           AND p.Activo = 1
@@ -231,8 +219,7 @@ BEGIN
     (
         SELECT 1
         FROM dbo.RSMAPS_RolPermiso rp
-        INNER JOIN dbo.RSMAPS_Permiso p
-            ON p.Codigo = rp.PermisoCodigo
+        INNER JOIN dbo.RSMAPS_Permiso p ON p.Codigo = rp.PermisoCodigo
         WHERE rp.RolCodigo = @RolCodigo
           AND rp.PermisoCodigo = ''INVENTARIO_VER_PROPIO''
           AND p.Activo = 1
@@ -300,7 +287,7 @@ END;
 EXEC sys.sp_executesql @sql;
 
 /* ============================================================
-   4. MATRIZ RESULTANTE
+   4. Matriz resultante
    ============================================================ */
 SELECT
     r.Codigo AS RolCodigo,
@@ -308,18 +295,12 @@ SELECT
     p.Codigo AS PermisoCodigo,
     p.Nombre AS Permiso
 FROM dbo.RSMAPS_Rol r
-LEFT JOIN dbo.RSMAPS_RolPermiso rp
-    ON rp.RolCodigo = r.Codigo
-LEFT JOIN dbo.RSMAPS_Permiso p
-    ON p.Codigo = rp.PermisoCodigo
+LEFT JOIN dbo.RSMAPS_RolPermiso rp ON rp.RolCodigo = r.Codigo
+LEFT JOIN dbo.RSMAPS_Permiso p ON p.Codigo = rp.PermisoCodigo
 ORDER BY r.Codigo, p.Codigo;
 
 /* ============================================================
-   5. PRUEBA CONTROLADA DE ALCANCE
-
-   Busca un ASESOR con inmuebles y una cuenta con más inmuebles que los
-   propios. Como ASESOR debe ver solo los propios; temporalmente se cambia
-   a ADMINISTRADOR y debe poder ver toda la cuenta. Luego ROLLBACK.
+   5. Prueba controlada de alcance
    ============================================================ */
 DECLARE @IdCuentaPrueba INT;
 DECLARE @IdAsesorPrueba INT;
@@ -335,25 +316,29 @@ SELECT TOP (1)
     @IdAsesorPrueba = cu.IdAsesor,
     @CorreoPrueba = u.correo,
     @RolOriginal = cu.RolCodigo,
-    @Propios = (SELECT COUNT(*) FROM dbo.RSMAPS_Inmueble i WHERE i.IdCuenta = cu.IdCuenta AND i.idAsesor = cu.IdAsesor),
-    @CuentaTotal = (SELECT COUNT(*) FROM dbo.RSMAPS_Inmueble i WHERE i.IdCuenta = cu.IdCuenta)
+    @Propios = conteos.Propios,
+    @CuentaTotal = conteos.CuentaTotal
 FROM dbo.RSMAPS_CuentaUsuario cu
 INNER JOIN dbo.RSMAPS_Usuario u
     ON u.idAsesor = cu.IdAsesor
+CROSS APPLY
+(
+    SELECT
+        SUM(CASE WHEN i.idAsesor = cu.IdAsesor THEN 1 ELSE 0 END) AS Propios,
+        COUNT(*) AS CuentaTotal
+    FROM dbo.RSMAPS_Inmueble i
+    WHERE i.IdCuenta = cu.IdCuenta
+) conteos
 WHERE cu.Activo = 1
   AND cu.RolCodigo = 'ASESOR'
   AND u.correo IS NOT NULL
-  AND EXISTS
-      (SELECT 1 FROM dbo.RSMAPS_Inmueble i WHERE i.IdCuenta = cu.IdCuenta AND i.idAsesor = cu.IdAsesor)
-  AND (SELECT COUNT(*) FROM dbo.RSMAPS_Inmueble i WHERE i.IdCuenta = cu.IdCuenta)
-      >
-      (SELECT COUNT(*) FROM dbo.RSMAPS_Inmueble i WHERE i.IdCuenta = cu.IdCuenta AND i.idAsesor = cu.IdAsesor)
-ORDER BY @Propios DESC;
+  AND conteos.Propios > 0
+  AND conteos.CuentaTotal > conteos.Propios
+ORDER BY conteos.Propios DESC, cu.IdAsesor;
 
 IF @IdAsesorPrueba IS NULL
-    THROW 52140, 'No se encontró un asesor adecuado para probar alcance por rol.', 1;
+    THROW 52140, 'No se encontro un asesor adecuado para probar alcance por rol.', 1;
 
-/* Tabla temporal con la forma exacta del read model. */
 SELECT TOP (0)
     i.idInmueble,
     i.IdCuenta,
@@ -383,12 +368,9 @@ SELECT TOP (0)
     i.FechaUltimoCambioEstadoUtc
 INTO #InventarioAutorizado
 FROM dbo.RSMAPS_Inmueble i
-INNER JOIN dbo.RSMAPS_Usuario u
-    ON u.idAsesor = i.idAsesor
-LEFT JOIN dbo.RSMAPS_Inmobiliaria inm
-    ON inm.idInmobiliaria = i.idInmobiliaria
-LEFT JOIN dbo.RSMAPS_TipoPropiedades tp
-    ON tp.idTipoPropiedad = i.idTipo
+INNER JOIN dbo.RSMAPS_Usuario u ON u.idAsesor = i.idAsesor
+LEFT JOIN dbo.RSMAPS_Inmobiliaria inm ON inm.idInmobiliaria = i.idInmobiliaria
+LEFT JOIN dbo.RSMAPS_TipoPropiedades tp ON tp.idTipoPropiedad = i.idTipo
 OUTER APPLY
 (
     SELECT MAX(ii.Imagenes) AS Imagenes
