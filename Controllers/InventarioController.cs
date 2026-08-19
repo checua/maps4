@@ -3,7 +3,6 @@ using maps4.Repositorios.Contrato;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
-using System.Security.Claims;
 
 namespace maps4.Controllers
 {
@@ -42,28 +41,34 @@ namespace maps4.Controllers
         public async Task<IActionResult> Index()
         {
             string? correo = User.Identity?.Name;
-            if (string.IsNullOrWhiteSpace(correo) || !TryGetAccountContext(out _, out int idAsesor))
+            if (string.IsNullOrWhiteSpace(correo))
                 return Forbid();
 
             try
             {
+                InventarioAutorizacionContexto? contexto =
+                    await _inventarioRepository.ObtenerContextoAutorizacionAsync(correo);
+
+                if (contexto == null)
+                    return Forbid();
+
                 List<InventarioInmuebleViewModel> inmuebles =
                     await _inventarioRepository.ListarAutorizadosAsync(correo);
 
-                string rol = User.FindFirstValue(ClaimTypes.Role) ?? string.Empty;
-
                 InventarioIndexViewModel modelo = new InventarioIndexViewModel
                 {
-                    CuentaNombre = User.FindFirstValue("CuentaNombre") ?? "Mi cuenta",
-                    Rol = NombreRolUi(rol),
-                    IdAsesorActual = idAsesor,
-                    EsVistaEquipo = inmuebles.Any(x => x.IdAsesor != idAsesor),
+                    CuentaNombre = string.IsNullOrWhiteSpace(contexto.CuentaNombre) ? "Mi cuenta" : contexto.CuentaNombre,
+                    Rol = NombreRolUi(contexto.RolCodigo),
+                    IdAsesorActual = contexto.IdAsesor,
+                    EsVistaEquipo = inmuebles.Any(x => x.IdAsesor != contexto.IdAsesor),
+                    PuedeCambiarEstadoCuenta = contexto.PuedeCambiarEstadoCuenta,
+                    PuedeCerrarOperacionCuenta = contexto.PuedeCerrarOperacionCuenta,
                     Inmuebles = inmuebles
                 };
 
                 return View(modelo);
             }
-            catch (SqlException ex) when (ex.Number is 52120 or 52121 or 52122 or 52123)
+            catch (SqlException ex) when (ex.Number is 52120 or 52121 or 52122 or 52123 or 52520 or 52521 or 52522)
             {
                 return Forbid();
             }
@@ -147,7 +152,7 @@ namespace maps4.Controllers
         [HttpGet]
         public async Task<IActionResult> CerrarOperacion(int idInmueble)
         {
-            InventarioInmuebleViewModel? inmueble = await ObtenerInmueblePropioAsync(idInmueble);
+            InventarioInmuebleViewModel? inmueble = await ObtenerInmuebleAutorizadoParaCierreAsync(idInmueble);
             if (inmueble == null)
                 return NotFound();
 
@@ -196,7 +201,7 @@ namespace maps4.Controllers
             if (modelo.FechaCierre > DateOnly.FromDateTime(DateTime.UtcNow))
                 ModelState.AddModelError(nameof(modelo.FechaCierre), "La fecha de cierre no puede estar en el futuro.");
 
-            InventarioInmuebleViewModel? inmueble = await ObtenerInmueblePropioAsync(modelo.IdInmueble);
+            InventarioInmuebleViewModel? inmueble = await ObtenerInmuebleAutorizadoParaCierreAsync(modelo.IdInmueble);
             if (inmueble == null)
                 return NotFound();
 
@@ -231,26 +236,29 @@ namespace maps4.Controllers
             }
         }
 
-        private bool TryGetAccountContext(out int idCuenta, out int idAsesor)
+        private async Task<InventarioInmuebleViewModel?> ObtenerInmuebleAutorizadoParaCierreAsync(int idInmueble)
         {
-            idCuenta = 0;
-            idAsesor = 0;
+            string? correo = User.Identity?.Name;
+            if (idInmueble <= 0 || string.IsNullOrWhiteSpace(correo))
+                return null;
 
-            bool cuentaValida = int.TryParse(User.FindFirstValue("IdCuenta"), out idCuenta);
-            bool asesorValido = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out idAsesor);
+            InventarioAutorizacionContexto? contexto =
+                await _inventarioRepository.ObtenerContextoAutorizacionAsync(correo);
 
-            return cuentaValida && asesorValido;
-        }
-
-        private async Task<InventarioInmuebleViewModel?> ObtenerInmueblePropioAsync(int idInmueble)
-        {
-            if (idInmueble <= 0 || !TryGetAccountContext(out int idCuenta, out int idAsesor))
+            if (contexto == null)
                 return null;
 
             List<InventarioInmuebleViewModel> inmuebles =
-                await _inventarioRepository.ListarAsync(idCuenta, idAsesor);
+                await _inventarioRepository.ListarAutorizadosAsync(correo);
 
-            return inmuebles.FirstOrDefault(x => x.IdInmueble == idInmueble && x.IdAsesor == idAsesor);
+            InventarioInmuebleViewModel? inmueble =
+                inmuebles.FirstOrDefault(x => x.IdInmueble == idInmueble);
+
+            if (inmueble == null)
+                return null;
+
+            bool esPropio = inmueble.IdAsesor == contexto.IdAsesor;
+            return esPropio || contexto.PuedeCerrarOperacionCuenta ? inmueble : null;
         }
 
         private static void CargarContextoCierre(CerrarOperacionViewModel modelo, InventarioInmuebleViewModel inmueble)
