@@ -220,8 +220,13 @@ namespace maps4.Controllers
 
         private bool TryGetAccountContext(out int idCuenta, out int idAsesor)
         {
-            return int.TryParse(User.FindFirstValue("IdCuenta"), out idCuenta)
-                && int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out idAsesor);
+            idCuenta = 0;
+            idAsesor = 0;
+
+            bool cuentaValida = int.TryParse(User.FindFirstValue("IdCuenta"), out idCuenta);
+            bool asesorValido = int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out idAsesor);
+
+            return cuentaValida && asesorValido;
         }
 
         private async Task<InventarioInmuebleViewModel?> ObtenerInmueblePropioAsync(int idInmueble)
