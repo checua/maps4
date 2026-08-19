@@ -46,6 +46,11 @@ namespace maps4.Models
     {
         public string CuentaNombre { get; set; } = string.Empty;
         public string Rol { get; set; } = string.Empty;
+        public int IdAsesorActual { get; set; }
+        public bool EsVistaEquipo { get; set; }
         public List<InventarioInmuebleViewModel> Inmuebles { get; set; } = new();
+
+        public int InmueblesPropios => Inmuebles.Count(x => x.IdAsesor == IdAsesorActual);
+        public int InmueblesEquipo => Inmuebles.Count(x => x.IdAsesor != IdAsesorActual);
     }
 }
