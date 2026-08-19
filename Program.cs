@@ -13,29 +13,30 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
-// Registrar repositorios y servicios (Inyecci髇 de dependencias)
+// Registrar repositorios y servicios (Inyecci贸n de dependencias)
 builder.Services.AddScoped<IGenericRepository<TipoPropiedad>, TipoPropiedadRepository>();
 builder.Services.AddScoped<IGenericRepository<Usuario>, UsuarioRepository>();
 builder.Services.AddScoped<IUsuarioServicio<Usuario>, UsuarioRepositoryLogin>();
 builder.Services.AddScoped<IGenericRepository<Inmueble>, InmuebleRepository>();
 builder.Services.AddScoped<IInmuebleServicio<Inmueble>, InmuebleRegistroRepository>();
 builder.Services.AddScoped<IComentarioService, ComentarioService>();
+builder.Services.AddScoped<IInventarioRepository, InventarioRepository>();
 
-// Configurar autenticaci髇 basada en cookies
+// Configurar autenticaci贸n basada en cookies
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.ExpireTimeSpan = TimeSpan.FromDays(10); // Cambiar a m醩 de 10 d韆s
-        options.SlidingExpiration = true; // Reiniciar el tiempo de expiraci髇 en cada solicitud
+        options.ExpireTimeSpan = TimeSpan.FromDays(10); // Cambiar a m谩s de 10 d铆as
+        options.SlidingExpiration = true; // Reiniciar el tiempo de expiraci贸n en cada solicitud
         options.LoginPath = "/Inicio/IniciarSesion";
-        options.Cookie.SameSite = SameSiteMode.Lax; // Ajustar seg鷑 tu necesidad (Lax, Strict, None)
-        options.Cookie.HttpOnly = true; // Solo permite acceso a trav閟 de HTTP(S)
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Enviar cookies solo a trav閟 de HTTPS
+        options.Cookie.SameSite = SameSiteMode.Lax; // Ajustar seg煤n tu necesidad (Lax, Strict, None)
+        options.Cookie.HttpOnly = true; // Solo permite acceso a trav茅s de HTTP(S)
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Enviar cookies solo a trav茅s de HTTPS
     });
 
 var app = builder.Build();
 
-// Configuraci髇 del pipeline de solicitud HTTP
+// Configuraci贸n del pipeline de solicitud HTTP
 if (!app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
@@ -47,13 +48,13 @@ else
     app.UseDeveloperExceptionPage();
 }
 
-// Middleware de seguridad y acceso a archivos est醫icos
+// Middleware de seguridad y acceso a archivos est谩ticos
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
 
-// Configurar autenticaci髇 y autorizaci髇
+// Configurar autenticaci贸n y autorizaci贸n
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -63,7 +64,7 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-// Iniciar la aplicaci髇
+// Iniciar la aplicaci贸n
 app.Run();
 
 
