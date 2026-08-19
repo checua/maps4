@@ -45,6 +45,36 @@ namespace maps4.Repositorios.Implementacion
             return await LeerInventarioAsync(cmd);
         }
 
+        public async Task<InventarioAutorizacionContexto?> ObtenerContextoAutorizacionAsync(string correo)
+        {
+            using SqlConnection conexion = new SqlConnection(_cadenaSQL);
+            await conexion.OpenAsync();
+
+            using SqlCommand cmd = new SqlCommand("dbo.RSMAPS_sp_ContextoAutorizacionActual", conexion)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            cmd.Parameters.Add("@correo", SqlDbType.VarChar, 200).Value = correo;
+
+            using SqlDataReader dr = await cmd.ExecuteReaderAsync();
+            if (!await dr.ReadAsync())
+                return null;
+
+            return new InventarioAutorizacionContexto
+            {
+                IdCuenta = Convert.ToInt32(dr["IdCuenta"]),
+                CuentaNombre = dr["CuentaNombre"] == DBNull.Value ? string.Empty : dr["CuentaNombre"].ToString() ?? string.Empty,
+                TipoCuenta = dr["TipoCuenta"] == DBNull.Value ? string.Empty : dr["TipoCuenta"].ToString() ?? string.Empty,
+                IdAsesor = Convert.ToInt32(dr["IdAsesor"]),
+                RolCodigo = dr["RolCodigo"] == DBNull.Value ? string.Empty : dr["RolCodigo"].ToString() ?? string.Empty,
+                PuedeVerCuenta = dr["PuedeVerCuenta"] != DBNull.Value && Convert.ToBoolean(dr["PuedeVerCuenta"]),
+                PuedeCambiarEstadoCuenta = dr["PuedeCambiarEstadoCuenta"] != DBNull.Value && Convert.ToBoolean(dr["PuedeCambiarEstadoCuenta"]),
+                PuedeCerrarOperacionCuenta = dr["PuedeCerrarOperacionCuenta"] != DBNull.Value && Convert.ToBoolean(dr["PuedeCerrarOperacionCuenta"]),
+                PuedeCapturarParaOtro = dr["PuedeCapturarParaOtro"] != DBNull.Value && Convert.ToBoolean(dr["PuedeCapturarParaOtro"])
+            };
+        }
+
         private static async Task<List<InventarioInmuebleViewModel>> LeerInventarioAsync(SqlCommand cmd)
         {
             List<InventarioInmuebleViewModel> lista = new();
