@@ -11,7 +11,9 @@
 
    IMPORTANTE:
    - Este script SI deja datos temporales persistentes hasta ejecutar 20B.
-   - No ejecutar repetidamente: si ya existe la prueba, reutiliza la misma.
+   - No ejecutar repetidamente: si ya existe LA prueba exacta, la reutiliza.
+   - Se usa CHARINDEX para buscar el marcador literal. Los corchetes tienen
+     significado especial en LIKE y no deben usarse aquí como patrón.
    ============================================================ */
 
 SET NOCOUNT ON;
@@ -21,6 +23,7 @@ IF DB_NAME() <> 'mapsMarkers'
     THROW 52000, 'Este script debe ejecutarse en la base mapsMarkers.', 1;
 
 DECLARE @Marcador nvarchar(100) = N'[RSMAPS-TEST-CIERRE-E2E]';
+DECLARE @DireccionPrueba varchar(max) = 'PRUEBA E2E CIERRE - NO ES PROPIEDAD REAL';
 DECLARE @Correo varchar(200) = 'profesor76@hotmail.com';
 DECLARE @IdInmueble int;
 DECLARE @IdAsesor int;
@@ -31,10 +34,13 @@ DECLARE @IdTipo int;
 DECLARE @FechaPublicacionUtc datetime2(0) = DATEADD(DAY, -15, SYSUTCDATETIME());
 DECLARE @Precio decimal(18,2) = 1234567.00;
 
-/* Reutilizar una prueba pendiente si ya existe. */
+/* Reutilizar únicamente la prueba exacta si ya existe. */
 SELECT TOP (1) @IdInmueble = i.idInmueble
 FROM dbo.RSMAPS_Inmueble i
-WHERE CONVERT(nvarchar(max), i.observaciones) LIKE N'%' + @Marcador + N'%'
+WHERE CHARINDEX(@Marcador, CONVERT(nvarchar(max), i.observaciones)) > 0
+  AND CONVERT(varchar(max), i.direccion) = @DireccionPrueba
+  AND CONVERT(varchar(max), i.link) = 'TEST-E2E'
+  AND CONVERT(varchar(max), i.contacto_a) = 'PRUEBA CONTROLADA'
 ORDER BY i.idInmueble DESC;
 
 IF @IdInmueble IS NOT NULL
@@ -45,7 +51,7 @@ BEGIN
         i.idAsesor,
         i.EstadoCodigo,
         i.VisibilidadCodigo,
-        i.precio,
+        TRY_CONVERT(decimal(18,2), i.precio) AS PrecioPublicado,
         i.FechaPublicacionUtc,
         tp.nombre AS TipoNombre,
         'YA EXISTIA - USAR ESTA PROPIEDAD PARA LA PRUEBA' AS EstadoPreparacion
@@ -123,7 +129,7 @@ BEGIN TRY
     (
         @IdInmobiliariaLegacy,
         @IdAsesor,
-        'PRUEBA E2E CIERRE - NO ES PROPIEDAD REAL',
+        @DireccionPrueba,
         24.027500,
         -104.653100,
         @IdTipo,
@@ -149,56 +155,27 @@ BEGIN TRY
 
     INSERT dbo.RSMAPS_InmueblePrecioHistorial
     (
-        IdInmueble,
-        IdCuenta,
-        IdAsesor,
-        PrecioAnterior,
-        PrecioNuevo,
-        Moneda,
-        FechaCambioUtc,
-        Motivo,
-        Origen,
-        EsDatoConfiable
+        IdInmueble, IdCuenta, IdAsesor, PrecioAnterior, PrecioNuevo,
+        Moneda, FechaCambioUtc, Motivo, Origen, EsDatoConfiable
     )
     VALUES
     (
-        @IdInmueble,
-        @IdCuenta,
-        @IdAsesor,
-        NULL,
-        @Precio,
-        'MXN',
-        @FechaPublicacionUtc,
-        N'Precio inicial de propiedad temporal para prueba E2E.',
-        'PRUEBA',
-        1
+        @IdInmueble, @IdCuenta, @IdAsesor, NULL, @Precio,
+        'MXN', @FechaPublicacionUtc,
+        N'Precio inicial de propiedad temporal para prueba E2E.', 'PRUEBA', 1
     );
 
     INSERT dbo.RSMAPS_InmuebleCambioEstado
     (
-        IdInmueble,
-        IdCuenta,
-        EstadoAnterior,
-        EstadoNuevo,
-        VisibilidadAnterior,
-        VisibilidadNueva,
-        IdAsesorCambio,
-        FechaCambioUtc,
-        Motivo,
-        Origen
+        IdInmueble, IdCuenta, EstadoAnterior, EstadoNuevo,
+        VisibilidadAnterior, VisibilidadNueva, IdAsesorCambio,
+        FechaCambioUtc, Motivo, Origen
     )
     VALUES
     (
-        @IdInmueble,
-        @IdCuenta,
-        NULL,
-        'PUBLICADO',
-        NULL,
-        'PUBLICO',
-        @IdAsesor,
-        @FechaPublicacionUtc,
-        N'Alta controlada de inmueble temporal para prueba E2E de cierre.',
-        'PRUEBA'
+        @IdInmueble, @IdCuenta, NULL, 'PUBLICADO',
+        NULL, 'PUBLICO', @IdAsesor, @FechaPublicacionUtc,
+        N'Alta controlada de inmueble temporal para prueba E2E de cierre.', 'PRUEBA'
     );
 
     COMMIT TRANSACTION;
@@ -219,6 +196,7 @@ SELECT
     TRY_CONVERT(decimal(18,2), i.precio) AS PrecioPublicado,
     i.FechaPublicacionUtc,
     tp.nombre AS TipoNombre,
+    i.direccion,
     'OK - PROPIEDAD TEMPORAL LISTA PARA CIERRE E2E' AS EstadoPreparacion
 FROM dbo.RSMAPS_Inmueble i
 INNER JOIN dbo.RSMAPS_Usuario u
