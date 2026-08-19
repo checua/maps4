@@ -182,10 +182,11 @@ namespace maps4.Controllers
             }
         }
 
+        // Lectura pública: solo PUBLICADO + PUBLICO.
         [HttpGet]
         public async Task<IActionResult> GetInmuebleById(int id)
         {
-            if (id == 0)
+            if (id <= 0)
             {
                 return BadRequest("Invalid Inmueble ID");
             }
@@ -199,6 +200,38 @@ namespace maps4.Controllers
             return Ok(lista);
         }
 
+        // Lectura privada: el servidor obtiene la identidad de la sesión y SQL
+        // valida Cuenta + propietario. Sirve para futuras vistas privadas/mobile.
+        [Authorize]
+        [HttpGet]
+        public async Task<IActionResult> GetInmueblePrivadoById(int id)
+        {
+            if (id <= 0)
+                return BadRequest(new { success = false, message = "ID de inmueble inválido." });
+
+            string? correoAutenticado = User.Identity?.Name;
+            if (string.IsNullOrWhiteSpace(correoAutenticado))
+                return Unauthorized(new { success = false, message = "Se requiere iniciar sesión." });
+
+            try
+            {
+                List<Inmueble> lista = await _inmuebleRepository.GetInmueblePrivadoById(id, correoAutenticado);
+                return lista.Count == 0
+                    ? NotFound(new { success = false, message = "Inmueble no encontrado." })
+                    : Ok(lista);
+            }
+            catch (SqlException ex) when (ex.Number == 51923)
+            {
+                return NotFound(new { success = false, message = "Inmueble no encontrado." });
+            }
+            catch (SqlException ex) when (ex.Number is 51920 or 51921 or 51922 or 51924 or 51925)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    new { success = false, message = "No tienes permiso para consultar este inmueble." });
+            }
+        }
+
+        // Compatibilidad: esta ruta pública usa la lectura pública segura.
         [HttpGet("/share")]
         public async Task<IActionResult> Share(int inmuebleId)
         {
