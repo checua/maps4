@@ -90,5 +90,37 @@ namespace maps4.Repositorios.Implementacion
 
             await cmd.ExecuteNonQueryAsync();
         }
+
+        public async Task CerrarOperacionAsync(
+            int idInmueble,
+            string correo,
+            string tipoOperacion,
+            decimal precioCierre,
+            DateTime fechaCierreUtc,
+            string? notasCierre)
+        {
+            using SqlConnection conexion = new SqlConnection(_cadenaSQL);
+            await conexion.OpenAsync();
+
+            using SqlCommand cmd = new SqlCommand("dbo.RSMAPS_sp_CerrarOperacionInmueble", conexion)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            cmd.Parameters.Add("@idInmueble", SqlDbType.Int).Value = idInmueble;
+            cmd.Parameters.Add("@correo", SqlDbType.VarChar, 200).Value = correo;
+            cmd.Parameters.Add("@TipoOperacion", SqlDbType.VarChar, 10).Value = tipoOperacion;
+
+            SqlParameter precio = cmd.Parameters.Add("@PrecioCierre", SqlDbType.Decimal);
+            precio.Precision = 18;
+            precio.Scale = 2;
+            precio.Value = precioCierre;
+
+            cmd.Parameters.Add("@FechaCierreUtc", SqlDbType.DateTime2).Value = fechaCierreUtc;
+            cmd.Parameters.Add("@NotasCierre", SqlDbType.NVarChar, 1000).Value =
+                string.IsNullOrWhiteSpace(notasCierre) ? DBNull.Value : notasCierre.Trim();
+
+            await cmd.ExecuteNonQueryAsync();
+        }
     }
 }
