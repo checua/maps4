@@ -47,6 +47,7 @@ namespace maps4.Repositorios.Implementacion
                     Lat = dr["lat"] == DBNull.Value ? null : Convert.ToDecimal(dr["lat"]),
                     Lng = dr["lng"] == DBNull.Value ? null : Convert.ToDecimal(dr["lng"]),
                     IdTipo = dr["idTipo"] == DBNull.Value ? null : Convert.ToInt32(dr["idTipo"]),
+                    TipoNombre = dr["TipoNombre"] == DBNull.Value ? null : dr["TipoNombre"].ToString(),
                     Telefono = dr["telefono"] == DBNull.Value ? null : dr["telefono"].ToString(),
                     Terreno = dr["terreno"] == DBNull.Value ? null : Convert.ToDouble(dr["terreno"]),
                     Construccion = dr["construccion"] == DBNull.Value ? null : Convert.ToDouble(dr["construccion"]),
