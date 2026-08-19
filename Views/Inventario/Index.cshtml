@@ -26,6 +26,9 @@
     .inventory-actions { display: flex; gap: 10px; }
     .inventory-actions a { text-decoration: none; }
     .back-map { background: white; border: 1px solid #d8dde5; color: #27303f; padding: 10px 14px; border-radius: 12px; }
+    .flash { border-radius: 12px; padding: 11px 14px; margin: 0 0 14px; font-size: 14px; }
+    .flash.ok { background: #eef9f1; color: #24613a; border: 1px solid #cfe8d6; }
+    .flash.error { background: #fff2f0; color: #912018; border: 1px solid #f1c8c3; }
     .summary-grid { display: grid; grid-template-columns: repeat(6, minmax(125px, 1fr)); gap: 12px; margin-bottom: 14px; }
     .summary-card { border: 1px solid #e1e5ea; background: white; border-radius: 16px; padding: 16px; cursor: pointer; transition: .15s ease; }
     .summary-card:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(16,24,40,.07); }
@@ -36,7 +39,7 @@
     .toolbar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
     .toolbar input, .toolbar select { border: 1px solid #d8dde5; background: white; border-radius: 12px; padding: 11px 13px; min-height: 44px; }
     .toolbar input { flex: 1; min-width: 240px; }
-    .inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px; }
+    .inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px; align-items: start; }
     .property-card { background: white; border: 1px solid #e1e5ea; border-radius: 18px; overflow: hidden; box-shadow: 0 2px 8px rgba(16,24,40,.03); display:flex; flex-direction:column; }
     .property-media { height: 156px; background: #e9edf2; position: relative; overflow: hidden; }
     .property-media img { width: 100%; height: 100%; object-fit: cover; }
@@ -53,8 +56,24 @@
     .quality-box { margin-top:12px; border-radius:12px; padding:9px 10px; font-size:12px; line-height:1.45; }
     .quality-box.attention { background:#fff8e8; color:#7a4d00; }
     .quality-box.ready { background:#eef9f1; color:#24613a; }
-    .property-footer { border-top:1px solid #eef0f3; padding:12px 16px; display:flex; justify-content:flex-end; }
-    .property-footer a { text-decoration:none; font-size:13px; font-weight:650; color:#344054; }
+    .property-footer { border-top:1px solid #eef0f3; padding:12px 16px; display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; }
+    .property-footer > a { text-decoration:none; font-size:13px; font-weight:650; color:#344054; padding:7px 0; }
+    .property-actions { min-width: 118px; }
+    .property-actions summary { list-style:none; cursor:pointer; user-select:none; border:1px solid #d8dde5; background:#fff; border-radius:9px; padding:7px 10px; font-size:12px; font-weight:700; text-align:center; }
+    .property-actions summary::-webkit-details-marker { display:none; }
+    .property-actions[open] { width:100%; }
+    .property-actions[open] summary { width:max-content; margin-left:auto; }
+    .action-panel { margin-top:10px; border-top:1px solid #eef0f3; padding-top:10px; display:grid; gap:10px; }
+    .action-section { display:flex; gap:7px; flex-wrap:wrap; align-items:center; }
+    .action-section-title { width:100%; font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:#98a2b3; font-weight:700; }
+    .action-form { margin:0; }
+    .action-btn { border:1px solid #d8dde5; border-radius:9px; padding:7px 10px; background:white; color:#344054; font-size:12px; font-weight:650; cursor:pointer; }
+    .action-btn:hover { background:#f7f8fa; }
+    .action-btn.warning { color:#8a4b08; border-color:#e7d1b4; background:#fffaf2; }
+    .visibility-form { display:flex; gap:7px; flex:1; min-width:220px; }
+    .visibility-form select { flex:1; border:1px solid #d8dde5; border-radius:9px; padding:7px 8px; background:#fff; font-size:12px; }
+    .action-note { color:#667085; font-size:11px; line-height:1.4; }
+    .closed-label { color:#667085; font-size:12px; padding:7px 0; }
     .empty-state { background: white; border: 1px dashed #cfd5dd; border-radius: 18px; padding: 60px 24px; text-align: center; color: #667085; }
     .no-results { display: none; }
     @@media (max-width: 1100px) { .summary-grid { grid-template-columns: repeat(3, 1fr); } }
@@ -75,6 +94,15 @@
             <a class="back-map" href="@Url.Action("Index", "Home")">← Volver al mapa</a>
         </div>
     </div>
+
+    @if (TempData["InventarioOk"] is string mensajeOk)
+    {
+        <div class="flash ok">✓ @mensajeOk</div>
+    }
+    @if (TempData["InventarioError"] is string mensajeError)
+    {
+        <div class="flash error">⚠ @mensajeError</div>
+    }
 
     <div class="summary-grid">
         <div class="summary-card" data-summary-state="TODOS"><div class="number">@total</div><div class="label">Total</div></div>
@@ -126,6 +154,8 @@
                 if (!item.TieneFotos) calidadPendiente.Add("fotos");
                 if (!item.TieneUbicacion) calidadPendiente.Add("ubicación");
                 if (!item.TieneDescripcionUtil) calidadPendiente.Add("descripción");
+                var estado = item.EstadoCodigo.ToUpperInvariant();
+                var terminal = estado == "VENDIDO" || estado == "RENTADO";
 
                 <article class="property-card"
                          data-state="@item.EstadoCodigo"
@@ -196,6 +226,88 @@
                     </div>
                     <div class="property-footer">
                         <a href="@($"/?inmuebleId={item.IdInmueble}")">Ver en mapa →</a>
+
+                        @if (terminal)
+                        {
+                            <span class="closed-label">Operación cerrada</span>
+                        }
+                        else
+                        {
+                            <details class="property-actions">
+                                <summary>Acciones</summary>
+                                <div class="action-panel">
+                                    <div class="action-section">
+                                        <div class="action-section-title">Estado comercial</div>
+
+                                        @if (estado == "PUBLICADO")
+                                        {
+                                            <form class="action-form" asp-controller="Inventario" asp-action="CambiarEstado" method="post"
+                                                  onsubmit="return confirm('¿Pausar esta propiedad? Dejará de aparecer en el marketplace público.');">
+                                                <input type="hidden" name="idInmueble" value="@item.IdInmueble" />
+                                                <input type="hidden" name="estadoNuevo" value="PAUSADO" />
+                                                <button class="action-btn" type="submit">Pausar</button>
+                                            </form>
+                                            <form class="action-form" asp-controller="Inventario" asp-action="CambiarEstado" method="post"
+                                                  onsubmit="return confirm('¿Retirar esta propiedad del mercado? Podrás publicarla nuevamente después.');">
+                                                <input type="hidden" name="idInmueble" value="@item.IdInmueble" />
+                                                <input type="hidden" name="estadoNuevo" value="RETIRADO" />
+                                                <button class="action-btn warning" type="submit">Retirar</button>
+                                            </form>
+                                        }
+                                        else if (estado == "PAUSADO")
+                                        {
+                                            <form class="action-form" asp-controller="Inventario" asp-action="CambiarEstado" method="post">
+                                                <input type="hidden" name="idInmueble" value="@item.IdInmueble" />
+                                                <input type="hidden" name="estadoNuevo" value="PUBLICADO" />
+                                                <button class="action-btn" type="submit">Reactivar</button>
+                                            </form>
+                                            <form class="action-form" asp-controller="Inventario" asp-action="CambiarEstado" method="post"
+                                                  onsubmit="return confirm('¿Retirar esta propiedad del mercado?');">
+                                                <input type="hidden" name="idInmueble" value="@item.IdInmueble" />
+                                                <input type="hidden" name="estadoNuevo" value="RETIRADO" />
+                                                <button class="action-btn warning" type="submit">Retirar</button>
+                                            </form>
+                                        }
+                                        else if (estado == "RETIRADO" || estado == "BORRADOR")
+                                        {
+                                            <form class="action-form" asp-controller="Inventario" asp-action="CambiarEstado" method="post">
+                                                <input type="hidden" name="idInmueble" value="@item.IdInmueble" />
+                                                <input type="hidden" name="estadoNuevo" value="PUBLICADO" />
+                                                <button class="action-btn" type="submit">Publicar</button>
+                                            </form>
+
+                                            @if (estado == "BORRADOR")
+                                            {
+                                                <form class="action-form" asp-controller="Inventario" asp-action="CambiarEstado" method="post"
+                                                      onsubmit="return confirm('¿Retirar este borrador?');">
+                                                    <input type="hidden" name="idInmueble" value="@item.IdInmueble" />
+                                                    <input type="hidden" name="estadoNuevo" value="RETIRADO" />
+                                                    <button class="action-btn warning" type="submit">Retirar</button>
+                                                </form>
+                                            }
+                                        }
+                                    </div>
+
+                                    <div class="action-section">
+                                        <div class="action-section-title">Quién puede verla</div>
+                                        <form class="visibility-form" asp-controller="Inventario" asp-action="CambiarVisibilidad" method="post">
+                                            <input type="hidden" name="idInmueble" value="@item.IdInmueble" />
+                                            <select name="visibilidadNueva" aria-label="Visibilidad de la propiedad">
+                                                <option value="CUENTA" selected="@(item.VisibilidadCodigo == "CUENTA" ? "selected" : null)">Solo mi cuenta</option>
+                                                <option value="COLABORADORES" selected="@(item.VisibilidadCodigo == "COLABORADORES" ? "selected" : null)">Colaboradores</option>
+                                                <option value="ENLACE" selected="@(item.VisibilidadCodigo == "ENLACE" ? "selected" : null)">Solo con enlace</option>
+                                                <option value="PUBLICO" selected="@(item.VisibilidadCodigo == "PUBLICO" ? "selected" : null)">Público</option>
+                                            </select>
+                                            <button class="action-btn" type="submit">Guardar</button>
+                                        </form>
+                                    </div>
+
+                                    <div class="action-note">
+                                        Venta y renta se registrarán mediante “Cerrar operación”, con precio y fecha reales; no como un cambio rápido de estado.
+                                    </div>
+                                </div>
+                            </details>
+                        }
                     </div>
                 </article>
             }
