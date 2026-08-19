@@ -11,7 +11,7 @@ namespace maps4.Repositorios.Implementacion
 
         public InmuebleRegistroRepository(IConfiguration configuration)
         {
-            _cadenaSQL = configuration.GetConnectionString("cadenaSQL");
+            _cadenaSQL = configuration.GetConnectionString("cadenaSQL") ?? string.Empty;
         }
 
         public async Task<Inmueble> SaveInmueble(Inmueble data)
@@ -91,56 +91,78 @@ namespace maps4.Repositorios.Implementacion
             }
         }
 
+        // Lectura pública. El procedimiento devuelve únicamente PUBLICADO + PUBLICO.
         public async Task<List<Inmueble>> GetInmuebleById(int inmuebleId)
         {
-            List<Inmueble> _lista = new List<Inmueble>();
+            using var conexion = new SqlConnection(_cadenaSQL);
+            await conexion.OpenAsync();
 
-            using (var conexion = new SqlConnection(_cadenaSQL))
+            using var cmd = new SqlCommand("RSMAPS_sp_GetInmueblePublicoById", conexion)
             {
-                conexion.Open();
-                SqlCommand cmd = new SqlCommand("RSMAPS_sp_GetInmuebleById", conexion);
-                cmd.Parameters.AddWithValue("idInmueble", inmuebleId);
-                cmd.CommandType = CommandType.StoredProcedure;
+                CommandType = CommandType.StoredProcedure
+            };
+            cmd.Parameters.Add("@idInmueble", SqlDbType.Int).Value = inmuebleId;
 
-                using (var dr = await cmd.ExecuteReaderAsync())
+            return await LeerInmueblesAsync(cmd);
+        }
+
+        // Lectura privada. SQL valida identidad, Cuenta y propietario.
+        public async Task<List<Inmueble>> GetInmueblePrivadoById(int inmuebleId, string correoAutenticado)
+        {
+            using var conexion = new SqlConnection(_cadenaSQL);
+            await conexion.OpenAsync();
+
+            using var cmd = new SqlCommand("RSMAPS_sp_GetInmueblePrivadoById", conexion)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            cmd.Parameters.Add("@idInmueble", SqlDbType.Int).Value = inmuebleId;
+            cmd.Parameters.Add("@correo", SqlDbType.VarChar, 200).Value = correoAutenticado;
+
+            return await LeerInmueblesAsync(cmd);
+        }
+
+        private static async Task<List<Inmueble>> LeerInmueblesAsync(SqlCommand cmd)
+        {
+            List<Inmueble> lista = new();
+
+            using var dr = await cmd.ExecuteReaderAsync();
+            while (await dr.ReadAsync())
+            {
+                lista.Add(new Inmueble
                 {
-                    while (await dr.ReadAsync())
-                    {
-                        _lista.Add(new Inmueble
+                    IdInmueble = Convert.ToInt32(dr["idInmueble"]),
+                    refInmobiliaria = dr["idInmobiliaria"] == DBNull.Value
+                        ? null
+                        : new Inmobiliaria
                         {
-                            IdInmueble = Convert.ToInt32(dr["idInmueble"]),
-                            refInmobiliaria = dr["idInmobiliaria"] == DBNull.Value
-                                ? null
-                                : new Inmobiliaria()
-                                {
-                                    idInmobiliaria = Convert.ToInt32(dr["idInmobiliaria"]),
-                                    nombre = dr["nombre"].ToString()
-                                },
-                            RefUsuario = new Usuario()
-                            {
-                                idAsesor = Convert.ToInt32(dr["idAsesor"]),
-                                nombres = dr["nombres"].ToString(),
-                                aPaterno = dr["aPaterno"].ToString(),
-                                correo = dr["correo"].ToString(),
-                            },
-                            Direccion = dr["direccion"].ToString(),
-                            Lat = dr["lat"] as decimal?,
-                            Lng = dr["lng"] as decimal?,
-                            IdTipo = dr["idTipo"] as int?,
-                            Telefono = dr["telefono"].ToString(),
-                            Terreno = float.Parse(dr["terreno"].ToString()),
-                            Construccion = float.Parse(dr["construccion"].ToString()),
-                            Precio = float.Parse(dr["precio"].ToString()),
-                            Observaciones = dr["observaciones"].ToString(),
-                            Exclusiva = dr["exclusiva"] as int?,
-                            Link = dr["link"].ToString(),
-                            Contacto = dr["contacto_a"].ToString(),
-                            Imagenes = Convert.ToInt32(dr["imagenes"]),
-                        });
-                    }
-                }
+                            idInmobiliaria = Convert.ToInt32(dr["idInmobiliaria"]),
+                            nombre = dr["nombre"] == DBNull.Value ? null : dr["nombre"].ToString()
+                        },
+                    RefUsuario = new Usuario
+                    {
+                        idAsesor = Convert.ToInt32(dr["idAsesor"]),
+                        nombres = dr["nombres"] == DBNull.Value ? null : dr["nombres"].ToString(),
+                        aPaterno = dr["aPaterno"] == DBNull.Value ? null : dr["aPaterno"].ToString(),
+                        correo = dr["correo"] == DBNull.Value ? null : dr["correo"].ToString(),
+                    },
+                    Direccion = dr["direccion"] == DBNull.Value ? null : dr["direccion"].ToString(),
+                    Lat = dr["lat"] == DBNull.Value ? null : Convert.ToDecimal(dr["lat"]),
+                    Lng = dr["lng"] == DBNull.Value ? null : Convert.ToDecimal(dr["lng"]),
+                    IdTipo = dr["idTipo"] == DBNull.Value ? null : Convert.ToInt32(dr["idTipo"]),
+                    Telefono = dr["telefono"] == DBNull.Value ? null : dr["telefono"].ToString(),
+                    Terreno = dr["terreno"] == DBNull.Value ? 0 : Convert.ToDouble(dr["terreno"]),
+                    Construccion = dr["construccion"] == DBNull.Value ? 0 : Convert.ToDouble(dr["construccion"]),
+                    Precio = dr["precio"] == DBNull.Value ? 0 : Convert.ToDouble(dr["precio"]),
+                    Observaciones = dr["observaciones"] == DBNull.Value ? null : dr["observaciones"].ToString(),
+                    Exclusiva = dr["exclusiva"] == DBNull.Value ? null : Convert.ToInt32(dr["exclusiva"]),
+                    Link = dr["link"] == DBNull.Value ? null : dr["link"].ToString(),
+                    Contacto = dr["contacto_a"] == DBNull.Value ? null : dr["contacto_a"].ToString(),
+                    Imagenes = dr["imagenes"] == DBNull.Value ? 0 : Convert.ToInt32(dr["imagenes"]),
+                });
             }
-            return _lista;
+
+            return lista;
         }
     }
 }
