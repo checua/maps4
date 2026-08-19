@@ -311,30 +311,44 @@ DECLARE @CuentaTotal INT;
 DECLARE @FilasAsesor INT;
 DECLARE @FilasAdmin INT;
 
+;WITH PropiosPorAsesor AS
+(
+    SELECT
+        i.IdCuenta,
+        i.idAsesor,
+        COUNT(*) AS Propios
+    FROM dbo.RSMAPS_Inmueble i
+    GROUP BY i.IdCuenta, i.idAsesor
+),
+TotalPorCuenta AS
+(
+    SELECT
+        i.IdCuenta,
+        COUNT(*) AS CuentaTotal
+    FROM dbo.RSMAPS_Inmueble i
+    GROUP BY i.IdCuenta
+)
 SELECT TOP (1)
     @IdCuentaPrueba = cu.IdCuenta,
     @IdAsesorPrueba = cu.IdAsesor,
     @CorreoPrueba = u.correo,
     @RolOriginal = cu.RolCodigo,
-    @Propios = conteos.Propios,
-    @CuentaTotal = conteos.CuentaTotal
+    @Propios = pa.Propios,
+    @CuentaTotal = tc.CuentaTotal
 FROM dbo.RSMAPS_CuentaUsuario cu
 INNER JOIN dbo.RSMAPS_Usuario u
     ON u.idAsesor = cu.IdAsesor
-CROSS APPLY
-(
-    SELECT
-        SUM(CASE WHEN i.idAsesor = cu.IdAsesor THEN 1 ELSE 0 END) AS Propios,
-        COUNT(*) AS CuentaTotal
-    FROM dbo.RSMAPS_Inmueble i
-    WHERE i.IdCuenta = cu.IdCuenta
-) conteos
+INNER JOIN PropiosPorAsesor pa
+    ON pa.IdCuenta = cu.IdCuenta
+   AND pa.idAsesor = cu.IdAsesor
+INNER JOIN TotalPorCuenta tc
+    ON tc.IdCuenta = cu.IdCuenta
 WHERE cu.Activo = 1
   AND cu.RolCodigo = 'ASESOR'
   AND u.correo IS NOT NULL
-  AND conteos.Propios > 0
-  AND conteos.CuentaTotal > conteos.Propios
-ORDER BY conteos.Propios DESC, cu.IdAsesor;
+  AND pa.Propios > 0
+  AND tc.CuentaTotal > pa.Propios
+ORDER BY pa.Propios DESC, cu.IdAsesor;
 
 IF @IdAsesorPrueba IS NULL
     THROW 52140, 'No se encontro un asesor adecuado para probar alcance por rol.', 1;
