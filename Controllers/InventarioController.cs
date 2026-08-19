@@ -41,22 +41,32 @@ namespace maps4.Controllers
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            if (!TryGetAccountContext(out int idCuenta, out int idAsesor))
+            string? correo = User.Identity?.Name;
+            if (string.IsNullOrWhiteSpace(correo) || !TryGetAccountContext(out _, out int idAsesor))
+                return Forbid();
+
+            try
+            {
+                List<InventarioInmuebleViewModel> inmuebles =
+                    await _inventarioRepository.ListarAutorizadosAsync(correo);
+
+                string rol = User.FindFirstValue(ClaimTypes.Role) ?? string.Empty;
+
+                InventarioIndexViewModel modelo = new InventarioIndexViewModel
+                {
+                    CuentaNombre = User.FindFirstValue("CuentaNombre") ?? "Mi cuenta",
+                    Rol = NombreRolUi(rol),
+                    IdAsesorActual = idAsesor,
+                    EsVistaEquipo = inmuebles.Any(x => x.IdAsesor != idAsesor),
+                    Inmuebles = inmuebles
+                };
+
+                return View(modelo);
+            }
+            catch (SqlException ex) when (ex.Number is 52120 or 52121 or 52122 or 52123)
             {
                 return Forbid();
             }
-
-            List<InventarioInmuebleViewModel> inmuebles =
-                await _inventarioRepository.ListarAsync(idCuenta, idAsesor);
-
-            InventarioIndexViewModel modelo = new InventarioIndexViewModel
-            {
-                CuentaNombre = User.FindFirstValue("CuentaNombre") ?? "Mi cuenta",
-                Rol = User.FindFirstValue(ClaimTypes.Role) ?? string.Empty,
-                Inmuebles = inmuebles
-            };
-
-            return View(modelo);
         }
 
         [HttpPost]
@@ -155,6 +165,9 @@ namespace maps4.Controllers
             {
                 IdInmueble = inmueble.IdInmueble,
                 TipoOperacion = tipoSugerido,
+                PrecioCierre = inmueble.Precio.HasValue && inmueble.Precio.Value > 0
+                    ? Convert.ToDecimal(inmueble.Precio.Value)
+                    : 0,
                 FechaCierre = DateOnly.FromDateTime(DateTime.Today),
                 TipoNombre = inmueble.TipoNombre,
                 Direccion = inmueble.Direccion,
@@ -237,7 +250,7 @@ namespace maps4.Controllers
             List<InventarioInmuebleViewModel> inmuebles =
                 await _inventarioRepository.ListarAsync(idCuenta, idAsesor);
 
-            return inmuebles.FirstOrDefault(x => x.IdInmueble == idInmueble);
+            return inmuebles.FirstOrDefault(x => x.IdInmueble == idInmueble && x.IdAsesor == idAsesor);
         }
 
         private static void CargarContextoCierre(CerrarOperacionViewModel modelo, InventarioInmuebleViewModel inmueble)
@@ -248,6 +261,13 @@ namespace maps4.Controllers
             modelo.EstadoActual = inmueble.EstadoCodigo;
             modelo.VisibilidadActual = inmueble.VisibilidadCodigo;
             modelo.Imagenes = inmueble.Imagenes;
+        }
+
+        private static string NombreRolUi(string rol)
+        {
+            return rol.Equals("PROPIETARIO", StringComparison.OrdinalIgnoreCase)
+                ? "Titular de cuenta"
+                : rol;
         }
 
         private static string MensajeSeguro(int numeroError)
