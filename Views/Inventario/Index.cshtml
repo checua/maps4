@@ -84,6 +84,7 @@
     .visibility-form { display:flex; gap:7px; flex:1; min-width:220px; }
     .visibility-form select { flex:1; border:1px solid #d8dde5; border-radius:9px; padding:7px 8px; background:#fff; font-size:12px; }
     .action-note { color:#667085; font-size:11px; line-height:1.4; }
+    .action-note.team { background:#eef4ff; border-radius:9px; padding:8px 9px; color:#344b7a; }
     .closed-label, .readonly-label { color:#667085; font-size:12px; padding:7px 0; }
     .readonly-label { background:#f2f4f7; border-radius:999px; padding:6px 9px; }
     .empty-state { background: white; border: 1px dashed #cfd5dd; border-radius: 18px; padding: 60px 24px; text-align: center; color: #667085; }
@@ -119,7 +120,14 @@
     @if (Model.EsVistaEquipo)
     {
         <div class="scope-note">
-            Vista de equipo activa. Puedes consultar todo el inventario autorizado; por ahora las propiedades de otros asesores son de solo lectura.
+            @if (Model.PuedeCambiarEstadoCuenta || Model.PuedeCerrarOperacionCuenta)
+            {
+                <span>Vista de equipo activa. Tus permisos actuales permiten operar inventario de la cuenta; cada acción sobre propiedades de otro asesor quedará auditada con responsable y actor por separado.</span>
+            }
+            else
+            {
+                <span>Vista de equipo activa. Puedes consultar todo el inventario autorizado; las propiedades de otros asesores son de solo lectura.</span>
+            }
         </div>
     }
 
@@ -181,6 +189,8 @@
             @foreach (var item in Model.Inmuebles)
             {
                 var esPropio = item.IdAsesor == Model.IdAsesorActual;
+                var puedeCambiar = esPropio || Model.PuedeCambiarEstadoCuenta;
+                var puedeCerrar = esPropio || Model.PuedeCerrarOperacionCuenta;
                 var searchable = $"{item.IdInmueble} {item.Direccion} {item.Observaciones} {item.TipoNombre} {item.AsesorNombre}".ToLowerInvariant();
                 var fallbackImage = string.IsNullOrWhiteSpace(publicAssetBaseUrl)
                     ? string.Empty
@@ -274,7 +284,7 @@
                         {
                             <span class="closed-label">Operación cerrada</span>
                         }
-                        else if (!esPropio)
+                        else if (!puedeCambiar && !puedeCerrar)
                         {
                             <span class="readonly-label">Solo lectura</span>
                         }
@@ -283,75 +293,95 @@
                             <details class="property-actions">
                                 <summary>Acciones</summary>
                                 <div class="action-panel">
-                                    <div class="action-section">
-                                        <div class="action-section-title">Estado comercial</div>
+                                    @if (puedeCambiar)
+                                    {
+                                        <div class="action-section">
+                                            <div class="action-section-title">Estado comercial</div>
 
-                                        @if (estado == "PUBLICADO")
-                                        {
-                                            <form class="action-form" asp-controller="Inventario" asp-action="CambiarEstado" method="post"
-                                                  onsubmit="return confirm('¿Pausar esta propiedad? Dejará de aparecer en el marketplace público.');">
-                                                <input type="hidden" name="idInmueble" value="@item.IdInmueble" />
-                                                <input type="hidden" name="estadoNuevo" value="PAUSADO" />
-                                                <button class="action-btn" type="submit">Pausar</button>
-                                            </form>
-                                            <form class="action-form" asp-controller="Inventario" asp-action="CambiarEstado" method="post"
-                                                  onsubmit="return confirm('¿Retirar esta propiedad del mercado? Podrás publicarla nuevamente después.');">
-                                                <input type="hidden" name="idInmueble" value="@item.IdInmueble" />
-                                                <input type="hidden" name="estadoNuevo" value="RETIRADO" />
-                                                <button class="action-btn warning" type="submit">Retirar</button>
-                                            </form>
-                                        }
-                                        else if (estado == "PAUSADO")
-                                        {
-                                            <form class="action-form" asp-controller="Inventario" asp-action="CambiarEstado" method="post">
-                                                <input type="hidden" name="idInmueble" value="@item.IdInmueble" />
-                                                <input type="hidden" name="estadoNuevo" value="PUBLICADO" />
-                                                <button class="action-btn" type="submit">Reactivar</button>
-                                            </form>
-                                            <form class="action-form" asp-controller="Inventario" asp-action="CambiarEstado" method="post"
-                                                  onsubmit="return confirm('¿Retirar esta propiedad del mercado?');">
-                                                <input type="hidden" name="idInmueble" value="@item.IdInmueble" />
-                                                <input type="hidden" name="estadoNuevo" value="RETIRADO" />
-                                                <button class="action-btn warning" type="submit">Retirar</button>
-                                            </form>
-                                        }
-                                        else if (estado == "RETIRADO" || estado == "BORRADOR")
-                                        {
-                                            <form class="action-form" asp-controller="Inventario" asp-action="CambiarEstado" method="post">
-                                                <input type="hidden" name="idInmueble" value="@item.IdInmueble" />
-                                                <input type="hidden" name="estadoNuevo" value="PUBLICADO" />
-                                                <button class="action-btn" type="submit">Publicar</button>
-                                            </form>
-
-                                            @if (estado == "BORRADOR")
+                                            @if (estado == "PUBLICADO")
                                             {
                                                 <form class="action-form" asp-controller="Inventario" asp-action="CambiarEstado" method="post"
-                                                      onsubmit="return confirm('¿Retirar este borrador?');">
+                                                      onsubmit="return confirm('¿Pausar esta propiedad? Dejará de aparecer en el marketplace público.');">
+                                                    <input type="hidden" name="idInmueble" value="@item.IdInmueble" />
+                                                    <input type="hidden" name="estadoNuevo" value="PAUSADO" />
+                                                    <button class="action-btn" type="submit">Pausar</button>
+                                                </form>
+                                                <form class="action-form" asp-controller="Inventario" asp-action="CambiarEstado" method="post"
+                                                      onsubmit="return confirm('¿Retirar esta propiedad del mercado? Podrás publicarla nuevamente después.');">
                                                     <input type="hidden" name="idInmueble" value="@item.IdInmueble" />
                                                     <input type="hidden" name="estadoNuevo" value="RETIRADO" />
                                                     <button class="action-btn warning" type="submit">Retirar</button>
                                                 </form>
                                             }
-                                        }
-                                    </div>
+                                            else if (estado == "PAUSADO")
+                                            {
+                                                <form class="action-form" asp-controller="Inventario" asp-action="CambiarEstado" method="post">
+                                                    <input type="hidden" name="idInmueble" value="@item.IdInmueble" />
+                                                    <input type="hidden" name="estadoNuevo" value="PUBLICADO" />
+                                                    <button class="action-btn" type="submit">Reactivar</button>
+                                                </form>
+                                                <form class="action-form" asp-controller="Inventario" asp-action="CambiarEstado" method="post"
+                                                      onsubmit="return confirm('¿Retirar esta propiedad del mercado?');">
+                                                    <input type="hidden" name="idInmueble" value="@item.IdInmueble" />
+                                                    <input type="hidden" name="estadoNuevo" value="RETIRADO" />
+                                                    <button class="action-btn warning" type="submit">Retirar</button>
+                                                </form>
+                                            }
+                                            else if (estado == "RETIRADO" || estado == "BORRADOR")
+                                            {
+                                                <form class="action-form" asp-controller="Inventario" asp-action="CambiarEstado" method="post">
+                                                    <input type="hidden" name="idInmueble" value="@item.IdInmueble" />
+                                                    <input type="hidden" name="estadoNuevo" value="PUBLICADO" />
+                                                    <button class="action-btn" type="submit">Publicar</button>
+                                                </form>
 
-                                    <div class="action-section">
-                                        <div class="action-section-title">Quién puede verla</div>
-                                        <form class="visibility-form" asp-controller="Inventario" asp-action="CambiarVisibilidad" method="post">
-                                            <input type="hidden" name="idInmueble" value="@item.IdInmueble" />
-                                            <select name="visibilidadNueva" aria-label="Visibilidad de la propiedad">
-                                                <option value="CUENTA" selected="@(item.VisibilidadCodigo == "CUENTA" ? "selected" : null)">Solo mi cuenta</option>
-                                                <option value="COLABORADORES" selected="@(item.VisibilidadCodigo == "COLABORADORES" ? "selected" : null)">Colaboradores</option>
-                                                <option value="ENLACE" selected="@(item.VisibilidadCodigo == "ENLACE" ? "selected" : null)">Solo con enlace</option>
-                                                <option value="PUBLICO" selected="@(item.VisibilidadCodigo == "PUBLICO" ? "selected" : null)">Público</option>
-                                            </select>
-                                            <button class="action-btn" type="submit">Guardar</button>
-                                        </form>
-                                    </div>
+                                                @if (estado == "BORRADOR")
+                                                {
+                                                    <form class="action-form" asp-controller="Inventario" asp-action="CambiarEstado" method="post"
+                                                          onsubmit="return confirm('¿Retirar este borrador?');">
+                                                        <input type="hidden" name="idInmueble" value="@item.IdInmueble" />
+                                                        <input type="hidden" name="estadoNuevo" value="RETIRADO" />
+                                                        <button class="action-btn warning" type="submit">Retirar</button>
+                                                    </form>
+                                                }
+                                            }
+                                        </div>
 
-                                    <div class="action-note">
-                                        Venta y renta se registrarán mediante “Cerrar operación”, con precio y fecha reales; no como un cambio rápido de estado.
-                                    </div>
+                                        <div class="action-section">
+                                            <div class="action-section-title">Quién puede verla</div>
+                                            <form class="visibility-form" asp-controller="Inventario" asp-action="CambiarVisibilidad" method="post">
+                                                <input type="hidden" name="idInmueble" value="@item.IdInmueble" />
+                                                <select name="visibilidadNueva" aria-label="Visibilidad de la propiedad">
+                                                    <option value="CUENTA" selected="@(item.VisibilidadCodigo == "CUENTA" ? "selected" : null)">Solo mi cuenta</option>
+                                                    <option value="COLABORADORES" selected="@(item.VisibilidadCodigo == "COLABORADORES" ? "selected" : null)">Colaboradores</option>
+                                                    <option value="ENLACE" selected="@(item.VisibilidadCodigo == "ENLACE" ? "selected" : null)">Solo con enlace</option>
+                                                    <option value="PUBLICO" selected="@(item.VisibilidadCodigo == "PUBLICO" ? "selected" : null)">Público</option>
+                                                </select>
+                                                <button class="action-btn" type="submit">Guardar</button>
+                                            </form>
+                                        </div>
+                                    }
+
+                                    @if (puedeCerrar && estado is "PUBLICADO" or "PAUSADO" or "RETIRADO")
+                                    {
+                                        <div class="action-section close-operation-section">
+                                            <div class="action-section-title">Resultado de comercialización</div>
+                                            <a class="action-btn" style="text-decoration:none;" asp-controller="Inventario" asp-action="CerrarOperacion" asp-route-idInmueble="@item.IdInmueble">Cerrar operación</a>
+                                        </div>
+                                    }
+
+                                    @if (!esPropio)
+                                    {
+                                        <div class="action-note team">
+                                            Acción de equipo: <strong>@(string.IsNullOrWhiteSpace(item.AsesorNombre) ? $"Asesor {item.IdAsesor}" : item.AsesorNombre)</strong> conserva la responsabilidad comercial y tu usuario quedará registrado como actor.
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="action-note">
+                                            Venta y renta se registran mediante “Cerrar operación”, con precio y fecha reales; no como un cambio rápido de estado.
+                                        </div>
+                                    }
                                 </div>
                             </details>
                         }
