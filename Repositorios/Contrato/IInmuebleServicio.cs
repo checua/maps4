@@ -10,6 +10,10 @@ namespace maps4.Repositorios.Contrato
 
         Task<bool> EliminarInmueble(int idInmueble, string correoAutenticado);
 
+        // Lectura pública: solo PUBLICADO + PUBLICO.
         Task<List<T>> GetInmuebleById(int idInmueble);
+
+        // Lectura privada: valida identidad, Cuenta y propiedad en SQL.
+        Task<List<T>> GetInmueblePrivadoById(int idInmueble, string correoAutenticado);
     }
 }
