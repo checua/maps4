@@ -6,6 +6,7 @@ namespace maps4.Repositorios.Contrato
     {
         Task<List<InventarioInmuebleViewModel>> ListarAsync(int idCuenta, int idAsesor);
         Task<List<InventarioInmuebleViewModel>> ListarAutorizadosAsync(string correo);
+        Task<InventarioAutorizacionContexto?> ObtenerContextoAutorizacionAsync(string correo);
 
         Task CambiarEstadoOVisibilidadAsync(
             int idInmueble,
