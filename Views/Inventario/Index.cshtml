@@ -15,6 +15,14 @@
     var sinFotos = Model.Inmuebles.Count(x => !x.TieneFotos);
     var sinUbicacion = Model.Inmuebles.Count(x => !x.TieneUbicacion);
     var publicAssetBaseUrl = (Configuration["RSMaps:PublicAssetBaseUrl"] ?? string.Empty).TrimEnd('/');
+    var alcanceTexto = Model.EsVistaEquipo
+        ? $"inventario del equipo · {Model.InmueblesPropios} tuyos + {Model.InmueblesEquipo} del equipo"
+        : "mostrando únicamente tus inmuebles";
+    var asesores = Model.Inmuebles
+        .GroupBy(x => new { x.IdAsesor, x.AsesorNombre })
+        .Select(g => new { g.Key.IdAsesor, Nombre = string.IsNullOrWhiteSpace(g.Key.AsesorNombre) ? $"Asesor {g.Key.IdAsesor}" : g.Key.AsesorNombre!, Total = g.Count() })
+        .OrderBy(x => x.Nombre)
+        .ToList();
 }
 
 <style>
@@ -29,6 +37,7 @@
     .flash { border-radius: 12px; padding: 11px 14px; margin: 0 0 14px; font-size: 14px; }
     .flash.ok { background: #eef9f1; color: #24613a; border: 1px solid #cfe8d6; }
     .flash.error { background: #fff2f0; color: #912018; border: 1px solid #f1c8c3; }
+    .scope-note { background:#eef4ff; border:1px solid #d8e3fb; color:#344b7a; border-radius:12px; padding:10px 13px; margin:0 0 14px; font-size:13px; }
     .summary-grid { display: grid; grid-template-columns: repeat(6, minmax(125px, 1fr)); gap: 12px; margin-bottom: 14px; }
     .summary-card { border: 1px solid #e1e5ea; background: white; border-radius: 16px; padding: 16px; cursor: pointer; transition: .15s ease; }
     .summary-card:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(16,24,40,.07); }
@@ -51,6 +60,8 @@
     .property-price.pending { color:#9a6700; font-size:18px; }
     .property-address { color: #4b5565; min-height: 42px; }
     .property-type { color:#344054; font-size:13px; font-weight:650; margin-top:6px; }
+    .property-advisor { color:#667085; font-size:12px; margin-top:7px; }
+    .property-advisor strong { color:#344054; }
     .property-meta { display: flex; gap: 12px; flex-wrap: wrap; color: #667085; font-size: 13px; margin-top: 13px; padding-top: 12px; border-top: 1px solid #eef0f3; }
     .property-id { color: #98a2b3; font-size: 12px; margin-top: 10px; }
     .quality-box { margin-top:12px; border-radius:12px; padding:9px 10px; font-size:12px; line-height:1.45; }
@@ -73,7 +84,8 @@
     .visibility-form { display:flex; gap:7px; flex:1; min-width:220px; }
     .visibility-form select { flex:1; border:1px solid #d8dde5; border-radius:9px; padding:7px 8px; background:#fff; font-size:12px; }
     .action-note { color:#667085; font-size:11px; line-height:1.4; }
-    .closed-label { color:#667085; font-size:12px; padding:7px 0; }
+    .closed-label, .readonly-label { color:#667085; font-size:12px; padding:7px 0; }
+    .readonly-label { background:#f2f4f7; border-radius:999px; padding:6px 9px; }
     .empty-state { background: white; border: 1px dashed #cfd5dd; border-radius: 18px; padding: 60px 24px; text-align: center; color: #667085; }
     .no-results { display: none; }
     @@media (max-width: 1100px) { .summary-grid { grid-template-columns: repeat(3, 1fr); } }
@@ -88,7 +100,7 @@
     <div class="inventory-top">
         <div class="inventory-title">
             <h1>Mi inventario</h1>
-            <p>@Model.CuentaNombre · @Model.Rol · mostrando únicamente tus inmuebles</p>
+            <p>@Model.CuentaNombre · @Model.Rol · @alcanceTexto</p>
         </div>
         <div class="inventory-actions">
             <a class="back-map" href="@Url.Action("Index", "Home")">← Volver al mapa</a>
@@ -104,6 +116,13 @@
         <div class="flash error">⚠ @mensajeError</div>
     }
 
+    @if (Model.EsVistaEquipo)
+    {
+        <div class="scope-note">
+            Vista de equipo activa. Puedes consultar todo el inventario autorizado; por ahora las propiedades de otros asesores son de solo lectura.
+        </div>
+    }
+
     <div class="summary-grid">
         <div class="summary-card" data-summary-state="TODOS"><div class="number">@total</div><div class="label">Total</div></div>
         <div class="summary-card" data-summary-state="PUBLICADO"><div class="number">@publicados</div><div class="label">Publicados</div></div>
@@ -117,10 +136,26 @@
         <span class="health-chip">Sin precio: <strong>@sinPrecio</strong></span>
         <span class="health-chip">Sin fotos: <strong>@sinFotos</strong></span>
         <span class="health-chip">Sin ubicación: <strong>@sinUbicacion</strong></span>
+        @if (Model.EsVistaEquipo)
+        {
+            <span class="health-chip">Tus propiedades: <strong>@Model.InmueblesPropios</strong></span>
+            <span class="health-chip">De otros asesores: <strong>@Model.InmueblesEquipo</strong></span>
+        }
     </div>
 
     <div class="toolbar">
-        <input id="inventorySearch" type="search" placeholder="Buscar por dirección, descripción, tipo o ID…" autocomplete="off" />
+        <input id="inventorySearch" type="search" placeholder="Buscar por dirección, descripción, tipo, asesor o ID…" autocomplete="off" />
+        @if (Model.EsVistaEquipo)
+        {
+            <select id="inventoryAdvisor" aria-label="Filtrar por asesor">
+                <option value="TODOS">Todos los asesores</option>
+                <option value="PROPIOS">Mis propiedades (@Model.InmueblesPropios)</option>
+                @foreach (var asesor in asesores.Where(x => x.IdAsesor != Model.IdAsesorActual))
+                {
+                    <option value="@asesor.IdAsesor">@asesor.Nombre (@asesor.Total)</option>
+                }
+            </select>
+        }
         <select id="inventoryState">
             <option value="TODOS">Todos los estados</option>
             <option value="PUBLICADO">Publicados</option>
@@ -136,8 +171,8 @@
     @if (!Model.Inmuebles.Any())
     {
         <div class="empty-state">
-            <h3>Aún no tienes inmuebles en esta cuenta</h3>
-            <p>Cuando registres tu primera propiedad aparecerá aquí.</p>
+            <h3>No hay inmuebles disponibles en este alcance</h3>
+            <p>Cuando exista inventario autorizado aparecerá aquí.</p>
         </div>
     }
     else
@@ -145,7 +180,8 @@
         <div id="inventoryGrid" class="inventory-grid">
             @foreach (var item in Model.Inmuebles)
             {
-                var searchable = $"{item.IdInmueble} {item.Direccion} {item.Observaciones} {item.TipoNombre}".ToLowerInvariant();
+                var esPropio = item.IdAsesor == Model.IdAsesorActual;
+                var searchable = $"{item.IdInmueble} {item.Direccion} {item.Observaciones} {item.TipoNombre} {item.AsesorNombre}".ToLowerInvariant();
                 var fallbackImage = string.IsNullOrWhiteSpace(publicAssetBaseUrl)
                     ? string.Empty
                     : $"{publicAssetBaseUrl}/cargas/{item.IdInmueble}_1.jpg";
@@ -160,6 +196,8 @@
                 <article class="property-card"
                          data-state="@item.EstadoCodigo"
                          data-attention="@(item.NecesitaAtencion ? "true" : "false")"
+                         data-advisor="@item.IdAsesor"
+                         data-owner="@(esPropio ? "true" : "false")"
                          data-search="@searchable">
                     <div class="property-media">
                         @if (item.Imagenes > 0)
@@ -207,6 +245,11 @@
 
                         <div class="property-type">@(string.IsNullOrWhiteSpace(item.TipoNombre) ? $"Tipo {item.IdTipo}" : item.TipoNombre)</div>
 
+                        @if (Model.EsVistaEquipo)
+                        {
+                            <div class="property-advisor">Asesor: <strong>@(string.IsNullOrWhiteSpace(item.AsesorNombre) ? $"ID {item.IdAsesor}" : item.AsesorNombre)</strong>@(esPropio ? " · Tú" : "")</div>
+                        }
+
                         <div class="property-meta">
                             @if (item.Terreno.HasValue && item.Terreno.Value > 0) { <span>Terreno: @item.Terreno.Value.ToString("N0") m²</span> }
                             @if (item.Construccion.HasValue && item.Construccion.Value > 0) { <span>Construcción: @item.Construccion.Value.ToString("N0") m²</span> }
@@ -230,6 +273,10 @@
                         @if (terminal)
                         {
                             <span class="closed-label">Operación cerrada</span>
+                        }
+                        else if (!esPropio)
+                        {
+                            <span class="readonly-label">Solo lectura</span>
                         }
                         else
                         {
@@ -335,6 +382,7 @@
     (() => {
         const search = document.getElementById('inventorySearch');
         const state = document.getElementById('inventoryState');
+        const advisor = document.getElementById('inventoryAdvisor');
         const cards = Array.from(document.querySelectorAll('.property-card'));
         const noResults = document.getElementById('inventoryNoResults');
 
@@ -343,6 +391,7 @@
         function applyFilters() {
             const text = search.value.trim().toLowerCase();
             const selected = state.value;
+            const selectedAdvisor = advisor?.value || 'TODOS';
             let visible = 0;
 
             cards.forEach(card => {
@@ -352,8 +401,11 @@
                     || cardState === selected
                     || (selected === 'CIERRE' && (cardState === 'VENDIDO' || cardState === 'RENTADO'))
                     || (selected === 'ATENCION' && needsAttention);
+                const advisorMatches = selectedAdvisor === 'TODOS'
+                    || (selectedAdvisor === 'PROPIOS' && card.dataset.owner === 'true')
+                    || card.dataset.advisor === selectedAdvisor;
                 const textMatches = !text || (card.dataset.search || '').includes(text);
-                const show = stateMatches && textMatches;
+                const show = stateMatches && advisorMatches && textMatches;
                 card.style.display = show ? '' : 'none';
                 if (show) visible++;
             });
@@ -363,6 +415,7 @@
 
         search.addEventListener('input', applyFilters);
         state.addEventListener('change', applyFilters);
+        advisor?.addEventListener('change', applyFilters);
 
         document.querySelectorAll('[data-summary-state]').forEach(card => {
             card.addEventListener('click', () => {
