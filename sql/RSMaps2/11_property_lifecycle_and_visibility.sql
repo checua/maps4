@@ -9,7 +9,7 @@
    - Dejar de depender a futuro del concepto ambiguo "eliminar = vendido".
    - Preparar inventario privado, colaboración, enlaces no listados y
      marketplace público para Web / Android / iOS.
-   - Conservar el comportamiento actual de los 77 inmuebles existentes:
+   - Conservar el comportamiento actual de los inmuebles existentes:
      se clasifican inicialmente como PUBLICADO + PUBLICO.
 
    IMPORTANTE:
@@ -20,6 +20,13 @@
      inmuebles legacy conservan FechaPublicacionUtc = NULL.
    - El historial creado para los inmuebles existentes queda marcado
      explícitamente como MIGRACION, no como fecha real de publicación.
+   - Es idempotente: puede reejecutarse si un intento anterior falló.
+
+   NOTA TECNICA:
+   Las operaciones que referencian columnas creadas en este mismo script
+   se ejecutan mediante SQL dinámico. SQL Server compila un lote antes de
+   ejecutarlo y, sin esta separación, reportaría "Invalid column name"
+   aunque el ALTER TABLE aparezca antes en el texto.
    ============================================================ */
 
 SET NOCOUNT ON;
@@ -80,12 +87,6 @@ BEGIN TRY
 
     /* ------------------------------------------------------------
        2. Catálogo de visibilidad
-
-       CUENTA         = solo inventario interno de la cuenta.
-       COLABORADORES  = futuro intercambio controlado con otros asesores.
-       ENLACE         = no aparece en búsquedas públicas, pero puede
-                        compartirse mediante enlace directo.
-       PUBLICO        = elegible para marketplace público.
        ------------------------------------------------------------ */
     IF OBJECT_ID(N'dbo.RSMAPS_VisibilidadInmueble', N'U') IS NULL
     BEGIN
@@ -118,47 +119,51 @@ BEGIN TRY
         VALUES ('PUBLICO', N'Público', N'Elegible para aparecer en el marketplace público cuando su estado también lo permita.', 40);
 
     /* ------------------------------------------------------------
-       3. Extender RSMAPS_Inmueble sin romper comportamiento actual
+       3. Extender RSMAPS_Inmueble
+       Cada ALTER se compila de forma independiente.
        ------------------------------------------------------------ */
     IF COL_LENGTH(N'dbo.RSMAPS_Inmueble', N'EstadoCodigo') IS NULL
     BEGIN
-        ALTER TABLE dbo.RSMAPS_Inmueble
+        EXEC sys.sp_executesql N'
+            ALTER TABLE dbo.RSMAPS_Inmueble
             ADD EstadoCodigo varchar(20) NOT NULL
-                CONSTRAINT DF_RSMAPS_Inmueble_EstadoCodigo DEFAULT ('PUBLICADO') WITH VALUES;
-    END
-    ELSE
-    BEGIN
-        UPDATE dbo.RSMAPS_Inmueble
-        SET EstadoCodigo = 'PUBLICADO'
-        WHERE EstadoCodigo IS NULL;
+                CONSTRAINT DF_RSMAPS_Inmueble_EstadoCodigo
+                DEFAULT (''PUBLICADO'') WITH VALUES;';
     END;
 
     IF COL_LENGTH(N'dbo.RSMAPS_Inmueble', N'VisibilidadCodigo') IS NULL
     BEGIN
-        ALTER TABLE dbo.RSMAPS_Inmueble
+        EXEC sys.sp_executesql N'
+            ALTER TABLE dbo.RSMAPS_Inmueble
             ADD VisibilidadCodigo varchar(20) NOT NULL
-                CONSTRAINT DF_RSMAPS_Inmueble_VisibilidadCodigo DEFAULT ('PUBLICO') WITH VALUES;
-    END
-    ELSE
-    BEGIN
-        UPDATE dbo.RSMAPS_Inmueble
-        SET VisibilidadCodigo = 'PUBLICO'
-        WHERE VisibilidadCodigo IS NULL;
+                CONSTRAINT DF_RSMAPS_Inmueble_VisibilidadCodigo
+                DEFAULT (''PUBLICO'') WITH VALUES;';
     END;
 
     IF COL_LENGTH(N'dbo.RSMAPS_Inmueble', N'FechaPublicacionUtc') IS NULL
     BEGIN
-        ALTER TABLE dbo.RSMAPS_Inmueble
-            ADD FechaPublicacionUtc datetime2(0) NULL;
+        EXEC sys.sp_executesql N'
+            ALTER TABLE dbo.RSMAPS_Inmueble
+            ADD FechaPublicacionUtc datetime2(0) NULL;';
     END;
 
     IF COL_LENGTH(N'dbo.RSMAPS_Inmueble', N'FechaUltimoCambioEstadoUtc') IS NULL
     BEGIN
-        ALTER TABLE dbo.RSMAPS_Inmueble
-            ADD FechaUltimoCambioEstadoUtc datetime2(0) NULL;
+        EXEC sys.sp_executesql N'
+            ALTER TABLE dbo.RSMAPS_Inmueble
+            ADD FechaUltimoCambioEstadoUtc datetime2(0) NULL;';
     END;
 
-    /* No inventar fechas para el inventario legacy. */
+    /* Si las columnas existieran por un intento parcial anterior, completar
+       únicamente NULLs sin cambiar valores ya clasificados. */
+    EXEC sys.sp_executesql N'
+        UPDATE dbo.RSMAPS_Inmueble
+        SET EstadoCodigo = ''PUBLICADO''
+        WHERE EstadoCodigo IS NULL;
+
+        UPDATE dbo.RSMAPS_Inmueble
+        SET VisibilidadCodigo = ''PUBLICO''
+        WHERE VisibilidadCodigo IS NULL;';
 
     /* ------------------------------------------------------------
        4. Foreign Keys de catálogos
@@ -171,13 +176,14 @@ BEGIN TRY
           AND name = N'FK_RSMAPS_Inmueble_Estado'
     )
     BEGIN
-        ALTER TABLE dbo.RSMAPS_Inmueble WITH CHECK
+        EXEC sys.sp_executesql N'
+            ALTER TABLE dbo.RSMAPS_Inmueble WITH CHECK
             ADD CONSTRAINT FK_RSMAPS_Inmueble_Estado
                 FOREIGN KEY (EstadoCodigo)
                 REFERENCES dbo.RSMAPS_EstadoInmueble(Codigo);
 
-        ALTER TABLE dbo.RSMAPS_Inmueble
-            CHECK CONSTRAINT FK_RSMAPS_Inmueble_Estado;
+            ALTER TABLE dbo.RSMAPS_Inmueble
+                CHECK CONSTRAINT FK_RSMAPS_Inmueble_Estado;';
     END;
 
     IF NOT EXISTS
@@ -188,22 +194,21 @@ BEGIN TRY
           AND name = N'FK_RSMAPS_Inmueble_Visibilidad'
     )
     BEGIN
-        ALTER TABLE dbo.RSMAPS_Inmueble WITH CHECK
+        EXEC sys.sp_executesql N'
+            ALTER TABLE dbo.RSMAPS_Inmueble WITH CHECK
             ADD CONSTRAINT FK_RSMAPS_Inmueble_Visibilidad
                 FOREIGN KEY (VisibilidadCodigo)
                 REFERENCES dbo.RSMAPS_VisibilidadInmueble(Codigo);
 
-        ALTER TABLE dbo.RSMAPS_Inmueble
-            CHECK CONSTRAINT FK_RSMAPS_Inmueble_Visibilidad;
+            ALTER TABLE dbo.RSMAPS_Inmueble
+                CHECK CONSTRAINT FK_RSMAPS_Inmueble_Visibilidad;';
     END;
 
     /* ------------------------------------------------------------
        5. Historial de cambios
 
-       Intencionalmente NO se crea todavía FK hacia RSMAPS_Inmueble.
-       El procedimiento legacy de eliminación aún borra físicamente la
-       fila activa. Hasta sustituirlo, el historial debe sobrevivir incluso
-       si una operación legacy elimina el inmueble.
+       Aún no se crea FK hacia RSMAPS_Inmueble porque el procedimiento
+       legacy de eliminación borra físicamente la fila activa.
        ------------------------------------------------------------ */
     IF OBJECT_ID(N'dbo.RSMAPS_InmuebleCambioEstado', N'U') IS NULL
     BEGIN
@@ -233,38 +238,39 @@ BEGIN TRY
             ON dbo.RSMAPS_InmuebleCambioEstado(IdCuenta, FechaCambioUtc DESC);
     END;
 
-    /* Registrar una línea base de migración sin afirmar fecha histórica. */
-    INSERT dbo.RSMAPS_InmuebleCambioEstado
-    (
-        IdInmueble,
-        IdCuenta,
-        EstadoAnterior,
-        EstadoNuevo,
-        VisibilidadAnterior,
-        VisibilidadNueva,
-        IdAsesorCambio,
-        Motivo,
-        Origen
-    )
-    SELECT
-        i.idInmueble,
-        i.IdCuenta,
-        NULL,
-        i.EstadoCodigo,
-        NULL,
-        i.VisibilidadCodigo,
-        NULL,
-        N'Clasificación inicial inferida durante migración RSMaps 2.0; fecha histórica real de publicación desconocida.',
-        'MIGRACION'
-    FROM dbo.RSMAPS_Inmueble i
-    WHERE NOT EXISTS
-    (
-        SELECT 1
-        FROM dbo.RSMAPS_InmuebleCambioEstado h
-        WHERE h.IdInmueble = i.idInmueble
-          AND h.Origen = 'MIGRACION'
-          AND h.EstadoAnterior IS NULL
-    );
+    /* Registrar línea base de migración una sola vez por inmueble. */
+    EXEC sys.sp_executesql N'
+        INSERT dbo.RSMAPS_InmuebleCambioEstado
+        (
+            IdInmueble,
+            IdCuenta,
+            EstadoAnterior,
+            EstadoNuevo,
+            VisibilidadAnterior,
+            VisibilidadNueva,
+            IdAsesorCambio,
+            Motivo,
+            Origen
+        )
+        SELECT
+            i.idInmueble,
+            i.IdCuenta,
+            NULL,
+            i.EstadoCodigo,
+            NULL,
+            i.VisibilidadCodigo,
+            NULL,
+            N''Clasificación inicial inferida durante migración RSMaps 2.0; fecha histórica real de publicación desconocida.'',
+            ''MIGRACION''
+        FROM dbo.RSMAPS_Inmueble i
+        WHERE NOT EXISTS
+        (
+            SELECT 1
+            FROM dbo.RSMAPS_InmuebleCambioEstado h
+            WHERE h.IdInmueble = i.idInmueble
+              AND h.Origen = ''MIGRACION''
+              AND h.EstadoAnterior IS NULL
+        );';
 
     /* ------------------------------------------------------------
        6. Índices para inventario / marketplace
@@ -276,8 +282,9 @@ BEGIN TRY
           AND name = N'IX_RSMAPS_Inmueble_Estado_Visibilidad'
     )
     BEGIN
-        CREATE INDEX IX_RSMAPS_Inmueble_Estado_Visibilidad
-            ON dbo.RSMAPS_Inmueble(EstadoCodigo, VisibilidadCodigo, IdCuenta);
+        EXEC sys.sp_executesql N'
+            CREATE INDEX IX_RSMAPS_Inmueble_Estado_Visibilidad
+            ON dbo.RSMAPS_Inmueble(EstadoCodigo, VisibilidadCodigo, IdCuenta);';
     END;
 
     IF NOT EXISTS
@@ -287,8 +294,9 @@ BEGIN TRY
           AND name = N'IX_RSMAPS_Inmueble_Cuenta_Estado'
     )
     BEGIN
-        CREATE INDEX IX_RSMAPS_Inmueble_Cuenta_Estado
-            ON dbo.RSMAPS_Inmueble(IdCuenta, EstadoCodigo, idAsesor);
+        EXEC sys.sp_executesql N'
+            CREATE INDEX IX_RSMAPS_Inmueble_Cuenta_Estado
+            ON dbo.RSMAPS_Inmueble(IdCuenta, EstadoCodigo, idAsesor);';
     END;
 
     COMMIT TRANSACTION;
@@ -301,21 +309,23 @@ END CATCH;
 
 /* ============================================================
    7. VALIDACIONES FINALES
+   También dinámicas porque las columnas pueden haber sido creadas arriba.
    ============================================================ */
-SELECT
-    COUNT(*) AS TotalInmuebles,
-    SUM(CASE WHEN EstadoCodigo = 'PUBLICADO' THEN 1 ELSE 0 END) AS Publicados,
-    SUM(CASE WHEN VisibilidadCodigo = 'PUBLICO' THEN 1 ELSE 0 END) AS Publicos,
-    SUM(CASE WHEN FechaPublicacionUtc IS NULL THEN 1 ELSE 0 END) AS FechaPublicacionDesconocida
-FROM dbo.RSMAPS_Inmueble;
+EXEC sys.sp_executesql N'
+    SELECT
+        COUNT(*) AS TotalInmuebles,
+        SUM(CASE WHEN EstadoCodigo = ''PUBLICADO'' THEN 1 ELSE 0 END) AS Publicados,
+        SUM(CASE WHEN VisibilidadCodigo = ''PUBLICO'' THEN 1 ELSE 0 END) AS Publicos,
+        SUM(CASE WHEN FechaPublicacionUtc IS NULL THEN 1 ELSE 0 END) AS FechaPublicacionDesconocida
+    FROM dbo.RSMAPS_Inmueble;
 
-SELECT
-    EstadoCodigo,
-    VisibilidadCodigo,
-    COUNT(*) AS Inmuebles
-FROM dbo.RSMAPS_Inmueble
-GROUP BY EstadoCodigo, VisibilidadCodigo
-ORDER BY EstadoCodigo, VisibilidadCodigo;
+    SELECT
+        EstadoCodigo,
+        VisibilidadCodigo,
+        COUNT(*) AS Inmuebles
+    FROM dbo.RSMAPS_Inmueble
+    GROUP BY EstadoCodigo, VisibilidadCodigo
+    ORDER BY EstadoCodigo, VisibilidadCodigo;';
 
 SELECT Codigo, Nombre, EsCierre, Activo, Orden
 FROM dbo.RSMAPS_EstadoInmueble
