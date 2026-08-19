@@ -11,6 +11,7 @@ namespace maps4.Models
         public decimal? Lat { get; set; }
         public decimal? Lng { get; set; }
         public int? IdTipo { get; set; }
+        public string? TipoNombre { get; set; }
         public string? Telefono { get; set; }
         public double? Terreno { get; set; }
         public double? Construccion { get; set; }
@@ -21,6 +22,24 @@ namespace maps4.Models
         public string VisibilidadCodigo { get; set; } = string.Empty;
         public DateTime? FechaPublicacionUtc { get; set; }
         public DateTime? FechaUltimoCambioEstadoUtc { get; set; }
+
+        public bool TienePrecio => Precio.HasValue && Precio.Value > 0;
+        public bool TieneFotos => Imagenes > 0;
+        public bool TieneUbicacion => Lat.HasValue && Lng.HasValue && Lat.Value != 0 && Lng.Value != 0;
+        public bool TieneDescripcionUtil => !string.IsNullOrWhiteSpace(Observaciones) && Observaciones.Trim() != "0";
+        public bool TieneDireccionUtil => !string.IsNullOrWhiteSpace(Direccion)
+            && !string.Equals(Direccion.Trim(), "Dirección", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(Direccion.Trim(), "Direccion", StringComparison.OrdinalIgnoreCase);
+
+        public int PendientesCalidad => new[]
+        {
+            TienePrecio,
+            TieneFotos,
+            TieneUbicacion,
+            TieneDescripcionUtil
+        }.Count(x => !x);
+
+        public bool NecesitaAtencion => PendientesCalidad > 0;
     }
 
     public class InventarioIndexViewModel
