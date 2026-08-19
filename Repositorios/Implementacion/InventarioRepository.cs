@@ -63,5 +63,32 @@ namespace maps4.Repositorios.Implementacion
 
             return lista;
         }
+
+        public async Task CambiarEstadoOVisibilidadAsync(
+            int idInmueble,
+            string correo,
+            string? estadoNuevo,
+            string? visibilidadNueva,
+            string? motivo)
+        {
+            using SqlConnection conexion = new SqlConnection(_cadenaSQL);
+            await conexion.OpenAsync();
+
+            using SqlCommand cmd = new SqlCommand("dbo.RSMAPS_sp_CambiarEstadoInmueble", conexion)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            cmd.Parameters.Add("@idInmueble", SqlDbType.Int).Value = idInmueble;
+            cmd.Parameters.Add("@correo", SqlDbType.VarChar, 200).Value = correo;
+            cmd.Parameters.Add("@EstadoNuevo", SqlDbType.VarChar, 20).Value =
+                string.IsNullOrWhiteSpace(estadoNuevo) ? DBNull.Value : estadoNuevo;
+            cmd.Parameters.Add("@VisibilidadNueva", SqlDbType.VarChar, 20).Value =
+                string.IsNullOrWhiteSpace(visibilidadNueva) ? DBNull.Value : visibilidadNueva;
+            cmd.Parameters.Add("@Motivo", SqlDbType.NVarChar, 500).Value =
+                string.IsNullOrWhiteSpace(motivo) ? DBNull.Value : motivo;
+
+            await cmd.ExecuteNonQueryAsync();
+        }
     }
 }
