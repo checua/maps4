@@ -16,8 +16,6 @@ namespace maps4.Repositorios.Implementacion
 
         public async Task<List<InventarioInmuebleViewModel>> ListarAsync(int idCuenta, int idAsesor)
         {
-            List<InventarioInmuebleViewModel> lista = new();
-
             using SqlConnection conexion = new SqlConnection(_cadenaSQL);
             await conexion.OpenAsync();
 
@@ -28,6 +26,28 @@ namespace maps4.Repositorios.Implementacion
 
             cmd.Parameters.Add("@IdCuenta", SqlDbType.Int).Value = idCuenta;
             cmd.Parameters.Add("@IdAsesor", SqlDbType.Int).Value = idAsesor;
+
+            return await LeerInventarioAsync(cmd);
+        }
+
+        public async Task<List<InventarioInmuebleViewModel>> ListarAutorizadosAsync(string correo)
+        {
+            using SqlConnection conexion = new SqlConnection(_cadenaSQL);
+            await conexion.OpenAsync();
+
+            using SqlCommand cmd = new SqlCommand("dbo.RSMAPS_sp_ListaInmueblesAutorizados", conexion)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+
+            cmd.Parameters.Add("@correo", SqlDbType.VarChar, 200).Value = correo;
+
+            return await LeerInventarioAsync(cmd);
+        }
+
+        private static async Task<List<InventarioInmuebleViewModel>> LeerInventarioAsync(SqlCommand cmd)
+        {
+            List<InventarioInmuebleViewModel> lista = new();
 
             using SqlDataReader dr = await cmd.ExecuteReaderAsync();
 
