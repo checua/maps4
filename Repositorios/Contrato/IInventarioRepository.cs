@@ -5,6 +5,7 @@ namespace maps4.Repositorios.Contrato
     public interface IInventarioRepository
     {
         Task<List<InventarioInmuebleViewModel>> ListarAsync(int idCuenta, int idAsesor);
+        Task<List<InventarioInmuebleViewModel>> ListarAutorizadosAsync(string correo);
 
         Task CambiarEstadoOVisibilidadAsync(
             int idInmueble,
