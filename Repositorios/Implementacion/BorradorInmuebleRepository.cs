@@ -76,7 +76,7 @@ namespace maps4.Repositorios.Implementacion
                 Construccion = dr["construccion"] == DBNull.Value ? null : Convert.ToDouble(dr["construccion"]),
                 Precio = dr["precio"] == DBNull.Value ? null : Convert.ToDecimal(dr["precio"]),
                 Observaciones = dr["observaciones"] == DBNull.Value ? null : dr["observaciones"].ToString(),
-                NotasPrivadas = dr["contacto_a"] == DBNull.Value ? null : dr["contacto_a"].ToString(),
+                NotasPrivadas = dr["NotasPrivadas"] == DBNull.Value ? null : dr["NotasPrivadas"].ToString(),
                 Imagenes = dr["Imagenes"] == DBNull.Value ? 0 : Convert.ToInt32(dr["Imagenes"]),
                 EstadoCodigo = dr["EstadoCodigo"] == DBNull.Value ? "BORRADOR" : dr["EstadoCodigo"].ToString() ?? "BORRADOR",
                 VisibilidadCodigo = dr["VisibilidadCodigo"] == DBNull.Value ? "CUENTA" : dr["VisibilidadCodigo"].ToString() ?? "CUENTA",
@@ -107,7 +107,7 @@ namespace maps4.Repositorios.Implementacion
             precio.Value = modelo.Precio.HasValue ? modelo.Precio.Value : DBNull.Value;
 
             cmd.Parameters.Add("@observaciones", SqlDbType.VarChar, -1).Value = string.IsNullOrWhiteSpace(modelo.Observaciones) ? DBNull.Value : modelo.Observaciones.Trim();
-            cmd.Parameters.Add("@notasPrivadas", SqlDbType.VarChar, -1).Value = string.IsNullOrWhiteSpace(modelo.NotasPrivadas) ? DBNull.Value : modelo.NotasPrivadas.Trim();
+            cmd.Parameters.Add("@notasPrivadas", SqlDbType.NVarChar, -1).Value = string.IsNullOrWhiteSpace(modelo.NotasPrivadas) ? DBNull.Value : modelo.NotasPrivadas.Trim();
 
             await cmd.ExecuteNonQueryAsync();
         }
