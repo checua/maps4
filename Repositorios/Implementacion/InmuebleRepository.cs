@@ -28,7 +28,7 @@ namespace maps4.Repositorios.Implementacion
                 {
                     while (await dr.ReadAsync())
                     {
-                        _lista.Add(MapearInmueble(dr));
+                        _lista.Add(MapearInmueblePublico(dr));
                     }
                 }
             }
@@ -51,14 +51,14 @@ namespace maps4.Repositorios.Implementacion
                 {
                     while (await dr.ReadAsync())
                     {
-                        _lista.Add(MapearInmueble(dr));
+                        _lista.Add(MapearInmueblePublico(dr));
                     }
                 }
             }
             return _lista;
         }
 
-        private static Inmueble MapearInmueble(SqlDataReader dr)
+        private static Inmueble MapearInmueblePublico(SqlDataReader dr)
         {
             return new Inmueble
             {
@@ -88,7 +88,9 @@ namespace maps4.Repositorios.Implementacion
                 Observaciones = dr["observaciones"].ToString(),
                 Exclusiva = dr["exclusiva"] as int?,
                 Link = dr["link"].ToString(),
-                Contacto = dr["contacto_a"].ToString(),
+                // contacto_a fue usado históricamente como Notas privadas.
+                // Nunca debe salir por una lectura pública.
+                Contacto = null,
                 Imagenes = Convert.ToInt32(dr["imagenes"]),
             };
         }
