@@ -1,0 +1,212 @@
+@model maps4.Models.BorradorEdicionViewModel
+@using System.Globalization
+@{
+    ViewData["Title"] = $"Borrador #{Model.IdInmueble} - RSMaps";
+    var cultura = CultureInfo.GetCultureInfo("es-MX");
+    var precioTexto = Model.TienePrecio ? Model.Precio!.Value.ToString("C0", cultura) : "Pendiente";
+}
+
+<style>
+    body { background:#f5f6f8; }
+    .draft-shell { min-height:100vh; padding:24px; color:#17212b; }
+    .draft-top { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:18px; }
+    .draft-top h1 { margin:0; font-size:30px; font-weight:760; }
+    .draft-top p { margin:5px 0 0; color:#667085; }
+    .back-link { text-decoration:none; border:1px solid #d8dde5; background:white; color:#27303f; padding:10px 14px; border-radius:12px; }
+    .draft-layout { display:grid; grid-template-columns:minmax(280px,360px) minmax(0,1fr); gap:18px; align-items:start; }
+    .panel { background:white; border:1px solid #e1e5ea; border-radius:18px; box-shadow:0 2px 8px rgba(16,24,40,.03); }
+    .summary { padding:18px; position:sticky; top:18px; }
+    .state-row { display:flex; gap:7px; flex-wrap:wrap; margin-bottom:16px; }
+    .pill { border-radius:999px; padding:5px 9px; background:#f2f4f7; border:1px solid #e1e5ea; font-size:11px; font-weight:750; }
+    .summary h2 { margin:0 0 5px; font-size:21px; }
+    .summary-price { font-size:25px; font-weight:780; margin:14px 0 4px; }
+    .summary-price.pending { color:#9a6700; font-size:19px; }
+    .muted { color:#667085; }
+    .location-box { margin-top:16px; padding:12px; background:#f7f8fa; border-radius:12px; font-size:13px; }
+    .progress-head { display:flex; justify-content:space-between; gap:10px; margin-top:20px; font-size:13px; font-weight:700; }
+    .progress-track { height:9px; background:#eaecf0; border-radius:999px; overflow:hidden; margin:8px 0 14px; }
+    .progress-fill { height:100%; background:#344054; border-radius:999px; }
+    .checklist { display:grid; gap:8px; }
+    .check { display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:13px; }
+    .done { color:#24613a; }
+    .pending { color:#9a6700; }
+    .form-panel { padding:22px; }
+    .section { padding:0 0 22px; margin-bottom:22px; border-bottom:1px solid #eef0f3; }
+    .section:last-of-type { border-bottom:0; }
+    .section h3 { margin:0 0 5px; font-size:19px; }
+    .section-intro { margin:0 0 16px; color:#667085; font-size:13px; }
+    .field-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+    .field.full { grid-column:1 / -1; }
+    .field label { display:block; font-size:13px; font-weight:700; margin-bottom:6px; }
+    .field input, .field select, .field textarea { width:100%; border:1px solid #d8dde5; border-radius:11px; padding:11px 12px; background:white; color:#17212b; }
+    .field textarea { min-height:120px; resize:vertical; }
+    .validation { color:#b42318; font-size:12px; margin-top:5px; }
+    .photo-coming { border:1px dashed #cfd5dd; background:#fafafa; border-radius:14px; padding:20px; display:flex; gap:12px; align-items:flex-start; }
+    .photo-coming strong { display:block; margin-bottom:3px; }
+    .flash { border-radius:12px; padding:11px 14px; margin-bottom:16px; font-size:14px; }
+    .flash.ok { background:#eef9f1; color:#24613a; border:1px solid #cfe8d6; }
+    .flash.error { background:#fff2f0; color:#912018; border:1px solid #f1c8c3; }
+    .save-bar { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; padding-top:4px; }
+    .save-actions { display:flex; gap:9px; flex-wrap:wrap; }
+    .btn-save { border:0; border-radius:11px; padding:11px 15px; font-weight:720; cursor:pointer; }
+    .btn-save.secondary { background:white; color:#344054; border:1px solid #d8dde5; }
+    .btn-save.primary { background:#17212b; color:white; }
+    .publish-preview { color:#667085; font-size:12px; max-width:520px; }
+    .publish-disabled { margin-top:16px; background:#fff8e8; color:#7a4d00; padding:11px 13px; border-radius:11px; font-size:12px; }
+    @@media (max-width:850px) {
+        .draft-shell { padding:14px; }
+        .draft-layout { grid-template-columns:1fr; }
+        .summary { position:static; }
+        .field-grid { grid-template-columns:1fr; }
+        .field.full { grid-column:auto; }
+    }
+</style>
+
+<div class="draft-shell">
+    <div class="draft-top">
+        <div>
+            <h1>Completar propiedad</h1>
+            <p>Borrador #@Model.IdInmueble · puedes guardar ahora y continuar después.</p>
+        </div>
+        <a class="back-link" asp-controller="Inventario" asp-action="Index" asp-route-borrador="@Model.IdInmueble">← Volver a Mi inventario</a>
+    </div>
+
+    @if (TempData["BorradorOk"] is string ok)
+    {
+        <div class="flash ok">✓ @ok</div>
+    }
+
+    <div asp-validation-summary="ModelOnly" class="flash error"></div>
+
+    <div class="draft-layout">
+        <aside class="panel summary">
+            <div class="state-row">
+                <span class="pill">@Model.EstadoCodigo</span>
+                <span class="pill">@Model.VisibilidadCodigo</span>
+            </div>
+
+            <h2>@(string.IsNullOrWhiteSpace(Model.TipoNombre) ? "Propiedad" : Model.TipoNombre)</h2>
+            <div class="muted">@(string.IsNullOrWhiteSpace(Model.Direccion) ? "Ubicación registrada en mapa" : Model.Direccion)</div>
+
+            <div class="summary-price @(Model.TienePrecio ? "" : "pending")">@precioTexto</div>
+            <div class="muted">Aún no está publicada.</div>
+
+            <div class="location-box">
+                <strong>Ubicación ✓</strong><br />
+                @if (Model.Lat.HasValue && Model.Lng.HasValue)
+                {
+                    <span>@Model.Lat.Value.ToString("0.000000"), @Model.Lng.Value.ToString("0.000000")</span>
+                }
+                else
+                {
+                    <span>Ubicación pendiente</span>
+                }
+            </div>
+
+            <div class="progress-head">
+                <span>Preparación</span>
+                <span>@Model.ProgresoPorcentaje%</span>
+            </div>
+            <div class="progress-track"><div class="progress-fill" style="width:@Model.ProgresoPorcentaje%"></div></div>
+
+            <div class="checklist">
+                <div class="check @(Model.TieneUbicacion ? "done" : "pending")"><span>Ubicación</span><strong>@(Model.TieneUbicacion ? "✓" : "○")</strong></div>
+                <div class="check @(Model.TieneTipo ? "done" : "pending")"><span>Tipo</span><strong>@(Model.TieneTipo ? "✓" : "○")</strong></div>
+                <div class="check @(Model.TienePrecio ? "done" : "pending")"><span>Precio</span><strong>@(Model.TienePrecio ? "✓" : "○")</strong></div>
+                <div class="check @(Model.TieneSuperficie ? "done" : "pending")"><span>Superficie</span><strong>@(Model.TieneSuperficie ? "✓" : "○")</strong></div>
+                <div class="check @(Model.TieneDescripcion ? "done" : "pending")"><span>Descripción</span><strong>@(Model.TieneDescripcion ? "✓" : "○")</strong></div>
+                <div class="check @(Model.TieneFotos ? "done" : "pending")"><span>Fotos</span><strong>@(Model.TieneFotos ? "✓" : "○")</strong></div>
+            </div>
+
+            <div class="publish-disabled">
+                Publicar será una acción separada. Primero terminaremos la validación de calidad y el nuevo flujo de fotos.
+            </div>
+        </aside>
+
+        <main class="panel form-panel">
+            <form asp-controller="Borrador" asp-action="Editar" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="IdInmueble" />
+
+                <section class="section">
+                    <h3>Datos básicos</h3>
+                    <p class="section-intro">Completa solo lo que tengas. Ningún campo de esta sección publica la propiedad automáticamente.</p>
+
+                    <div class="field-grid">
+                        <div class="field full">
+                            <label asp-for="Direccion"></label>
+                            <input asp-for="Direccion" placeholder="Ej. Fracc. Real del Prado, cerca de…" />
+                            <span asp-validation-for="Direccion" class="validation"></span>
+                        </div>
+
+                        <div class="field">
+                            <label asp-for="IdTipo"></label>
+                            <select asp-for="IdTipo">
+                                @foreach (var tipo in Model.TiposDisponibles)
+                                {
+                                    <option value="@tipo.idTipoPropiedad">@tipo.nombre</option>
+                                }
+                            </select>
+                            <span asp-validation-for="IdTipo" class="validation"></span>
+                        </div>
+
+                        <div class="field">
+                            <label asp-for="Precio"></label>
+                            <input asp-for="Precio" type="number" min="0" step="1" placeholder="Ej. 3650000" />
+                            <span asp-validation-for="Precio" class="validation"></span>
+                        </div>
+
+                        <div class="field">
+                            <label asp-for="Terreno"></label>
+                            <input asp-for="Terreno" type="number" min="0" step="0.01" placeholder="Ej. 200" />
+                            <span asp-validation-for="Terreno" class="validation"></span>
+                        </div>
+
+                        <div class="field">
+                            <label asp-for="Construccion"></label>
+                            <input asp-for="Construccion" type="number" min="0" step="0.01" placeholder="Ej. 340" />
+                            <span asp-validation-for="Construccion" class="validation"></span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="section">
+                    <h3>Descripción comercial</h3>
+                    <p class="section-intro">Describe lo que realmente distingue al inmueble. Más adelante podremos ayudarte a convertirlo en anuncio para cada canal.</p>
+                    <div class="field">
+                        <textarea asp-for="Observaciones" placeholder="Distribución, estado, entorno, ventajas, condiciones relevantes…"></textarea>
+                        <span asp-validation-for="Observaciones" class="validation"></span>
+                    </div>
+                </section>
+
+                <section class="section">
+                    <h3>Información privada</h3>
+                    <p class="section-intro">Solo para tu operación interna; no se mostrará en el marketplace.</p>
+                    <div class="field">
+                        <textarea asp-for="NotasPrivadas" placeholder="Contacto propietario, llaves, comisión, instrucciones de visita, pendientes…"></textarea>
+                        <span asp-validation-for="NotasPrivadas" class="validation"></span>
+                    </div>
+                </section>
+
+                <section class="section">
+                    <h3>Fotos</h3>
+                    <div class="photo-coming">
+                        <div style="font-size:24px;">📷</div>
+                        <div>
+                            <strong>@Model.Imagenes foto@(Model.Imagenes == 1 ? "" : "s") actualmente</strong>
+                            <span class="muted">La carga moderna de fotos será el siguiente paso: cámara/móvil, compresión, portada y orden. No vamos a ampliar el mecanismo legacy.</span>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="save-bar">
+                    <div class="publish-preview">Guardar no hace pública la propiedad. Puedes salir en cualquier momento y continuar desde Mi inventario.</div>
+                    <div class="save-actions">
+                        <button class="btn-save secondary" type="submit" name="accion" value="inventario">Guardar y salir</button>
+                        <button class="btn-save primary" type="submit" name="accion" value="continuar">Guardar cambios</button>
+                    </div>
+                </div>
+            </form>
+        </main>
+    </div>
+</div>
