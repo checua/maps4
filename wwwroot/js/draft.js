@@ -86,7 +86,6 @@
             await chooseTypeAndCreate(lat, lng);
         });
 
-        // Si el usuario no toca el mapa en dos minutos, cancelar el modo de captura.
         window.setTimeout(() => {
             if (!selectingDraftLocation) return;
             selectingDraftLocation = false;
@@ -178,13 +177,17 @@
             const result = await Swal.fire({
                 icon: 'success',
                 title: `Borrador #${data.idInmueble} creado`,
-                html: 'La propiedad quedó <strong>privada dentro de tu cuenta</strong> y todavía no aparece en el marketplace.<br><br>Puedes completar sus datos desde Mi inventario.',
-                confirmButtonText: 'Ir a Mi inventario',
+                html: 'La ubicación y el tipo ya quedaron guardados.<br><strong>¿Quieres completar la propiedad ahora o continuar después?</strong><br><br>El borrador sigue privado y no aparece en el marketplace.',
+                confirmButtonText: 'Completar ahora',
+                showDenyButton: true,
+                denyButtonText: 'Ir a Mi inventario',
                 showCancelButton: true,
                 cancelButtonText: 'Seguir en el mapa'
             });
 
             if (result.isConfirmed) {
+                window.location.href = `/Borrador/Editar/${encodeURIComponent(data.idInmueble)}`;
+            } else if (result.isDenied) {
                 window.location.href = `/Inventario?borrador=${encodeURIComponent(data.idInmueble)}`;
             }
         } catch (error) {
