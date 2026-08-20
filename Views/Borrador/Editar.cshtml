@@ -41,8 +41,6 @@
     .field input, .field select, .field textarea { width:100%; border:1px solid #d8dde5; border-radius:11px; padding:11px 12px; background:white; color:#17212b; }
     .field textarea { min-height:120px; resize:vertical; }
     .validation { color:#b42318; font-size:12px; margin-top:5px; }
-    .photo-coming { border:1px dashed #cfd5dd; background:#fafafa; border-radius:14px; padding:20px; display:flex; gap:12px; align-items:flex-start; }
-    .photo-coming strong { display:block; margin-bottom:3px; }
     .flash { border-radius:12px; padding:11px 14px; margin-bottom:16px; font-size:14px; }
     .flash.ok { background:#eef9f1; color:#24613a; border:1px solid #cfe8d6; }
     .flash.error { background:#fff2f0; color:#912018; border:1px solid #f1c8c3; }
@@ -53,12 +51,30 @@
     .btn-save.primary { background:#17212b; color:white; }
     .publish-preview { color:#667085; font-size:12px; max-width:520px; }
     .publish-disabled { margin-top:16px; background:#fff8e8; color:#7a4d00; padding:11px 13px; border-radius:11px; font-size:12px; }
+    .photo-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; flex-wrap:wrap; margin-bottom:14px; }
+    .photo-actions-top { display:flex; gap:8px; flex-wrap:wrap; }
+    .photo-add { border:1px solid #cfd5dd; background:#fff; color:#344054; border-radius:10px; padding:9px 12px; font-weight:700; cursor:pointer; }
+    .photo-add.primary { background:#17212b; color:#fff; border-color:#17212b; }
+    .photo-help { margin:7px 0 0; color:#667085; font-size:12px; line-height:1.45; }
+    .photo-progress { display:none; margin:10px 0 14px; padding:10px 12px; border-radius:10px; background:#eef4ff; color:#344b7a; font-size:12px; }
+    .photo-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:12px; }
+    .photo-card { border:1px solid #e1e5ea; border-radius:14px; overflow:hidden; background:#fff; }
+    .photo-image { aspect-ratio:4/3; background:#eef1f4; position:relative; overflow:hidden; }
+    .photo-image img { width:100%; height:100%; object-fit:cover; display:block; }
+    .photo-cover { position:absolute; top:8px; left:8px; background:#17212b; color:#fff; border-radius:999px; padding:5px 8px; font-size:10px; font-weight:800; }
+    .photo-info { padding:9px 10px 5px; color:#667085; font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .photo-buttons { display:flex; gap:5px; flex-wrap:wrap; padding:6px 8px 9px; }
+    .photo-btn { border:1px solid #d8dde5; background:#fff; color:#344054; border-radius:8px; padding:6px 8px; font-size:11px; cursor:pointer; }
+    .photo-btn.cover { color:#24613a; }
+    .photo-btn.delete { color:#912018; margin-left:auto; }
+    .photo-empty { border:1px dashed #cfd5dd; background:#fafafa; border-radius:14px; padding:22px; text-align:center; color:#667085; }
     @@media (max-width:850px) {
         .draft-shell { padding:14px; }
         .draft-layout { grid-template-columns:1fr; }
         .summary { position:static; }
         .field-grid { grid-template-columns:1fr; }
         .field.full { grid-column:auto; }
+        .photo-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
     }
 </style>
 
@@ -74,6 +90,10 @@
     @if (TempData["BorradorOk"] is string ok)
     {
         <div class="flash ok">✓ @ok</div>
+    }
+    @if (TempData["BorradorFotoError"] is string fotoError)
+    {
+        <div class="flash error">⚠ @fotoError</div>
     }
 
     <div asp-validation-summary="ModelOnly" class="flash error"></div>
@@ -119,12 +139,12 @@
             </div>
 
             <div class="publish-disabled">
-                Publicar será una acción separada. Primero terminaremos la validación de calidad y el nuevo flujo de fotos.
+                Publicar será una acción separada. Primero validaremos que la información y las fotos estén listas.
             </div>
         </aside>
 
         <main class="panel form-panel">
-            <form asp-controller="Borrador" asp-action="Editar" method="post">
+            <form asp-controller="Borrador" asp-action="Editar" method="post" id="draftEditForm">
                 @Html.AntiForgeryToken()
                 <input type="hidden" asp-for="IdInmueble" />
 
@@ -189,14 +209,62 @@
                 </section>
 
                 <section class="section">
-                    <h3>Fotos</h3>
-                    <div class="photo-coming">
-                        <div style="font-size:24px;">📷</div>
+                    <div class="photo-head">
                         <div>
-                            <strong>@Model.Imagenes foto@(Model.Imagenes == 1 ? "" : "s") actualmente</strong>
-                            <span class="muted">La carga moderna de fotos será el siguiente paso: cámara/móvil, compresión, portada y orden. No vamos a ampliar el mecanismo legacy.</span>
+                            <h3>Fotos <span class="muted">@Model.Fotos.Count/20</span></h3>
+                            <p class="photo-help">Puedes seleccionar varias o abrir la cámara. Antes de subir, RSMaps reduce el tamaño para ahorrar datos y almacenamiento. La primera foto se vuelve portada automáticamente.</p>
+                        </div>
+                        <div class="photo-actions-top">
+                            <button type="button" class="photo-add" id="btnCameraPhoto" @(Model.Fotos.Count >= 20 ? "disabled" : null)>📷 Tomar foto</button>
+                            <button type="button" class="photo-add primary" id="btnGalleryPhotos" @(Model.Fotos.Count >= 20 ? "disabled" : null)>＋ Seleccionar fotos</button>
                         </div>
                     </div>
+
+                    <input id="cameraPhotoInput" type="file" accept="image/*" capture="environment" hidden />
+                    <input id="galleryPhotosInput" type="file" accept="image/*" multiple hidden />
+                    <div id="photoUploadProgress" class="photo-progress"></div>
+
+                    @if (Model.Fotos.Any())
+                    {
+                        <div class="photo-grid">
+                            @for (int index = 0; index < Model.Fotos.Count; index++)
+                            {
+                                var foto = Model.Fotos[index];
+                                <article class="photo-card">
+                                    <div class="photo-image">
+                                        <img src="@foto.UrlPrivada" alt="Foto @(index + 1) del inmueble @Model.IdInmueble" loading="lazy" />
+                                        @if (foto.EsPortada)
+                                        {
+                                            <span class="photo-cover">PORTADA</span>
+                                        }
+                                    </div>
+                                    <div class="photo-info" title="@foto.NombreOriginal">@(string.IsNullOrWhiteSpace(foto.NombreOriginal) ? $"Foto {index + 1}" : foto.NombreOriginal)</div>
+                                    <div class="photo-buttons">
+                                        @if (index > 0)
+                                        {
+                                            <button type="submit" class="photo-btn" formaction="@Url.Action("MoverFoto", "Borrador", new { idInmueble = Model.IdInmueble, idImagen = foto.IdImagen, direccion = -1 })" formmethod="post" title="Mover a la izquierda">←</button>
+                                        }
+                                        @if (index < Model.Fotos.Count - 1)
+                                        {
+                                            <button type="submit" class="photo-btn" formaction="@Url.Action("MoverFoto", "Borrador", new { idInmueble = Model.IdInmueble, idImagen = foto.IdImagen, direccion = 1 })" formmethod="post" title="Mover a la derecha">→</button>
+                                        }
+                                        @if (!foto.EsPortada)
+                                        {
+                                            <button type="submit" class="photo-btn cover" formaction="@Url.Action("EstablecerPortada", "Borrador", new { idInmueble = Model.IdInmueble, idImagen = foto.IdImagen })" formmethod="post">Portada</button>
+                                        }
+                                        <button type="submit" class="photo-btn delete" formaction="@Url.Action("EliminarFoto", "Borrador", new { idInmueble = Model.IdInmueble, idImagen = foto.IdImagen })" formmethod="post" onclick="return confirm('¿Eliminar esta foto del borrador?');">Eliminar</button>
+                                    </div>
+                                </article>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="photo-empty">
+                            <strong>📷 Aún no hay fotos</strong><br />
+                            <span>Agrega al menos una para completar la preparación del borrador.</span>
+                        </div>
+                    }
                 </section>
 
                 <div class="save-bar">
@@ -210,3 +278,137 @@
         </main>
     </div>
 </div>
+
+<script>
+(() => {
+    const cameraButton = document.getElementById('btnCameraPhoto');
+    const galleryButton = document.getElementById('btnGalleryPhotos');
+    const cameraInput = document.getElementById('cameraPhotoInput');
+    const galleryInput = document.getElementById('galleryPhotosInput');
+    const progress = document.getElementById('photoUploadProgress');
+    const token = document.querySelector('#draftEditForm input[name="__RequestVerificationToken"]')?.value || '';
+    const idInmueble = @Model.IdInmueble;
+    const currentCount = @Model.Fotos.Count;
+    const maxPhotos = 20;
+
+    cameraButton?.addEventListener('click', () => cameraInput?.click());
+    galleryButton?.addEventListener('click', () => galleryInput?.click());
+    cameraInput?.addEventListener('change', () => handleFiles(Array.from(cameraInput.files || [])));
+    galleryInput?.addEventListener('change', () => handleFiles(Array.from(galleryInput.files || [])));
+
+    async function handleFiles(files) {
+        if (!files.length) return;
+
+        const remaining = maxPhotos - currentCount;
+        if (remaining <= 0) {
+            alert('Este borrador ya tiene 20 fotos.');
+            return;
+        }
+
+        if (files.length > remaining) {
+            alert(`Puedes agregar ${remaining} foto${remaining === 1 ? '' : 's'} más. Selecciona menos archivos.`);
+            return;
+        }
+
+        setUploadState(true, `Preparando ${files.length} foto${files.length === 1 ? '' : 's'}…`);
+
+        try {
+            for (let i = 0; i < files.length; i++) {
+                const original = files[i];
+                setUploadState(true, `Optimizando foto ${i + 1} de ${files.length}…`);
+                const optimized = await compressImage(original);
+                setUploadState(true, `Subiendo foto ${i + 1} de ${files.length}…`);
+                await uploadPhoto(optimized);
+            }
+
+            setUploadState(true, 'Fotos guardadas. Actualizando…');
+            window.location.reload();
+        } catch (error) {
+            setUploadState(true, `⚠ ${error.message}`);
+            setTimeout(() => setUploadState(false), 6000);
+        } finally {
+            if (cameraInput) cameraInput.value = '';
+            if (galleryInput) galleryInput.value = '';
+        }
+    }
+
+    async function uploadPhoto(file) {
+        const formData = new FormData();
+        formData.append('__RequestVerificationToken', token);
+        formData.append('idInmueble', String(idInmueble));
+        formData.append('foto', file, file.name);
+
+        const response = await fetch('@Url.Action("SubirFoto", "Borrador")', {
+            method: 'POST',
+            credentials: 'same-origin',
+            body: formData
+        });
+
+        let data = null;
+        try { data = await response.json(); } catch (_) { }
+        if (!response.ok || !data?.success)
+            throw new Error(data?.message || 'No fue posible subir una de las fotos.');
+    }
+
+    async function compressImage(file) {
+        if (!file.type.startsWith('image/'))
+            throw new Error(`${file.name} no es una imagen válida.`);
+
+        const image = await loadImage(file);
+        const maxDimension = 1920;
+        const naturalWidth = image.naturalWidth || image.width;
+        const naturalHeight = image.naturalHeight || image.height;
+        let width = naturalWidth;
+        let height = naturalHeight;
+
+        if (Math.max(width, height) > maxDimension) {
+            const scale = maxDimension / Math.max(width, height);
+            width = Math.max(1, Math.round(width * scale));
+            height = Math.max(1, Math.round(height * scale));
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext('2d', { alpha: false });
+        if (!context)
+            throw new Error('El navegador no pudo preparar la imagen.');
+
+        context.fillStyle = '#ffffff';
+        context.fillRect(0, 0, width, height);
+        context.drawImage(image, 0, 0, width, height);
+
+        const blob = await new Promise((resolve, reject) => {
+            canvas.toBlob(value => value ? resolve(value) : reject(new Error('No fue posible comprimir la imagen.')), 'image/jpeg', 0.82);
+        });
+
+        const baseName = (file.name || 'foto').replace(/\.[^.]+$/, '') || 'foto';
+        return new File([blob], `${baseName}.jpg`, { type: 'image/jpeg', lastModified: Date.now() });
+    }
+
+    function loadImage(file) {
+        return new Promise((resolve, reject) => {
+            const objectUrl = URL.createObjectURL(file);
+            const image = new Image();
+            image.onload = () => {
+                URL.revokeObjectURL(objectUrl);
+                resolve(image);
+            };
+            image.onerror = () => {
+                URL.revokeObjectURL(objectUrl);
+                reject(new Error(`No fue posible leer ${file.name}. Si es HEIC, intenta tomarla desde el teléfono o convertirla a JPG.`));
+            };
+            image.src = objectUrl;
+        });
+    }
+
+    function setUploadState(show, text = '') {
+        if (progress) {
+            progress.style.display = show ? 'block' : 'none';
+            progress.textContent = text;
+        }
+        if (cameraButton) cameraButton.disabled = show;
+        if (galleryButton) galleryButton.disabled = show;
+    }
+})();
+</script>
