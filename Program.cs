@@ -21,6 +21,7 @@ builder.Services.AddScoped<IGenericRepository<Inmueble>, InmuebleRepository>();
 builder.Services.AddScoped<IInmuebleServicio<Inmueble>, InmuebleRegistroRepository>();
 builder.Services.AddScoped<IComentarioService, ComentarioService>();
 builder.Services.AddScoped<IInventarioRepository, InventarioRepository>();
+builder.Services.AddScoped<IBorradorInmuebleRepository, BorradorInmuebleRepository>();
 
 // Configurar autenticación basada en cookies
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
