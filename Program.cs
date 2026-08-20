@@ -22,6 +22,8 @@ builder.Services.AddScoped<IInmuebleServicio<Inmueble>, InmuebleRegistroReposito
 builder.Services.AddScoped<IComentarioService, ComentarioService>();
 builder.Services.AddScoped<IInventarioRepository, InventarioRepository>();
 builder.Services.AddScoped<IBorradorInmuebleRepository, BorradorInmuebleRepository>();
+builder.Services.AddScoped<IInmuebleFotoRepository, InmuebleFotoRepository>();
+builder.Services.AddSingleton<IInmuebleFotoStorage, LocalInmuebleFotoStorage>();
 
 // Configurar autenticación basada en cookies
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -67,7 +69,3 @@ app.MapControllerRoute(
 
 // Iniciar la aplicación
 app.Run();
-
-
-
-
