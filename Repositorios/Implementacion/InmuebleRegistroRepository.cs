@@ -23,8 +23,6 @@ namespace maps4.Repositorios.Implementacion
                 {
                     cmd.CommandType = CommandType.StoredProcedure;
 
-                    // La identidad llega desde la sesión autenticada del servidor.
-                    // SQL resuelve la Cuenta desde la membresía activa/predeterminada.
                     cmd.Parameters.AddWithValue("@correo", data.RefUsuario?.correo ?? string.Empty);
                     cmd.Parameters.AddWithValue("@lat", data.Lat);
                     cmd.Parameters.AddWithValue("@lng", data.Lng);
@@ -91,7 +89,9 @@ namespace maps4.Repositorios.Implementacion
             }
         }
 
-        // Lectura pública. El procedimiento devuelve únicamente PUBLICADO + PUBLICO.
+        // Lectura pública. El procedimiento devuelve únicamente PUBLICADO + PUBLICO
+        // y el mapeo además redacta cualquier contenido de contacto_a, que en RSMaps
+        // legacy fue usado como Notas privadas.
         public async Task<List<Inmueble>> GetInmuebleById(int inmuebleId)
         {
             using var conexion = new SqlConnection(_cadenaSQL);
@@ -103,7 +103,7 @@ namespace maps4.Repositorios.Implementacion
             };
             cmd.Parameters.Add("@idInmueble", SqlDbType.Int).Value = inmuebleId;
 
-            return await LeerInmueblesAsync(cmd);
+            return await LeerInmueblesAsync(cmd, incluirNotasPrivadasLegacy: false);
         }
 
         // Lectura privada. SQL valida identidad, Cuenta y propietario.
@@ -119,10 +119,12 @@ namespace maps4.Repositorios.Implementacion
             cmd.Parameters.Add("@idInmueble", SqlDbType.Int).Value = inmuebleId;
             cmd.Parameters.Add("@correo", SqlDbType.VarChar, 200).Value = correoAutenticado;
 
-            return await LeerInmueblesAsync(cmd);
+            return await LeerInmueblesAsync(cmd, incluirNotasPrivadasLegacy: true);
         }
 
-        private static async Task<List<Inmueble>> LeerInmueblesAsync(SqlCommand cmd)
+        private static async Task<List<Inmueble>> LeerInmueblesAsync(
+            SqlCommand cmd,
+            bool incluirNotasPrivadasLegacy)
         {
             List<Inmueble> lista = new();
 
@@ -157,7 +159,9 @@ namespace maps4.Repositorios.Implementacion
                     Observaciones = dr["observaciones"] == DBNull.Value ? null : dr["observaciones"].ToString(),
                     Exclusiva = dr["exclusiva"] == DBNull.Value ? null : Convert.ToInt32(dr["exclusiva"]),
                     Link = dr["link"] == DBNull.Value ? null : dr["link"].ToString(),
-                    Contacto = dr["contacto_a"] == DBNull.Value ? null : dr["contacto_a"].ToString(),
+                    Contacto = incluirNotasPrivadasLegacy && dr["contacto_a"] != DBNull.Value
+                        ? dr["contacto_a"].ToString()
+                        : null,
                     Imagenes = dr["imagenes"] == DBNull.Value ? 0 : Convert.ToInt32(dr["imagenes"]),
                 });
             }
