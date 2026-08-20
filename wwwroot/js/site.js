@@ -12,8 +12,13 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.appendChild(script);
     }
 
-    // Si venimos de crear un borrador, enfocarlo automáticamente en inventario.
     if (path === '/inventario' || path === '/inventario/index') {
+        const inventoryDraftScript = document.createElement('script');
+        inventoryDraftScript.src = '/js/draft-inventory.js';
+        inventoryDraftScript.defer = true;
+        document.body.appendChild(inventoryDraftScript);
+
+        // Si venimos de crear/guardar un borrador, enfocarlo automáticamente.
         const idBorrador = new URLSearchParams(window.location.search).get('borrador');
         const search = document.getElementById('inventorySearch');
 
