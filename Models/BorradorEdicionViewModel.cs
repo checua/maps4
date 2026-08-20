@@ -38,6 +38,7 @@ namespace maps4.Models
         public string? NotasPrivadas { get; set; }
 
         public int Imagenes { get; set; }
+        public List<InmuebleFotoViewModel> Fotos { get; set; } = new();
         public string EstadoCodigo { get; set; } = "BORRADOR";
         public string VisibilidadCodigo { get; set; } = "CUENTA";
         public DateTime? FechaUltimaEdicionUtc { get; set; }
@@ -48,7 +49,7 @@ namespace maps4.Models
         public bool TienePrecio => Precio.HasValue && Precio.Value > 0;
         public bool TieneSuperficie => (Terreno.HasValue && Terreno.Value > 0) || (Construccion.HasValue && Construccion.Value > 0);
         public bool TieneDescripcion => !string.IsNullOrWhiteSpace(Observaciones);
-        public bool TieneFotos => Imagenes > 0;
+        public bool TieneFotos => Imagenes > 0 || Fotos.Count > 0;
         public int PasosCompletos => new[] { TieneUbicacion, TieneTipo, TienePrecio, TieneSuperficie, TieneDescripcion, TieneFotos }.Count(x => x);
         public int ProgresoPorcentaje => (int)Math.Round(PasosCompletos / 6.0 * 100);
     }
