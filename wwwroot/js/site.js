@@ -3,6 +3,15 @@
 document.addEventListener('DOMContentLoaded', () => {
     const path = window.location.pathname.toLowerCase();
 
+    // Flujo moderno de captura desde el mapa. Se carga solo en Home para no
+    // mezclar el nuevo módulo con el index.js legacy más de lo necesario.
+    if (path === '/' || path === '/home' || path === '/home/index') {
+        const script = document.createElement('script');
+        script.src = '/js/draft.js';
+        script.defer = true;
+        document.body.appendChild(script);
+    }
+
     // UX de cierre: si conocemos el precio publicado y el campo todavía
     // viene en cero, usarlo como punto de partida editable para el asesor.
     if (path === '/inventario/cerraroperacion') {
