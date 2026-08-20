@@ -12,6 +12,17 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.appendChild(script);
     }
 
+    // Si venimos de crear un borrador, enfocarlo automáticamente en inventario.
+    if (path === '/inventario' || path === '/inventario/index') {
+        const idBorrador = new URLSearchParams(window.location.search).get('borrador');
+        const search = document.getElementById('inventorySearch');
+
+        if (idBorrador && search) {
+            search.value = idBorrador;
+            search.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    }
+
     // UX de cierre: si conocemos el precio publicado y el campo todavía
     // viene en cero, usarlo como punto de partida editable para el asesor.
     if (path === '/inventario/cerraroperacion') {
