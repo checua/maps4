@@ -174,6 +174,7 @@
             .map(tipo => `<option value="${Number(tipo.idTipoPropiedad)}">${escapeHtml(tipo.nombre)}</option>`)
             .join('');
 
+        let selectedType = 0;
         const getSelectedType = () => {
             const select = document.getElementById('draftTypeSelect');
             const value = Number(select?.value || 0);
@@ -181,6 +182,7 @@
                 Swal.showValidationMessage('Selecciona un tipo de propiedad.');
                 return false;
             }
+            selectedType = value;
             return value;
         };
 
@@ -209,11 +211,9 @@
         });
 
         if (!selection.isConfirmed && !selection.isDenied) return;
+        if (selectedType <= 0) return;
 
-        const idTipo = Number(document.getElementById('draftTypeSelect')?.value || selection.value || 0);
-        if (idTipo <= 0) return;
-
-        await createDraft(lat, lng, idTipo, selection.isConfirmed ? 'COMPLETAR' : 'RAPIDO');
+        await createDraft(lat, lng, selectedType, selection.isConfirmed ? 'COMPLETAR' : 'RAPIDO');
     }
 
     async function createDraft(lat, lng, idTipo, nextAction) {
