@@ -1,0 +1,3 @@
+# Runtime/private application data must not be committed.
+*
+!.gitignore
