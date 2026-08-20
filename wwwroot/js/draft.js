@@ -1,5 +1,7 @@
 (() => {
     let selectingDraftLocation = false;
+    let locationListener = null;
+    let locationTimeout = null;
 
     function addDraftMenuEntry() {
         const menu = document.getElementById('menu-flotante');
@@ -40,6 +42,62 @@
         return window.map && window.google?.maps ? window.map : null;
     }
 
+    function removeLocationBanner() {
+        document.getElementById('draftLocationBanner')?.remove();
+    }
+
+    function cancelLocationSelection() {
+        selectingDraftLocation = false;
+        document.body.style.cursor = '';
+        removeLocationBanner();
+
+        if (locationListener) {
+            google.maps.event.removeListener(locationListener);
+            locationListener = null;
+        }
+
+        if (locationTimeout) {
+            clearTimeout(locationTimeout);
+            locationTimeout = null;
+        }
+    }
+
+    function showLocationBanner() {
+        removeLocationBanner();
+
+        const banner = document.createElement('div');
+        banner.id = 'draftLocationBanner';
+        banner.style.cssText = [
+            'position:fixed',
+            'left:50%',
+            'bottom:24px',
+            'transform:translateX(-50%)',
+            'z-index:10050',
+            'display:flex',
+            'align-items:center',
+            'gap:12px',
+            'max-width:calc(100vw - 28px)',
+            'padding:11px 14px',
+            'border-radius:14px',
+            'background:#17212b',
+            'color:#fff',
+            'box-shadow:0 12px 30px rgba(0,0,0,.24)',
+            'font-size:14px'
+        ].join(';');
+
+        const text = document.createElement('span');
+        text.innerHTML = '<strong>Nueva propiedad:</strong> toca una vez en el mapa donde se encuentra.';
+
+        const cancel = document.createElement('button');
+        cancel.type = 'button';
+        cancel.textContent = 'Cancelar';
+        cancel.style.cssText = 'border:0;border-radius:9px;padding:7px 10px;background:#fff;color:#17212b;font-weight:650;cursor:pointer;';
+        cancel.addEventListener('click', cancelLocationSelection);
+
+        banner.append(text, cancel);
+        document.body.appendChild(banner);
+    }
+
     async function startDraftCreation() {
         if (selectingDraftLocation) return;
 
@@ -62,23 +120,20 @@
         const menu = document.getElementById('menu-flotante');
         if (menu) menu.style.display = 'none';
 
-        const instruction = await Swal.fire({
-            icon: 'info',
-            title: 'Nueva propiedad',
-            html: 'Primero ubicaremos el inmueble.<br><strong>Toca una vez en el mapa</strong> donde se encuentra.',
-            confirmButtonText: 'Seleccionar ubicación',
-            showCancelButton: true,
-            cancelButtonText: 'Cancelar'
-        });
-
-        if (!instruction.isConfirmed) return;
-
         selectingDraftLocation = true;
         document.body.style.cursor = 'crosshair';
+        showLocationBanner();
 
-        const listener = google.maps.event.addListenerOnce(currentMap, 'click', async event => {
+        locationListener = google.maps.event.addListenerOnce(currentMap, 'click', async event => {
             selectingDraftLocation = false;
             document.body.style.cursor = '';
+            removeLocationBanner();
+            locationListener = null;
+
+            if (locationTimeout) {
+                clearTimeout(locationTimeout);
+                locationTimeout = null;
+            }
 
             const lat = Number(event.latLng.lat().toFixed(6));
             const lng = Number(event.latLng.lng().toFixed(6));
@@ -86,11 +141,8 @@
             await chooseTypeAndCreate(lat, lng);
         });
 
-        window.setTimeout(() => {
-            if (!selectingDraftLocation) return;
-            selectingDraftLocation = false;
-            document.body.style.cursor = '';
-            google.maps.event.removeListener(listener);
+        locationTimeout = window.setTimeout(() => {
+            if (selectingDraftLocation) cancelLocationSelection();
         }, 120000);
     }
 
@@ -110,38 +162,63 @@
             return;
         }
 
-        const options = {};
-        (tipos || [])
-            .filter(tipo => Number(tipo.idTipoPropiedad) > 1 && tipo.nombre)
-            .forEach(tipo => {
-                options[String(tipo.idTipoPropiedad)] = tipo.nombre;
-            });
+        const tiposValidos = (tipos || [])
+            .filter(tipo => Number(tipo.idTipoPropiedad) > 1 && tipo.nombre);
 
-        if (Object.keys(options).length === 0) {
+        if (tiposValidos.length === 0) {
             await Swal.fire('Sin tipos disponibles', 'No hay tipos de propiedad disponibles para crear el borrador.', 'warning');
             return;
         }
 
+        const optionsHtml = tiposValidos
+            .map(tipo => `<option value="${Number(tipo.idTipoPropiedad)}">${escapeHtml(tipo.nombre)}</option>`)
+            .join('');
+
+        const getSelectedType = () => {
+            const select = document.getElementById('draftTypeSelect');
+            const value = Number(select?.value || 0);
+            if (value <= 0) {
+                Swal.showValidationMessage('Selecciona un tipo de propiedad.');
+                return false;
+            }
+            return value;
+        };
+
         const selection = await Swal.fire({
             title: '¿Qué propiedad es?',
-            html: `<div style="margin-bottom:8px;color:#667085;font-size:13px;">Ubicación: ${lat.toFixed(6)}, ${lng.toFixed(6)}</div>`,
-            input: 'select',
-            inputOptions: options,
-            inputPlaceholder: 'Selecciona el tipo',
+            html: `
+                <div style="text-align:left;margin-top:4px;">
+                    <div style="margin-bottom:8px;color:#667085;font-size:13px;">Ubicación ✓ ${lat.toFixed(6)}, ${lng.toFixed(6)}</div>
+                    <select id="draftTypeSelect" class="swal2-select" style="display:block;width:100%;margin:8px 0 4px;">
+                        <option value="">Selecciona el tipo</option>
+                        ${optionsHtml}
+                    </select>
+                    <div style="margin-top:12px;color:#667085;font-size:12px;line-height:1.4;">
+                        <strong>Completar ahora</strong> abre la captura de datos.<br>
+                        <strong>Guardar rápido</strong> lo deja privado para continuar después.
+                    </div>
+                </div>`,
             showCancelButton: true,
-            confirmButtonText: 'Crear borrador',
+            showDenyButton: true,
+            confirmButtonText: 'Completar ahora',
+            denyButtonText: 'Guardar rápido',
             cancelButtonText: 'Cancelar',
-            inputValidator: value => value ? undefined : 'Selecciona un tipo de propiedad.'
+            focusConfirm: false,
+            preConfirm: getSelectedType,
+            preDeny: getSelectedType
         });
 
-        if (!selection.isConfirmed) return;
+        if (!selection.isConfirmed && !selection.isDenied) return;
 
-        await createDraft(lat, lng, Number(selection.value));
+        const idTipo = Number(document.getElementById('draftTypeSelect')?.value || selection.value || 0);
+        if (idTipo <= 0) return;
+
+        await createDraft(lat, lng, idTipo, selection.isConfirmed ? 'COMPLETAR' : 'RAPIDO');
     }
 
-    async function createDraft(lat, lng, idTipo) {
+    async function createDraft(lat, lng, idTipo, nextAction) {
         Swal.fire({
-            title: 'Creando borrador…',
+            title: 'Guardando ubicación…',
             allowOutsideClick: false,
             allowEscapeKey: false,
             didOpen: () => Swal.showLoading()
@@ -174,25 +251,33 @@
                 throw new Error(data?.message || 'No fue posible crear el borrador.');
             }
 
-            const result = await Swal.fire({
-                icon: 'success',
-                title: `Borrador #${data.idInmueble} creado`,
-                html: 'La ubicación y el tipo ya quedaron guardados.<br><strong>¿Quieres completar la propiedad ahora o continuar después?</strong><br><br>El borrador sigue privado y no aparece en el marketplace.',
-                confirmButtonText: 'Completar ahora',
-                showDenyButton: true,
-                denyButtonText: 'Ir a Mi inventario',
-                showCancelButton: true,
-                cancelButtonText: 'Seguir en el mapa'
-            });
-
-            if (result.isConfirmed) {
+            if (nextAction === 'COMPLETAR') {
                 window.location.href = `/Borrador/Editar/${encodeURIComponent(data.idInmueble)}`;
-            } else if (result.isDenied) {
-                window.location.href = `/Inventario?borrador=${encodeURIComponent(data.idInmueble)}`;
+                return;
             }
+
+            await Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: `Borrador #${data.idInmueble} guardado`,
+                text: 'Quedó privado. Puedes completarlo después desde Mi inventario.',
+                showConfirmButton: false,
+                timer: 3200,
+                timerProgressBar: true
+            });
         } catch (error) {
             await Swal.fire('No se pudo crear', error.message, 'error');
         }
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
     }
 
     window.startDraftCreation = startDraftCreation;
