@@ -29,6 +29,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (path.startsWith('/borrador/editar')) {
+        const characteristicsScript = document.createElement('script');
+        characteristicsScript.src = '/js/draft-characteristics.js';
+        characteristicsScript.defer = true;
+        document.body.appendChild(characteristicsScript);
+
         const publishScript = document.createElement('script');
         publishScript.src = '/js/draft-publish.js';
         publishScript.defer = true;
