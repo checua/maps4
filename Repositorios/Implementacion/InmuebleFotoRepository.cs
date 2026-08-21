@@ -50,6 +50,22 @@ namespace maps4.Repositorios.Implementacion
             return await dr.ReadAsync() ? Leer(dr) : null;
         }
 
+        public async Task<InmuebleFotoViewModel?> ObtenerPublicaPorOrdenAsync(int idInmueble, int orden)
+        {
+            using SqlConnection conexion = new SqlConnection(_cadenaSQL);
+            await conexion.OpenAsync();
+
+            using SqlCommand cmd = new SqlCommand("dbo.RSMAPS_sp_ObtenerFotoPublicaPorOrden", conexion)
+            {
+                CommandType = CommandType.StoredProcedure
+            };
+            cmd.Parameters.Add("@idInmueble", SqlDbType.Int).Value = idInmueble;
+            cmd.Parameters.Add("@orden", SqlDbType.Int).Value = orden;
+
+            using SqlDataReader dr = await cmd.ExecuteReaderAsync();
+            return await dr.ReadAsync() ? Leer(dr) : null;
+        }
+
         public async Task<long> RegistrarAsync(string correoAutenticado, int idInmueble, FotoAlmacenada foto)
         {
             using SqlConnection conexion = new SqlConnection(_cadenaSQL);
