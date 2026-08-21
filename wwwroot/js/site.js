@@ -10,6 +10,11 @@ document.addEventListener('DOMContentLoaded', () => {
         script.src = '/js/draft.js';
         script.defer = true;
         document.body.appendChild(script);
+
+        const marketplaceFilters = document.createElement('script');
+        marketplaceFilters.src = '/js/marketplace-filters.js';
+        marketplaceFilters.defer = true;
+        document.body.appendChild(marketplaceFilters);
     }
 
     if (path === '/inventario' || path === '/inventario/index') {
