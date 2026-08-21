@@ -28,6 +28,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    if (path.startsWith('/borrador/editar')) {
+        const publishScript = document.createElement('script');
+        publishScript.src = '/js/draft-publish.js';
+        publishScript.defer = true;
+        document.body.appendChild(publishScript);
+    }
+
     // UX de cierre: si conocemos el precio publicado y el campo todavía
     // viene en cero, usarlo como punto de partida editable para el asesor.
     if (path === '/inventario/cerraroperacion') {
