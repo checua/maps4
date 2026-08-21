@@ -44,6 +44,26 @@ namespace maps4.Controllers
                 if (portada == null)
                     return NotFound();
 
+                // La URL legacy de portada es estable (/cargas/{id}_1.jpg), pero la
+                // imagen moderna que representa puede cambiar. Revalidamos usando
+                // un ETag basado en el IdImagen actual: si sigue siendo la misma,
+                // el navegador aprovecha 304; si cambió/eliminó la portada, obtiene
+                // inmediatamente la nueva sin requerir Ctrl+F5.
+                string etag = $"\"rsmaps-cover-{portada.IdImagen}\"";
+                Response.Headers.ETag = etag;
+                Response.Headers.CacheControl = "private,max-age=0,must-revalidate";
+
+                string ifNoneMatch = Request.Headers.IfNoneMatch.ToString();
+                if (!string.IsNullOrWhiteSpace(ifNoneMatch))
+                {
+                    bool coincide = ifNoneMatch
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                        .Any(x => string.Equals(x, etag, StringComparison.Ordinal));
+
+                    if (coincide)
+                        return StatusCode(StatusCodes.Status304NotModified);
+                }
+
                 Stream? stream = await _fotoStorage.AbrirLecturaAsync(
                     portada.ClaveAlmacenamiento,
                     cancellationToken);
@@ -51,7 +71,6 @@ namespace maps4.Controllers
                 if (stream == null)
                     return NotFound();
 
-                Response.Headers.CacheControl = "private,max-age=300";
                 return File(stream, portada.MimeType, enableRangeProcessing: true);
             }
             catch (SqlException)
