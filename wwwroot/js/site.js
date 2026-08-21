@@ -39,6 +39,11 @@ document.addEventListener('DOMContentLoaded', () => {
         previewScript.defer = true;
         document.body.appendChild(previewScript);
 
+        const photoActionsScript = document.createElement('script');
+        photoActionsScript.src = '/js/draft-photo-actions.js';
+        photoActionsScript.defer = true;
+        document.body.appendChild(photoActionsScript);
+
         const publishScript = document.createElement('script');
         publishScript.src = '/js/draft-publish.js';
         publishScript.defer = true;
