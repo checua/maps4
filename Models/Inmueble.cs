@@ -3,8 +3,8 @@
     public class Inmueble
     {
         public int IdInmueble { get; set; }
-        public Inmobiliaria? refInmobiliaria { get; set; } //Referencia al Modelo Inmobiliaria
-        public Usuario? RefUsuario { get; set; } //Referencia al Modelo Usuario
+        public Inmobiliaria? refInmobiliaria { get; set; }
+        public Usuario? RefUsuario { get; set; }
         public string? Direccion { get; set; }
         public decimal? Lat { get; set; }
         public decimal? Lng { get; set; }
@@ -18,5 +18,13 @@
         public string? Link { get; set; }
         public string? Contacto { get; set; }
         public int Imagenes { get; set; }
+
+        public int? Recamaras { get; set; }
+        public int? BanosCompletos { get; set; }
+        public int? MediosBanos { get; set; }
+        public int? Estacionamientos { get; set; }
+        public int? Niveles { get; set; }
+        public int? AntiguedadAnos { get; set; }
+        public string? AmenidadesCsv { get; set; }
     }
 }
