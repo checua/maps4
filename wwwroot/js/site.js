@@ -34,6 +34,11 @@ document.addEventListener('DOMContentLoaded', () => {
         characteristicsScript.defer = true;
         document.body.appendChild(characteristicsScript);
 
+        const previewScript = document.createElement('script');
+        previewScript.src = '/js/draft-preview.js';
+        previewScript.defer = true;
+        document.body.appendChild(previewScript);
+
         const publishScript = document.createElement('script');
         publishScript.src = '/js/draft-publish.js';
         publishScript.defer = true;
