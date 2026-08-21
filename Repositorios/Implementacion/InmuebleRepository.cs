@@ -27,9 +27,7 @@ namespace maps4.Repositorios.Implementacion
                 using (var dr = await cmd.ExecuteReaderAsync())
                 {
                     while (await dr.ReadAsync())
-                    {
                         _lista.Add(MapearInmueblePublico(dr));
-                    }
                 }
             }
 
@@ -50,9 +48,7 @@ namespace maps4.Repositorios.Implementacion
                 using (var dr = await cmd.ExecuteReaderAsync())
                 {
                     while (await dr.ReadAsync())
-                    {
                         _lista.Add(MapearInmueblePublico(dr));
-                    }
                 }
             }
             return _lista;
@@ -88,23 +84,32 @@ namespace maps4.Repositorios.Implementacion
                 Observaciones = dr["observaciones"].ToString(),
                 Exclusiva = dr["exclusiva"] as int?,
                 Link = dr["link"].ToString(),
-                // contacto_a fue usado históricamente como Notas privadas.
-                // Nunca debe salir por una lectura pública.
                 Contacto = null,
                 Imagenes = Convert.ToInt32(dr["imagenes"]),
-                Recamaras = LeerNullableInt(dr, "Recamaras"),
-                BanosCompletos = LeerNullableInt(dr, "BanosCompletos"),
-                MediosBanos = LeerNullableInt(dr, "MediosBanos"),
-                Estacionamientos = LeerNullableInt(dr, "Estacionamientos"),
-                Niveles = LeerNullableInt(dr, "Niveles"),
-                AntiguedadAnos = LeerNullableInt(dr, "AntiguedadAnos"),
-                AmenidadesCsv = dr["AmenidadesCsv"] == DBNull.Value ? null : dr["AmenidadesCsv"].ToString()
+                Recamaras = LeerNullableIntSiExiste(dr, "Recamaras"),
+                BanosCompletos = LeerNullableIntSiExiste(dr, "BanosCompletos"),
+                MediosBanos = LeerNullableIntSiExiste(dr, "MediosBanos"),
+                Estacionamientos = LeerNullableIntSiExiste(dr, "Estacionamientos"),
+                Niveles = LeerNullableIntSiExiste(dr, "Niveles"),
+                AntiguedadAnos = LeerNullableIntSiExiste(dr, "AntiguedadAnos"),
+                AmenidadesCsv = LeerStringSiExiste(dr, "AmenidadesCsv")
             };
         }
 
-        private static int? LeerNullableInt(SqlDataReader dr, string columna)
+        private static int? LeerNullableIntSiExiste(SqlDataReader dr, string columna)
         {
-            return dr[columna] == DBNull.Value ? null : Convert.ToInt32(dr[columna]);
+            int ordinal;
+            try { ordinal = dr.GetOrdinal(columna); }
+            catch (IndexOutOfRangeException) { return null; }
+            return dr.IsDBNull(ordinal) ? null : Convert.ToInt32(dr.GetValue(ordinal));
+        }
+
+        private static string? LeerStringSiExiste(SqlDataReader dr, string columna)
+        {
+            int ordinal;
+            try { ordinal = dr.GetOrdinal(columna); }
+            catch (IndexOutOfRangeException) { return null; }
+            return dr.IsDBNull(ordinal) ? null : dr.GetString(ordinal);
         }
     }
 }
