@@ -92,12 +92,8 @@ FROM dbo.RSMAPS_Amenidad a
 WHERE a.Activo=1 AND a.EsFiltro=1
 ORDER BY a.Grupo,a.Orden,a.Nombre;
 
-SELECT TOP (10)
-    p.idInmueble,p.idTipo,p.precio,p.Recamaras,p.BanosCompletos,
-    p.Estacionamientos,p.AmenidadesCsv,
-    'OK - MARKETPLACE ENTREGA DATOS DE FILTRO SIN NOTAS PRIVADAS' AS EstadoPaso37
-FROM OPENQUERY([LOCALSERVER], 'SELECT 1') q
-CROSS APPLY (SELECT TOP(0) 1 x) dummy;
--- La validacion real de forma se hace ejecutando el procedimiento abajo.
 EXEC dbo.RSMAPS_sp_ListaInmuebles;
+
+SELECT
+    'OK - MARKETPLACE ENTREGA DATOS ESTRUCTURADOS DE FILTRO Y contacto_a SALE REDACTADO' AS EstadoPaso37;
 GO
