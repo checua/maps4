@@ -150,11 +150,12 @@ namespace maps4.Repositorios.Implementacion
                     await cmd.ExecuteNonQueryAsync();
                 }
 
-                using (SqlCommand cmd = new SqlCommand("dbo.RSMAPS_sp_GuardarCaracteristicasBorrador", conexion, transaccion)
+                if (modelo.CaracteristicasCargadas)
                 {
-                    CommandType = CommandType.StoredProcedure
-                })
-                {
+                    using SqlCommand cmd = new SqlCommand("dbo.RSMAPS_sp_GuardarCaracteristicasBorrador", conexion, transaccion)
+                    {
+                        CommandType = CommandType.StoredProcedure
+                    };
                     cmd.Parameters.Add("@correo", SqlDbType.VarChar, 200).Value = correoAutenticado;
                     cmd.Parameters.Add("@idInmueble", SqlDbType.Int).Value = modelo.IdInmueble;
                     AgregarSmallInt(cmd, "@recamaras", modelo.Recamaras);
@@ -177,7 +178,7 @@ namespace maps4.Repositorios.Implementacion
             }
             catch
             {
-                transaccion.Rollback();
+                try { transaccion.Rollback(); } catch (InvalidOperationException) { }
                 throw;
             }
         }
