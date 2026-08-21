@@ -61,6 +61,7 @@ namespace maps4.Models
         [Display(Name = "Notas privadas")]
         public string? NotasPrivadas { get; set; }
 
+        public bool CaracteristicasCargadas { get; set; }
         public List<string> AmenidadesSeleccionadas { get; set; } = new();
         public List<AmenidadOpcionViewModel> AmenidadesDisponibles { get; set; } = new();
 
