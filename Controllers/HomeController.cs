@@ -6,7 +6,6 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
-
 namespace maps4.Controllers
 {
     public class HomeController : Controller
@@ -15,39 +14,25 @@ namespace maps4.Controllers
         private readonly IGenericRepository<TipoPropiedad> _tipoPropiedadRepository;
         private readonly IGenericRepository<Usuario> _usuarioRepository;
         private readonly IGenericRepository<Inmueble> _inmuebleRepository;
+        private readonly IMarketplaceFiltroRepository _marketplaceFiltroRepository;
 
-        public HomeController(ILogger<HomeController> logger,
+        public HomeController(
+            ILogger<HomeController> logger,
             IGenericRepository<TipoPropiedad> tipoPropiedadRepository,
             IGenericRepository<Usuario> usuarioRepository,
-            IGenericRepository<Inmueble> inmuebleRepository
-            )
+            IGenericRepository<Inmueble> inmuebleRepository,
+            IMarketplaceFiltroRepository marketplaceFiltroRepository)
         {
             _logger = logger;
             _tipoPropiedadRepository = tipoPropiedadRepository;
             _usuarioRepository = usuarioRepository;
             _inmuebleRepository = inmuebleRepository;
-    }
+            _marketplaceFiltroRepository = marketplaceFiltroRepository;
+        }
 
         public IActionResult Index()
         {
-
-            //ClaimsPrincipal claimuser = HttpContext.User;
-            //string nombreUsuario = "";
-
-            //if (claimuser.Identity.IsAuthenticated)
-            //{
-            //    nombreUsuario = claimuser.Claims.Where(c => c.Type == ClaimTypes.Name)
-            //        .Select(c => c.Value).SingleOrDefault();
-            //}
-
-            //ViewData["nombreUsuario"] = nombreUsuario;
-
-            //GetUserClaims();
-
-            // Obtener el correo del usuario autenticado
             var userEmail = User.FindFirstValue(ClaimTypes.Email);
-
-            // Si el usuario está autenticado, se pasa el correo a la vista
             ViewData["CorreoUsuario"] = userEmail;
             return View();
         }
@@ -55,10 +40,8 @@ namespace maps4.Controllers
         [HttpGet]
         public async Task<IActionResult> listaTipoPropiedades()
         {
-
             List<TipoPropiedad> _lista = await _tipoPropiedadRepository.Lista();
             return StatusCode(StatusCodes.Status200OK, _lista);
-            //return View();
         }
 
         [HttpGet]
@@ -66,7 +49,13 @@ namespace maps4.Controllers
         {
             List<Usuario> _lista = await _usuarioRepository.Lista();
             return StatusCode(StatusCodes.Status200OK, _lista);
-            //return View();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> listaAmenidadesFiltros()
+        {
+            List<AmenidadFiltroViewModel> lista = await _marketplaceFiltroRepository.ListarAmenidadesAsync();
+            return StatusCode(StatusCodes.Status200OK, lista);
         }
 
         public IActionResult Privacy()
@@ -104,11 +93,8 @@ namespace maps4.Controllers
         [HttpGet]
         public async Task<IActionResult> listaInmuebles()
         {
-
             List<Inmueble> _lista = await _inmuebleRepository.Lista();
             return StatusCode(StatusCodes.Status200OK, _lista);
-            //return View();
         }
-
     }
 }
