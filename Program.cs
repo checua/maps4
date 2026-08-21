@@ -24,6 +24,7 @@ builder.Services.AddScoped<IInventarioRepository, InventarioRepository>();
 builder.Services.AddScoped<IBorradorInmuebleRepository, BorradorInmuebleRepository>();
 builder.Services.AddScoped<IPublicacionBorradorRepository, PublicacionBorradorRepository>();
 builder.Services.AddScoped<IInmuebleFotoRepository, InmuebleFotoRepository>();
+builder.Services.AddScoped<IMarketplaceFiltroRepository, MarketplaceFiltroRepository>();
 builder.Services.AddSingleton<IInmuebleFotoStorage, LocalInmuebleFotoStorage>();
 
 // Configurar autenticación basada en cookies
