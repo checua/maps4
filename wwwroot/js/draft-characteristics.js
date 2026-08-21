@@ -43,6 +43,12 @@
         const firstSection = form.querySelector('.section');
         if (!firstSection) return;
 
+        const loaded = document.createElement('input');
+        loaded.type = 'hidden';
+        loaded.name = 'CaracteristicasCargadas';
+        loaded.value = 'true';
+        form.appendChild(loaded);
+
         const section = document.createElement('section');
         section.className = 'section';
         section.id = 'structuredCharacteristicsSection';
