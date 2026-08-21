@@ -82,9 +82,9 @@ namespace maps4.Repositorios.Implementacion
                 Lng = dr["lng"] as decimal?,
                 IdTipo = dr["idTipo"] as int?,
                 Telefono = dr["telefono"].ToString(),
-                Terreno = float.Parse(dr["terreno"].ToString()),
-                Construccion = float.Parse(dr["construccion"].ToString()),
-                Precio = float.Parse(dr["precio"].ToString()),
+                Terreno = dr["terreno"] == DBNull.Value ? null : Convert.ToSingle(dr["terreno"]),
+                Construccion = dr["construccion"] == DBNull.Value ? null : Convert.ToSingle(dr["construccion"]),
+                Precio = dr["precio"] == DBNull.Value ? null : Convert.ToSingle(dr["precio"]),
                 Observaciones = dr["observaciones"].ToString(),
                 Exclusiva = dr["exclusiva"] as int?,
                 Link = dr["link"].ToString(),
@@ -92,7 +92,19 @@ namespace maps4.Repositorios.Implementacion
                 // Nunca debe salir por una lectura pública.
                 Contacto = null,
                 Imagenes = Convert.ToInt32(dr["imagenes"]),
+                Recamaras = LeerNullableInt(dr, "Recamaras"),
+                BanosCompletos = LeerNullableInt(dr, "BanosCompletos"),
+                MediosBanos = LeerNullableInt(dr, "MediosBanos"),
+                Estacionamientos = LeerNullableInt(dr, "Estacionamientos"),
+                Niveles = LeerNullableInt(dr, "Niveles"),
+                AntiguedadAnos = LeerNullableInt(dr, "AntiguedadAnos"),
+                AmenidadesCsv = dr["AmenidadesCsv"] == DBNull.Value ? null : dr["AmenidadesCsv"].ToString()
             };
+        }
+
+        private static int? LeerNullableInt(SqlDataReader dr, string columna)
+        {
+            return dr[columna] == DBNull.Value ? null : Convert.ToInt32(dr[columna]);
         }
     }
 }
