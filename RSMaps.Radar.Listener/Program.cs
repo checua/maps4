@@ -8,7 +8,7 @@ using RSMaps.Radar.Listener.Services;
 Console.OutputEncoding = Encoding.UTF8;
 
 Console.WriteLine("==================================");
-Console.WriteLine("       RSMaps Radar v0.7");
+Console.WriteLine("      RSMaps Radar v0.7.1");
 Console.WriteLine("==================================");
 Console.WriteLine();
 
@@ -133,10 +133,10 @@ while (true)
             {
                 MostrarSolicitud(solicitud);
 
-                var enviada = await EnviarAlerta(page, solicitud);
-                Console.WriteLine(enviada
+                var envio = await EnviarAlerta(page, solicitud);
+                Console.WriteLine(envio.Enviada
                     ? $"  📤 Alerta enviada a '{AlertSettings.ChatDestino}'."
-                    : $"  ⚠ No pude enviar la alerta a '{AlertSettings.ChatDestino}'.");
+                    : $"  ⚠ No pude enviar la alerta a '{AlertSettings.ChatDestino}'. Etapa: {envio.Detalle}");
             }
         }
     }
@@ -341,34 +341,143 @@ static async Task<(int Revisados, List<SolicitudInmobiliaria> Solicitudes)> Proc
     return (revisados, solicitudes);
 }
 
-static async Task<bool> EnviarAlerta(IPage page, SolicitudInmobiliaria s)
+static async Task<(bool Enviada, string Detalle)> EnviarAlerta(
+    IPage page,
+    SolicitudInmobiliaria s)
 {
     try
     {
-        if (!await AbrirChat(page, AlertSettings.ChatDestino))
-            return false;
+        var abierto = await AbrirChatDestinoPorBusqueda(page, AlertSettings.ChatDestino);
+        if (!abierto)
+            return (false, "buscar/abrir chat destino");
 
-        var compose = page.Locator(
-            "[data-testid='conversation-compose-box-input'][contenteditable='true']").First;
+        var title = page.Locator("[data-testid='conversation-info-header-chat-title']");
+        if (await title.CountAsync() == 0)
+            return (false, "confirmar título del chat destino");
 
-        if (await compose.CountAsync() == 0)
-            compose = page.Locator("footer [contenteditable='true'][role='textbox']").First;
+        var tituloActual = (await title.First.InnerTextAsync()).Trim();
+        if (!EsMismoChat(tituloActual, AlertSettings.ChatDestino))
+            return (false, $"chat abierto inesperado: {tituloActual}");
 
-        if (await compose.CountAsync() == 0)
-            return false;
+        ILocator? compose = null;
+
+        var candidatos = new[]
+        {
+            "footer [contenteditable='true'][role='textbox']",
+            "footer div[contenteditable='true']",
+            "[data-testid='conversation-compose-box-input'][contenteditable='true']",
+            "div[contenteditable='true'][role='textbox'][data-tab]",
+            "div[contenteditable='true'][aria-placeholder='Escribe un mensaje']"
+        };
+
+        foreach (var selector in candidatos)
+        {
+            var locator = page.Locator(selector).Last;
+            if (await locator.CountAsync() == 0)
+                continue;
+
+            try
+            {
+                if (await locator.IsVisibleAsync())
+                {
+                    compose = locator;
+                    break;
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        if (compose is null)
+            return (false, "encontrar caja 'Escribe un mensaje'");
 
         var alerta = ConstruirAlerta(s);
 
         await compose.ClickAsync();
-        await compose.FillAsync(alerta);
-        await Task.Delay(AlertSettings.EsperaEnvioMs);
-        await compose.PressAsync("Enter");
+
+        try
+        {
+            await compose.FillAsync(alerta);
+        }
+        catch
+        {
+            await page.Keyboard.InsertTextAsync(alerta);
+        }
+
         await Task.Delay(AlertSettings.EsperaEnvioMs);
 
-        return true;
+        var textoActual = string.Empty;
+        try
+        {
+            textoActual = (await compose.InnerTextAsync()).Trim();
+        }
+        catch
+        {
+        }
+
+        if (string.IsNullOrWhiteSpace(textoActual))
+            return (false, "escribir contenido en la caja");
+
+        await page.Keyboard.PressAsync("Enter");
+        await Task.Delay(Math.Max(AlertSettings.EsperaEnvioMs, 700));
+
+        return (true, "ok");
+    }
+    catch (Exception ex)
+    {
+        return (false, $"excepción: {ex.Message}");
+    }
+}
+
+static async Task<bool> AbrirChatDestinoPorBusqueda(IPage page, string nombreChat)
+{
+    var searchContainer = page.Locator("[data-testid='chat-list-search-container']");
+    if (await searchContainer.CountAsync() == 0)
+        return false;
+
+    var input = searchContainer.Locator("[contenteditable='true']").First;
+    if (await input.CountAsync() == 0)
+        input = searchContainer.Locator("[role='textbox']").First;
+
+    if (await input.CountAsync() == 0)
+        return false;
+
+    try
+    {
+        await input.ClickAsync();
+        await input.FillAsync(string.Empty);
+        await input.FillAsync(nombreChat);
+        await Task.Delay(Math.Max(RadarSettings.EsperaBusquedaMs, 1200));
+
+        var titulos = page.Locator("[data-testid='cell-frame-title']");
+        var count = await titulos.CountAsync();
+
+        for (var i = 0; i < count; i++)
+        {
+            var titulo = titulos.Nth(i);
+            var texto = (await titulo.InnerTextAsync()).Trim();
+
+            if (!EsMismoChat(texto, nombreChat))
+                continue;
+
+            var fila = titulo.Locator("xpath=ancestor::*[@role='row'][1]");
+            if (await fila.CountAsync() > 0)
+                await fila.First.ClickAsync();
+            else
+                await titulo.ClickAsync();
+
+            var abierto = await EsperarChatAbierto(page, nombreChat);
+            await LimpiarBusqueda(page, input);
+            return abierto;
+        }
+
+        await LimpiarBusqueda(page, input);
+        return false;
     }
     catch
     {
+        await LimpiarBusqueda(page, input);
         return false;
     }
 }
