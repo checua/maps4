@@ -11,20 +11,28 @@ public class SolicitudInmobiliaria
     public DateTime DetectadoEn { get; set; }
 
     public string? Operacion { get; set; }
-    public string? TipoPropiedad { get; set; }
-    public string? Zona { get; set; }
+    public List<string> TiposPropiedad { get; set; } = [];
+    public List<string> Zonas { get; set; } = [];
 
     public decimal? PrecioMinimo { get; set; }
     public decimal? PrecioMaximo { get; set; }
 
-    public int? Recamaras { get; set; }
-    public int? Banos { get; set; }
+    public int? RecamarasMin { get; set; }
+    public int? RecamarasMax { get; set; }
+    public int? BanosMin { get; set; }
+    public int? BanosMax { get; set; }
 
-    public decimal? TerrenoM2 { get; set; }
-    public decimal? ConstruccionM2 { get; set; }
+    public decimal? TerrenoMinM2 { get; set; }
+    public decimal? ConstruccionMinM2 { get; set; }
 
     public bool? AceptaMascotas { get; set; }
     public bool? Amueblado { get; set; }
+    public bool? UnaPlanta { get; set; }
+    public bool? CasetaVigilancia { get; set; }
+    public int? CocheraMinAutos { get; set; }
+
+    public List<string> ModalidadesPago { get; set; } = [];
+    public string? RequisitosAdicionales { get; set; }
 
     public double? MejorCoincidencia { get; set; }
     public int? IdInmuebleCoincidente { get; set; }
