@@ -8,7 +8,7 @@ using RSMaps.Radar.Listener.Services;
 Console.OutputEncoding = Encoding.UTF8;
 
 Console.WriteLine("==================================");
-Console.WriteLine("      RSMaps Radar v0.6.4");
+Console.WriteLine("      RSMaps Radar v0.6.4.1");
 Console.WriteLine("==================================");
 Console.WriteLine();
 
@@ -129,13 +129,8 @@ while (true)
 
 static async Task<bool> AbrirChat(IPage page, string nombreChat)
 {
-    var fila = await BuscarFilaChatVisible(page, nombreChat);
-
-    if (fila is not null)
-    {
-        await fila.ClickAsync();
+    if (await ClickChatPorTituloVisible(page, nombreChat))
         return await EsperarChatAbierto(page, nombreChat);
-    }
 
     var searchContainer = page.Locator("[data-testid='chat-list-search-container']");
     if (await searchContainer.CountAsync() == 0)
@@ -157,15 +152,12 @@ static async Task<bool> AbrirChat(IPage page, string nombreChat)
             await input.FillAsync(termino);
             await Task.Delay(RadarSettings.EsperaBusquedaMs);
 
-            fila = await BuscarFilaChatVisible(page, nombreChat);
-            if (fila is null)
+            if (!await ClickChatPorTituloVisible(page, nombreChat))
                 continue;
-
-            await fila.ClickAsync();
 
             if (await EsperarChatAbierto(page, nombreChat))
             {
-                await LimpiarBusqueda(page, input);
+                await LimpiarBusqueda(page);
                 return true;
             }
         }
@@ -174,19 +166,65 @@ static async Task<bool> AbrirChat(IPage page, string nombreChat)
         }
     }
 
-    await LimpiarBusqueda(page, input);
+    await LimpiarBusqueda(page);
     return false;
 }
 
-static async Task LimpiarBusqueda(IPage page, ILocator input)
+static async Task<bool> ClickChatPorTituloVisible(IPage page, string nombreChat)
+{
+    var titulos = page.Locator("[data-testid='cell-frame-title']");
+    var count = await titulos.CountAsync();
+
+    for (var i = 0; i < count; i++)
+    {
+        var titulo = titulos.Nth(i);
+
+        try
+        {
+            if (!await titulo.IsVisibleAsync())
+                continue;
+
+            var textoTitulo = (await titulo.InnerTextAsync()).Trim();
+            if (!EsMismoChat(textoTitulo, nombreChat))
+                continue;
+
+            var clickable = titulo.Locator(
+                "xpath=ancestor::*[@role='row' or @role='listitem' or @tabindex='-1' or @tabindex='0'][1]");
+
+            if (await clickable.CountAsync() > 0)
+            {
+                await clickable.First.ClickAsync();
+                return true;
+            }
+
+            await titulo.ClickAsync();
+            return true;
+        }
+        catch
+        {
+        }
+    }
+
+    return false;
+}
+
+static async Task LimpiarBusqueda(IPage page)
 {
     try
     {
-        if (await input.IsVisibleAsync())
-            await input.FillAsync(string.Empty);
+        var searchContainer = page.Locator("[data-testid='chat-list-search-container']");
+        if (await searchContainer.CountAsync() > 0)
+        {
+            var input = searchContainer.Locator("[contenteditable='true']").First;
+            if (await input.CountAsync() == 0)
+                input = searchContainer.Locator("[role='textbox']").First;
+
+            if (await input.CountAsync() > 0 && await input.IsVisibleAsync())
+                await input.FillAsync(string.Empty);
+        }
 
         await page.Keyboard.PressAsync("Escape");
-        await Task.Delay(150);
+        await Task.Delay(200);
     }
     catch
     {
@@ -204,29 +242,6 @@ static bool EsMismoChat(string tituloActual, string esperado)
         N(tituloActual),
         N(esperado),
         StringComparison.OrdinalIgnoreCase);
-}
-
-static async Task<ILocator?> BuscarFilaChatVisible(
-    IPage page,
-    string nombreChat)
-{
-    var filas = page.Locator("[data-testid^='list-item-'][role='row']");
-    var count = await filas.CountAsync();
-
-    for (var i = 0; i < count; i++)
-    {
-        var fila = filas.Nth(i);
-        var titulo = fila.Locator("[data-testid='cell-frame-title']");
-
-        if (await titulo.CountAsync() == 0)
-            continue;
-
-        var textoTitulo = (await titulo.InnerTextAsync()).Trim();
-        if (EsMismoChat(textoTitulo, nombreChat))
-            return fila;
-    }
-
-    return null;
 }
 
 static async Task<bool> EsperarChatAbierto(IPage page, string chat)
