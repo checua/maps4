@@ -6,7 +6,7 @@ using RSMaps.Radar.Listener.Services;
 Console.OutputEncoding = Encoding.UTF8;
 
 Console.WriteLine("==================================");
-Console.WriteLine("       RSMaps Radar v0.4");
+Console.WriteLine("       RSMaps Radar v0.4.1");
 Console.WriteLine("==================================");
 Console.WriteLine();
 
@@ -50,14 +50,10 @@ Console.WriteLine();
 Console.WriteLine($"Chat seleccionado: {chatName}");
 Console.WriteLine("Inicializando Radar...");
 
-var knownIds = new HashSet<string>(
-    StringComparer.OrdinalIgnoreCase);
-
+var knownIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 await RegistrarMensajesExistentes(page, knownIds);
 
-Console.WriteLine(
-    $"Mensajes existentes registrados: {knownIds.Count}");
-
+Console.WriteLine($"Mensajes existentes registrados: {knownIds.Count}");
 Console.WriteLine();
 Console.WriteLine("==================================");
 Console.WriteLine("          RADAR ACTIVO");
@@ -71,109 +67,71 @@ while (true)
 {
     try
     {
-        var currentChat =
-            (await titleLocator.InnerTextAsync()).Trim();
+        var currentChat = (await titleLocator.InnerTextAsync()).Trim();
 
-        if (!string.Equals(
-                currentChat,
-                chatName,
-                StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(currentChat, chatName, StringComparison.OrdinalIgnoreCase))
         {
             Console.WriteLine();
-            Console.WriteLine(
-                $"[CAMBIO DE CHAT] {chatName} -> {currentChat}");
+            Console.WriteLine($"[CAMBIO DE CHAT] {chatName} -> {currentChat}");
 
             chatName = currentChat;
             knownIds.Clear();
+            await RegistrarMensajesExistentes(page, knownIds);
 
-            await RegistrarMensajesExistentes(
-                page,
-                knownIds);
-
-            Console.WriteLine(
-                $"Radar inicializado en: {chatName}");
-
-            Console.WriteLine(
-                $"Mensajes existentes: {knownIds.Count}");
-
+            Console.WriteLine($"Radar inicializado en: {chatName}");
+            Console.WriteLine($"Mensajes existentes: {knownIds.Count}");
             Console.WriteLine();
         }
 
-        var messages = page.Locator(
-            "[data-testid^='conv-msg-'][data-id]");
-
+        var messages = page.Locator("[data-testid^='conv-msg-'][data-id]");
         var count = await messages.CountAsync();
 
         for (var i = 0; i < count; i++)
         {
             var message = messages.Nth(i);
+            var id = await message.GetAttributeAsync("data-id");
 
-            var id =
-                await message.GetAttributeAsync("data-id");
-
-            if (string.IsNullOrWhiteSpace(id))
+            if (string.IsNullOrWhiteSpace(id) || !knownIds.Add(id))
                 continue;
 
-            if (!knownIds.Add(id))
-                continue;
-
-            var text =
-                (await message.InnerTextAsync()).Trim();
+            var text = (await message.InnerTextAsync()).Trim();
 
             if (string.IsNullOrWhiteSpace(text))
                 continue;
 
-            var classification =
-                ClasificarMensaje(text);
+            var classification = ClasificarMensaje(text);
 
             if (classification == TipoMensaje.Demanda)
             {
-                var solicitud =
-                    ExtractorInmobiliario.Extraer(
-                        text,
-                        chatName,
-                        id);
-
+                var solicitud = ExtractorInmobiliario.Extraer(text, chatName, id);
                 MostrarSolicitud(solicitud);
             }
             else
             {
-                MostrarResultado(
-                    chatName,
-                    id,
-                    text,
-                    classification);
+                MostrarResultado(chatName, id, text, classification);
             }
         }
     }
     catch (PlaywrightException ex)
     {
-        Console.WriteLine(
-            $"[PLAYWRIGHT] {ex.Message}");
+        Console.WriteLine($"[PLAYWRIGHT] {ex.Message}");
     }
     catch (Exception ex)
     {
-        Console.WriteLine(
-            $"[RADAR] {ex.Message}");
+        Console.WriteLine($"[RADAR] {ex.Message}");
     }
 
     await Task.Delay(2000);
 }
 
-static async Task RegistrarMensajesExistentes(
-    IPage page,
-    HashSet<string> knownIds)
+static async Task RegistrarMensajesExistentes(IPage page, HashSet<string> knownIds)
 {
-    var messages = page.Locator(
-        "[data-testid^='conv-msg-'][data-id]");
-
+    var messages = page.Locator("[data-testid^='conv-msg-'][data-id]");
     var count = await messages.CountAsync();
 
     for (var i = 0; i < count; i++)
     {
-        var id = await messages.Nth(i)
-            .GetAttributeAsync("data-id");
-
+        var id = await messages.Nth(i).GetAttributeAsync("data-id");
         if (!string.IsNullOrWhiteSpace(id))
             knownIds.Add(id);
     }
@@ -183,7 +141,9 @@ static TipoMensaje ClasificarMensaje(string texto)
 {
     var text = Normalizar(texto);
 
-    string[] demanda =
+    // Las expresiones de intención tienen prioridad sobre palabras
+    // descriptivas como "en renta" o "en venta".
+    string[] intencionesDemanda =
     {
         "busco",
         "buscando",
@@ -209,14 +169,12 @@ static TipoMensaje ClasificarMensaje(string texto)
         "algun local"
     };
 
-    string[] oferta =
+    string[] intencionesOferta =
     {
         "vendo",
         "se vende",
-        "en venta",
         "rento",
         "se renta",
-        "en renta",
         "ofrezco",
         "ofrecemos",
         "tenemos disponible",
@@ -227,13 +185,10 @@ static TipoMensaje ClasificarMensaje(string texto)
         "terreno disponible"
     };
 
-    var puntosDemanda = demanda.Count(text.Contains);
-    var puntosOferta = oferta.Count(text.Contains);
-
-    if (puntosDemanda > puntosOferta && puntosDemanda > 0)
+    if (intencionesDemanda.Any(text.Contains))
         return TipoMensaje.Demanda;
 
-    if (puntosOferta > puntosDemanda && puntosOferta > 0)
+    if (intencionesOferta.Any(text.Contains))
         return TipoMensaje.Oferta;
 
     return TipoMensaje.Otro;
@@ -252,80 +207,51 @@ static string Normalizar(string texto)
         .Replace("ñ", "n");
 }
 
-static void MostrarResultado(
-    string chat,
-    string id,
-    string texto,
-    TipoMensaje tipo)
+static void MostrarResultado(string chat, string id, string texto, TipoMensaje tipo)
 {
     Console.WriteLine();
-    Console.WriteLine(
-        "==============================================");
-
+    Console.WriteLine("==============================================");
     Console.WriteLine(tipo switch
     {
         TipoMensaje.Oferta => "🏠 OFERTA DE PROPIEDAD",
         TipoMensaje.Otro => "⚪ OTRO / RUIDO",
         _ => "🔥 SOLICITUD INMOBILIARIA DETECTADA"
     });
-
-    Console.WriteLine(
-        "==============================================");
-
+    Console.WriteLine("==============================================");
     Console.WriteLine($"Chat: {chat}");
     Console.WriteLine($"Tipo: {tipo}");
     Console.WriteLine($"ID: {id}");
     Console.WriteLine();
     Console.WriteLine(texto);
     Console.WriteLine();
-    Console.WriteLine(
-        $"Detectado: {DateTime.Now:dd/MM/yyyy HH:mm:ss}");
-    Console.WriteLine(
-        "==============================================");
+    Console.WriteLine($"Detectado: {DateTime.Now:dd/MM/yyyy HH:mm:ss}");
+    Console.WriteLine("==============================================");
     Console.WriteLine();
 }
 
-static void MostrarSolicitud(
-    SolicitudInmobiliaria solicitud)
+static void MostrarSolicitud(SolicitudInmobiliaria solicitud)
 {
     Console.WriteLine();
-    Console.WriteLine(
-        "==============================================");
-    Console.WriteLine(
-        "🔥 SOLICITUD INMOBILIARIA");
-    Console.WriteLine(
-        "==============================================");
-
-    Console.WriteLine(
-        $"Chat:         {solicitud.ChatOrigen}");
-    Console.WriteLine(
-        $"Operación:    {solicitud.Operacion ?? "No determinada"}");
-    Console.WriteLine(
-        $"Tipo:         {solicitud.TipoPropiedad ?? "No determinado"}");
-    Console.WriteLine(
-        $"Zona:         {solicitud.Zona ?? "No determinada"}");
-    Console.WriteLine(
-        $"Recámaras:    {solicitud.Recamaras?.ToString() ?? "-"}");
-    Console.WriteLine(
-        $"Baños:        {solicitud.Banos?.ToString() ?? "-"}");
-    Console.WriteLine(
-        $"Presupuesto:  {(solicitud.PrecioMaximo.HasValue ? solicitud.PrecioMaximo.Value.ToString("C0") : "-")}");
-    Console.WriteLine(
-        $"Terreno:      {(solicitud.TerrenoM2.HasValue ? $"{solicitud.TerrenoM2} m²" : "-")}");
-    Console.WriteLine(
-        $"Construcción: {(solicitud.ConstruccionM2.HasValue ? $"{solicitud.ConstruccionM2} m²" : "-")}");
-    Console.WriteLine(
-        $"Mascotas:     {MostrarBooleano(solicitud.AceptaMascotas)}");
-    Console.WriteLine(
-        $"Amueblado:    {MostrarBooleano(solicitud.Amueblado)}");
-
+    Console.WriteLine("==============================================");
+    Console.WriteLine("🔥 SOLICITUD INMOBILIARIA");
+    Console.WriteLine("==============================================");
+    Console.WriteLine($"Chat:         {solicitud.ChatOrigen}");
+    Console.WriteLine($"Operación:    {solicitud.Operacion ?? "No determinada"}");
+    Console.WriteLine($"Tipo:         {solicitud.TipoPropiedad ?? "No determinado"}");
+    Console.WriteLine($"Zona:         {solicitud.Zona ?? "No determinada"}");
+    Console.WriteLine($"Recámaras:    {solicitud.Recamaras?.ToString() ?? "-"}");
+    Console.WriteLine($"Baños:        {solicitud.Banos?.ToString() ?? "-"}");
+    Console.WriteLine($"Presupuesto:  {(solicitud.PrecioMaximo.HasValue ? solicitud.PrecioMaximo.Value.ToString("C0") : "-")}");
+    Console.WriteLine($"Terreno:      {(solicitud.TerrenoM2.HasValue ? $"{solicitud.TerrenoM2} m²" : "-")}");
+    Console.WriteLine($"Construcción: {(solicitud.ConstruccionM2.HasValue ? $"{solicitud.ConstruccionM2} m²" : "-")}");
+    Console.WriteLine($"Mascotas:     {MostrarBooleano(solicitud.AceptaMascotas)}");
+    Console.WriteLine($"Amueblado:    {MostrarBooleano(solicitud.Amueblado)}");
     Console.WriteLine();
     Console.WriteLine("MENSAJE ORIGINAL:");
     Console.WriteLine(solicitud.MensajeOriginal);
     Console.WriteLine();
     Console.WriteLine($"ID: {solicitud.MessageId}");
-    Console.WriteLine(
-        "==============================================");
+    Console.WriteLine("==============================================");
     Console.WriteLine();
 }
 
