@@ -8,7 +8,7 @@ using RSMaps.Radar.Listener.Services;
 Console.OutputEncoding = Encoding.UTF8;
 
 Console.WriteLine("==================================");
-Console.WriteLine("      RSMaps Radar v0.6.4.3");
+Console.WriteLine("      RSMaps Radar v0.7.2-stable");
 Console.WriteLine("==================================");
 Console.WriteLine();
 
@@ -39,6 +39,7 @@ Console.WriteLine();
 Console.WriteLine("Chats configurados para Radar:");
 foreach (var chat in RadarSettings.ChatsMonitoreados)
     Console.WriteLine($"  • {chat}");
+Console.WriteLine($"Chat de alertas: {AlertSettings.ChatDestino}");
 
 var idsConocidosPorChat = new Dictionary<string, HashSet<string>>(
     StringComparer.OrdinalIgnoreCase);
@@ -57,7 +58,6 @@ foreach (var chat in RadarSettings.ChatsMonitoreados)
     var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     await EstabilizarMensajesChat(page, ids);
     idsConocidosPorChat[chat] = ids;
-
     Console.WriteLine($"✓ {chat}: {ids.Count} mensajes actuales registrados.");
 }
 
@@ -70,7 +70,6 @@ for (var ronda = 1; ronda <= 3; ronda++)
     {
         if (!await AbrirChat(page, chat))
             continue;
-
         await EstabilizarMensajesChat(page, idsConocidosPorChat[chat]);
     }
 }
@@ -79,8 +78,7 @@ Console.WriteLine();
 Console.WriteLine("==================================");
 Console.WriteLine("          RADAR ACTIVO");
 Console.WriteLine("==================================");
-Console.WriteLine("Escaneando secuencialmente los chats configurados.");
-Console.WriteLine("Solo se procesarán IDs que aparezcan después de la estabilización.");
+Console.WriteLine("Las solicitudes nuevas se enviarán a Propiedades.");
 Console.WriteLine("CTRL+C para terminar.");
 Console.WriteLine();
 
@@ -104,12 +102,18 @@ while (true)
                 continue;
             }
 
-            var revisados = await ProcesarMensajesNuevos(page, chat, idsConocidos);
+            var resultado = await ProcesarMensajesNuevos(page, chat, idsConocidos);
 
-            if (revisados > 0)
+            if (resultado.Revisados > 0)
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {chat}: {resultado.Revisados} mensaje(s) nuevo(s), {resultado.Solicitudes.Count} solicitud(es).");
+
+            foreach (var solicitud in resultado.Solicitudes)
             {
-                Console.WriteLine(
-                    $"[{DateTime.Now:HH:mm:ss}] {chat}: {revisados} mensaje(s) nuevo(s) revisado(s).");
+                MostrarSolicitud(solicitud);
+                var envio = await EnviarAlerta(page, solicitud);
+                Console.WriteLine(envio.Enviada
+                    ? $"  📤 Alerta enviada a '{AlertSettings.ChatDestino}'."
+                    : $"  ⚠ No pude enviar la alerta a '{AlertSettings.ChatDestino}'. Etapa: {envio.Detalle}");
             }
         }
     }
@@ -127,26 +131,15 @@ while (true)
 
 static async Task<bool> AbrirChat(IPage page, string nombreChat)
 {
-    if (await ClickPorTextoExacto(page, nombreChat))
+    if (await ClickPorTextoExacto(page, nombreChat) && await EsperarChatAbierto(page, nombreChat))
     {
-        if (await EsperarChatAbierto(page, nombreChat))
-        {
-            Console.WriteLine($"  ↳ {nombreChat}: abierto desde lista visible.");
-            return true;
-        }
+        Console.WriteLine($"  ↳ {nombreChat}: abierto desde lista visible.");
+        return true;
     }
 
     await LimpiarBusqueda(page);
-
-    var searchContainer = page.Locator("[data-testid='chat-list-search-container']");
-    if (await searchContainer.CountAsync() == 0)
-        return false;
-
-    var input = searchContainer.Locator("[contenteditable='true']").First;
-    if (await input.CountAsync() == 0)
-        input = searchContainer.Locator("[role='textbox']").First;
-
-    if (await input.CountAsync() == 0)
+    var input = await ObtenerInputBusqueda(page);
+    if (input is null)
         return false;
 
     foreach (var termino in RadarSettings.ObtenerTerminosBusqueda(nombreChat))
@@ -154,7 +147,6 @@ static async Task<bool> AbrirChat(IPage page, string nombreChat)
         try
         {
             Console.WriteLine($"  ↳ Buscando '{nombreChat}' con: {termino}");
-
             input = await ObtenerInputBusqueda(page) ?? input;
             await input.ClickAsync();
             await input.FillAsync(string.Empty);
@@ -167,16 +159,12 @@ static async Task<bool> AbrirChat(IPage page, string nombreChat)
                 continue;
             }
 
-            Console.WriteLine("     resultado encontrado; clic ejecutado.");
-
             if (await EsperarChatAbierto(page, nombreChat))
             {
                 Console.WriteLine("     chat confirmado abierto.");
                 await LimpiarBusqueda(page);
                 return true;
             }
-
-            Console.WriteLine("     clic realizado, pero no se confirmó el encabezado.");
         }
         catch (Exception ex)
         {
@@ -198,12 +186,10 @@ static async Task<bool> ClickPorTextoExacto(IPage page, string nombreChat)
         for (var i = 0; i < count; i++)
         {
             var item = exacto.Nth(i);
-
             try
             {
                 if (!await item.IsVisibleAsync())
                     continue;
-
                 await item.ClickAsync(new LocatorClickOptions { Timeout = 2_000 });
                 return true;
             }
@@ -211,44 +197,32 @@ static async Task<bool> ClickPorTextoExacto(IPage page, string nombreChat)
             {
                 try
                 {
-                    var contenedor = item.Locator(
-                        "xpath=ancestor::*[@tabindex='0' or @tabindex='-1' or @role='button' or @role='listitem' or @role='row'][1]");
-
+                    var contenedor = item.Locator("xpath=ancestor::*[@tabindex='0' or @tabindex='-1' or @role='button' or @role='listitem' or @role='row'][1]");
                     if (await contenedor.CountAsync() > 0)
                     {
                         await contenedor.First.ClickAsync(new LocatorClickOptions { Timeout = 2_000 });
                         return true;
                     }
                 }
-                catch
-                {
-                }
+                catch { }
             }
         }
     }
 
-    // Fallback para títulos de chat normales que todavía expongan el test-id de WhatsApp.
     var titulos = page.Locator("[data-testid='cell-frame-title']");
-    var total = await titulos.CountAsync();
-
-    for (var i = 0; i < total; i++)
+    for (var i = 0; i < await titulos.CountAsync(); i++)
     {
         var titulo = titulos.Nth(i);
         try
         {
             if (!await titulo.IsVisibleAsync())
                 continue;
-
-            var texto = (await titulo.InnerTextAsync()).Trim();
-            if (!EsMismoChat(texto, nombreChat))
+            if (!EsMismoChat((await titulo.InnerTextAsync()).Trim(), nombreChat))
                 continue;
-
             await titulo.ClickAsync(new LocatorClickOptions { Timeout = 2_000 });
             return true;
         }
-        catch
-        {
-        }
+        catch { }
     }
 
     return false;
@@ -257,10 +231,8 @@ static async Task<bool> ClickPorTextoExacto(IPage page, string nombreChat)
 static IEnumerable<string> CandidatosTitulo(string nombreChat)
 {
     yield return nombreChat;
-
     if (nombreChat.Contains("(Tú)", StringComparison.OrdinalIgnoreCase))
         yield return nombreChat.Replace("(Tú)", string.Empty, StringComparison.OrdinalIgnoreCase).Trim();
-
     if (nombreChat.Contains("(Tu)", StringComparison.OrdinalIgnoreCase))
         yield return nombreChat.Replace("(Tu)", string.Empty, StringComparison.OrdinalIgnoreCase).Trim();
 }
@@ -286,13 +258,10 @@ static async Task LimpiarBusqueda(IPage page)
         var input = await ObtenerInputBusqueda(page);
         if (input is not null && await input.IsVisibleAsync())
             await input.FillAsync(string.Empty);
-
         await page.Keyboard.PressAsync("Escape");
         await Task.Delay(250);
     }
-    catch
-    {
-    }
+    catch { }
 }
 
 static bool EsMismoChat(string tituloActual, string esperado)
@@ -301,14 +270,12 @@ static bool EsMismoChat(string tituloActual, string esperado)
         .Replace("(Tú)", string.Empty, StringComparison.OrdinalIgnoreCase)
         .Replace("(Tu)", string.Empty, StringComparison.OrdinalIgnoreCase)
         .Trim();
-
     return string.Equals(N(tituloActual), N(esperado), StringComparison.OrdinalIgnoreCase);
 }
 
 static async Task<bool> EsperarChatAbierto(IPage page, string chat)
 {
     var title = page.Locator("[data-testid='conversation-info-header-chat-title']");
-
     try
     {
         await title.WaitForAsync(new LocatorWaitForOptions { Timeout = 6_000 });
@@ -320,13 +287,10 @@ static async Task<bool> EsperarChatAbierto(IPage page, string chat)
 
     for (var intento = 0; intento < 30; intento++)
     {
-        var actual = (await title.InnerTextAsync()).Trim();
-        if (EsMismoChat(actual, chat))
+        if (EsMismoChat((await title.InnerTextAsync()).Trim(), chat))
             return true;
-
         await Task.Delay(150);
     }
-
     return false;
 }
 
@@ -334,16 +298,10 @@ static async Task EstabilizarMensajesChat(IPage page, HashSet<string> ids)
 {
     var sinCambios = 0;
     var anterior = -1;
-
     for (var intento = 0; intento < 6 && sinCambios < 2; intento++)
     {
         await AbsorberMensajesActuales(page, ids);
-
-        if (ids.Count == anterior)
-            sinCambios++;
-        else
-            sinCambios = 0;
-
+        if (ids.Count == anterior) sinCambios++; else sinCambios = 0;
         anterior = ids.Count;
         await Task.Delay(400);
     }
@@ -352,9 +310,7 @@ static async Task EstabilizarMensajesChat(IPage page, HashSet<string> ids)
 static async Task AbsorberMensajesActuales(IPage page, HashSet<string> knownIds)
 {
     var messages = page.Locator("[data-testid^='conv-msg-'][data-id]");
-    var count = await messages.CountAsync();
-
-    for (var i = 0; i < count; i++)
+    for (var i = 0; i < await messages.CountAsync(); i++)
     {
         var id = await messages.Nth(i).GetAttributeAsync("data-id");
         if (!string.IsNullOrWhiteSpace(id))
@@ -362,25 +318,21 @@ static async Task AbsorberMensajesActuales(IPage page, HashSet<string> knownIds)
     }
 }
 
-static async Task<int> ProcesarMensajesNuevos(
-    IPage page,
-    string chat,
-    HashSet<string> knownIds)
+static async Task<(int Revisados, List<SolicitudInmobiliaria> Solicitudes)> ProcesarMensajesNuevos(
+    IPage page, string chat, HashSet<string> knownIds)
 {
     var messages = page.Locator("[data-testid^='conv-msg-'][data-id]");
-    var count = await messages.CountAsync();
     var revisados = 0;
+    var solicitudes = new List<SolicitudInmobiliaria>();
 
-    for (var i = 0; i < count; i++)
+    for (var i = 0; i < await messages.CountAsync(); i++)
     {
         var message = messages.Nth(i);
         var id = await message.GetAttributeAsync("data-id");
-
         if (string.IsNullOrWhiteSpace(id) || !knownIds.Add(id))
             continue;
 
         revisados++;
-
         var text = (await message.InnerTextAsync()).Trim();
         if (string.IsNullOrWhiteSpace(text))
             continue;
@@ -396,19 +348,90 @@ static async Task<int> ProcesarMensajesNuevos(
         var solicitud = ExtractorInmobiliario.Extraer(text, chat, id);
         solicitud.Autor = autor;
         solicitud.Telefono = telefono;
-        MostrarSolicitud(solicitud);
+        solicitudes.Add(solicitud);
     }
 
-    return revisados;
+    return (revisados, solicitudes);
 }
 
-static async Task<(string? Autor, string? Telefono)> ExtraerRemitente(
-    ILocator message,
-    string textoCompleto)
+static async Task<(bool Enviada, string Detalle)> EnviarAlerta(IPage page, SolicitudInmobiliaria s)
+{
+    try
+    {
+        if (!await AbrirChat(page, AlertSettings.ChatDestino))
+            return (false, "abrir chat destino");
+
+        ILocator? compose = null;
+        var candidatos = new[]
+        {
+            "footer [contenteditable='true'][role='textbox']",
+            "footer div[contenteditable='true']",
+            "[data-testid='conversation-compose-box-input'][contenteditable='true']",
+            "div[contenteditable='true'][role='textbox'][data-tab]"
+        };
+
+        foreach (var selector in candidatos)
+        {
+            var locator = page.Locator(selector).Last;
+            if (await locator.CountAsync() > 0 && await locator.IsVisibleAsync())
+            {
+                compose = locator;
+                break;
+            }
+        }
+
+        if (compose is null)
+            return (false, "encontrar caja de mensaje");
+
+        var alerta = ConstruirAlerta(s);
+        await compose.ClickAsync();
+        try { await compose.FillAsync(alerta); }
+        catch { await page.Keyboard.InsertTextAsync(alerta); }
+
+        await Task.Delay(AlertSettings.EsperaEnvioMs);
+        await page.Keyboard.PressAsync("Enter");
+        await Task.Delay(700);
+        return (true, "ok");
+    }
+    catch (Exception ex)
+    {
+        return (false, ex.Message);
+    }
+}
+
+static string ConstruirAlerta(SolicitudInmobiliaria s)
+{
+    var sb = new StringBuilder();
+    sb.AppendLine("🔥 RSMAPS RADAR");
+    sb.AppendLine();
+    sb.AppendLine("ORIGEN");
+    sb.AppendLine($"Chat: {s.ChatOrigen}");
+    sb.AppendLine($"Autor: {s.Autor ?? "No identificado"}");
+    sb.AppendLine($"Teléfono: {s.Telefono ?? "No disponible"}");
+    sb.AppendLine();
+    sb.AppendLine("SOLICITUD");
+    sb.AppendLine($"Operación: {s.Operacion ?? "No determinada"}");
+    sb.AppendLine($"Tipo: {MostrarLista(s.TiposPropiedad)}");
+    sb.AppendLine($"Zona: {MostrarLista(s.Zonas)}");
+    if (s.PrecioMinimo.HasValue) sb.AppendLine($"Precio mínimo: {MostrarDinero(s.PrecioMinimo)}");
+    if (s.PrecioMaximo.HasValue) sb.AppendLine($"Precio máximo: {MostrarDinero(s.PrecioMaximo)}");
+    if (s.RecamarasMin.HasValue || s.RecamarasMax.HasValue) sb.AppendLine($"Recámaras: {MostrarRango(s.RecamarasMin, s.RecamarasMax)}");
+    if (s.BanosMin.HasValue || s.BanosMax.HasValue) sb.AppendLine($"Baños: {MostrarRango(s.BanosMin, s.BanosMax)}");
+    if (s.CocheraMinAutos.HasValue) sb.AppendLine($"Cochera mínima: {s.CocheraMinAutos}");
+    if (s.AceptaMascotas.HasValue) sb.AppendLine($"Mascotas: {MostrarBooleano(s.AceptaMascotas)}");
+    if (s.ModalidadesPago.Count > 0) sb.AppendLine($"Pago/crédito: {MostrarLista(s.ModalidadesPago)}");
+    sb.AppendLine();
+    sb.AppendLine("MENSAJE ORIGINAL");
+    sb.AppendLine(s.MensajeOriginal.Trim());
+    sb.AppendLine();
+    sb.AppendLine("Estado: pendiente de comparar con RSMaps");
+    return sb.ToString().Trim();
+}
+
+static async Task<(string? Autor, string? Telefono)> ExtraerRemitente(ILocator message, string textoCompleto)
 {
     string? autor = null;
     string? telefono = null;
-
     try
     {
         var fila = message.Locator("xpath=ancestor::*[@role='row'][1]");
@@ -418,43 +441,25 @@ static async Task<(string? Autor, string? Telefono)> ExtraerRemitente(
             if (await perfil.CountAsync() > 0)
             {
                 var aria = await perfil.First.GetAttributeAsync("aria-label") ?? string.Empty;
-                var limpio = Regex.Replace(
-                    aria,
-                    @"^Abrir los detalles del chat para\s+(?:Quizá\s+)?",
-                    string.Empty,
-                    RegexOptions.IgnoreCase).Trim();
-
+                var limpio = Regex.Replace(aria, @"^Abrir los detalles del chat para\s+(?:Quizá\s+)?", string.Empty, RegexOptions.IgnoreCase).Trim();
                 telefono = ExtraerTelefono(limpio);
                 autor = limpio;
-
                 if (!string.IsNullOrWhiteSpace(telefono))
                     autor = autor.Replace(telefono, string.Empty, StringComparison.OrdinalIgnoreCase).Trim();
-
                 autor = Regex.Replace(autor, @"\s+", " ").Trim();
             }
         }
     }
-    catch
-    {
-    }
+    catch { }
 
-    var lineas = textoCompleto
-        .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-        .Where(x => !string.IsNullOrWhiteSpace(x))
-        .Take(4)
-        .ToList();
-
+    var lineas = textoCompleto.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Where(x => !string.IsNullOrWhiteSpace(x)).Take(4).ToList();
     telefono ??= lineas.Select(ExtraerTelefono).FirstOrDefault(x => !string.IsNullOrWhiteSpace(x));
 
     if (string.IsNullOrWhiteSpace(autor) && lineas.Count > 0)
     {
         var primera = lineas[0];
-        if (ExtraerTelefono(primera) is null &&
-            !PareceContenidoInmobiliario(primera) &&
-            !Regex.IsMatch(primera, @"^reenviado$", RegexOptions.IgnoreCase))
-        {
+        if (ExtraerTelefono(primera) is null && !PareceContenidoInmobiliario(primera) && !Regex.IsMatch(primera, @"^reenviado$", RegexOptions.IgnoreCase))
             autor = primera.Trim();
-        }
     }
 
     return (string.IsNullOrWhiteSpace(autor) ? null : autor, telefono);
@@ -463,19 +468,13 @@ static async Task<(string? Autor, string? Telefono)> ExtraerRemitente(
 static bool PareceContenidoInmobiliario(string texto)
 {
     var t = Normalizar(texto);
-    return new[]
-    {
-        "busco", "buscamos", "solicito", "renta", "venta", "casa",
-        "departamento", "terreno", "bodega", "local", "presupuesto"
-    }.Any(t.Contains);
+    return new[] { "busco", "buscamos", "solicito", "renta", "venta", "casa", "departamento", "terreno", "bodega", "local", "presupuesto" }.Any(t.Contains);
 }
 
 static string? ExtraerTelefono(string texto)
 {
     var mexico = Regex.Match(texto, @"\+52\s*(?:1\s*)?\d{3}\s*\d{3}\s*\d{4}");
-    if (mexico.Success)
-        return Regex.Replace(mexico.Value, @"\s+", " ").Trim();
-
+    if (mexico.Success) return Regex.Replace(mexico.Value, @"\s+", " ").Trim();
     var general = Regex.Match(texto, @"\+?\d(?:[\s-]*\d){9,14}");
     return general.Success ? Regex.Replace(general.Value, @"\s+", " ").Trim() : null;
 }
@@ -483,63 +482,33 @@ static string? ExtraerTelefono(string texto)
 static TipoMensaje ClasificarMensaje(string texto)
 {
     var text = Normalizar(texto);
-
     string[] demandaFuerte =
     {
-        "busco", "buscando", "buscamos", "ando buscando", "estoy buscando",
-        "estamos buscando", "sigo en busqueda", "aun sigo en busqueda",
-        "solicito para cliente", "solicito renta", "solicito casa",
-        "solicito terreno", "solicito departamento", "necesito", "necesitamos",
-        "requiero", "requerimos", "cliente busca", "mi cliente busca",
-        "para un cliente", "para cliente", "alguien tendra", "alguien traera",
-        "algun compañero tiene", "alguien tiene", "me pudiera compartir",
-        "me pueden compartir opciones", "agradezco sus opciones",
-        "recibo propuesta", "recibo propuestas"
+        "busco", "buscando", "buscamos", "ando buscando", "estoy buscando", "estamos buscando",
+        "sigo en busqueda", "aun sigo en busqueda", "solicito para cliente", "solicito renta",
+        "solicito casa", "solicito terreno", "solicito departamento", "necesito", "necesitamos",
+        "requiero", "requerimos", "cliente busca", "mi cliente busca", "para un cliente", "para cliente",
+        "alguien tendra", "alguien traera", "algun compañero tiene", "alguien tiene", "me pudiera compartir",
+        "me pueden compartir opciones", "agradezco sus opciones", "recibo propuesta", "recibo propuestas"
     };
-
     string[] ofertaFuerte =
     {
-        "ofrezco", "vendo", "rento", "se vende", "se renta",
-        "pongo a su disposicion", "pongo a la disposicion",
-        "tenemos a la venta", "tenemos en venta", "tenemos a la renta",
-        "tenemos en renta", "propiedad en preventa", "casa en preventa",
-        "casa en venta", "departamento en renta", "terreno en venta",
-        "local en renta", "bodega en renta", "tenemos disponible", "tengo disponible"
+        "ofrezco", "vendo", "rento", "se vende", "se renta", "pongo a su disposicion", "pongo a la disposicion",
+        "tenemos a la venta", "tenemos en venta", "tenemos a la renta", "tenemos en renta", "propiedad en preventa",
+        "casa en preventa", "casa en venta", "departamento en renta", "terreno en venta", "local en renta",
+        "bodega en renta", "tenemos disponible", "tengo disponible"
     };
+    string[] exclusionesDemanda = { "solicitar la licencia", "solicitar licencia", "solicitar informacion", "solicitar constancia", "solicitar informes" };
 
-    string[] exclusionesDemanda =
-    {
-        "solicitar la licencia", "solicitar licencia", "solicitar informacion",
-        "solicitar constancia", "solicitar informes"
-    };
+    if (exclusionesDemanda.Any(text.Contains) && !demandaFuerte.Any(text.Contains)) return TipoMensaje.Otro;
+    if (demandaFuerte.Any(text.Contains)) return TipoMensaje.Demanda;
+    if (ofertaFuerte.Any(text.Contains)) return TipoMensaje.Oferta;
 
-    if (exclusionesDemanda.Any(text.Contains) && !demandaFuerte.Any(text.Contains))
-        return TipoMensaje.Otro;
-
-    if (demandaFuerte.Any(text.Contains))
-        return TipoMensaje.Demanda;
-
-    if (ofertaFuerte.Any(text.Contains))
-        return TipoMensaje.Oferta;
-
-    string[] demandaDebil =
-    {
-        "tendran", "tendras", "alguna propiedad", "alguna casa",
-        "algun terreno", "alguna bodega", "algun local"
-    };
-
+    string[] demandaDebil = { "tendran", "tendras", "alguna propiedad", "alguna casa", "algun terreno", "alguna bodega", "algun local" };
     return demandaDebil.Any(text.Contains) ? TipoMensaje.Demanda : TipoMensaje.Otro;
 }
 
-static string Normalizar(string texto) => texto
-    .ToLowerInvariant()
-    .Replace("á", "a")
-    .Replace("é", "e")
-    .Replace("í", "i")
-    .Replace("ó", "o")
-    .Replace("ú", "u")
-    .Replace("ü", "u")
-    .Replace("ñ", "n");
+static string Normalizar(string texto) => texto.ToLowerInvariant().Replace("á", "a").Replace("é", "e").Replace("í", "i").Replace("ó", "o").Replace("ú", "u").Replace("ü", "u").Replace("ñ", "n");
 
 static void MostrarSolicitud(SolicitudInmobiliaria s)
 {
@@ -580,15 +549,12 @@ static string MostrarLista(IEnumerable<string> valores)
     return lista.Count == 0 ? "-" : string.Join(" | ", lista);
 }
 
-static string MostrarDinero(decimal? valor) =>
-    valor.HasValue ? valor.Value.ToString("C0") : "-";
+static string MostrarDinero(decimal? valor) => valor.HasValue ? valor.Value.ToString("C0") : "-";
 
 static string MostrarRango(int? min, int? max)
 {
-    if (!min.HasValue && !max.HasValue)
-        return "-";
-    if (min == max)
-        return min?.ToString() ?? "-";
+    if (!min.HasValue && !max.HasValue) return "-";
+    if (min == max) return min?.ToString() ?? "-";
     return $"{min?.ToString() ?? "-"} a {max?.ToString() ?? "-"}";
 }
 
