@@ -15,7 +15,9 @@ public static class ExtractorInmobiliario
         (@"\bbodega\b", "Bodega"),
         (@"\blocal\b", "Local"),
         (@"\boficina(?:s)?\b", "Oficina"),
-        (@"\brancho\b", "Rancho"),
+        // Rancho suele formar parte de nombres de zona, por ejemplo "Rancho San Miguel".
+        // Solo lo consideramos tipo cuando aparece ligado a una intención inmobiliaria.
+        (@"\b(?:busco|buscando|solicito|solicitamos|necesito|requiero|renta\s+de|compra\s+de)\s+(?:un\s+|una\s+)?rancho\b", "Rancho"),
         (@"\bquinta\b", "Quinta")
     ];
 
@@ -50,6 +52,18 @@ public static class ExtractorInmobiliario
             ExtraerRangoEntero(normalizado, @"(\d+)\s*(?:a|-|hasta)\s*(\d+)\s*banos?", @"(\d+)\s*banos?");
 
         (solicitud.PrecioMinimo, solicitud.PrecioMaximo) = ExtraerRangoPrecio(normalizado, solicitud.Operacion);
+
+        // Si no se indicó explícitamente renta/venta, ciertos esquemas de pago implican compra.
+        if (solicitud.Operacion is null &&
+            solicitud.ModalidadesPago.Any(x =>
+                x is "Infonavit" or "Fovissste" or "Crédito hipotecario" or "Contado"))
+        {
+            solicitud.Operacion = "Venta";
+        }
+
+        // Como respaldo, un presupuesto alto sin señal de renta suele corresponder a compra.
+        if (solicitud.Operacion is null && solicitud.PrecioMaximo >= 150_000)
+            solicitud.Operacion = "Venta";
 
         solicitud.TerrenoMinM2 = ExtraerSuperficieMinima(normalizado);
         solicitud.ConstruccionMinM2 = ExtraerConstruccionMinima(normalizado);
@@ -108,12 +122,15 @@ public static class ExtractorInmobiliario
     {
         var textoPrecio = texto
             .Replace("'", "")
-            .Replace("’", "")
-            .Replace(" ", " ");
+            .Replace("’", "");
+
+        // Importante: no usamos \s dentro del número, porque \s también incluye saltos de línea
+        // y podría mezclar "$7,000" con la siguiente línea "3 recámaras".
+        const string numero = @"[\d][\d \t,\.]*";
 
         var rango = Regex.Match(
             textoPrecio,
-            @"\$?\s*([\d][\d\s,\.]*)\s*(?:a|hasta|-)\s*\$?\s*([\d][\d\s,\.]*)",
+            $@"\$?\s*({numero})\s*(?:a|hasta|-)\s*\$?\s*({numero})",
             RegexOptions.IgnoreCase);
 
         if (rango.Success)
@@ -127,7 +144,7 @@ public static class ExtractorInmobiliario
 
         var maximo = Regex.Match(
             textoPrecio,
-            @"(?:maximo|max|tope|hasta|presupuesto(?:\s+maximo)?(?:\s+de)?|no\s+pase\s+de|precio)\D{0,20}\$?\s*([\d][\d\s,\.]*)",
+            $@"(?:maximo|max|tope|hasta|presupuesto(?:\s+maximo)?(?:\s+de)?|no\s+pase\s+de|precio)[^\r\n\d$]{{0,20}}\$?\s*({numero})",
             RegexOptions.IgnoreCase);
 
         if (maximo.Success)
@@ -143,9 +160,21 @@ public static class ExtractorInmobiliario
 
         if (millones.Success)
         {
-            var numero = ParseDecimalFlexible(millones.Groups[1].Value);
-            if (numero.HasValue)
-                return (null, numero.Value < 100 ? numero.Value * 1_000_000 : numero.Value);
+            var numeroMillones = ParseDecimalFlexible(millones.Groups[1].Value);
+            if (numeroMillones.HasValue)
+                return (null, numeroMillones.Value < 100 ? numeroMillones.Value * 1_000_000 : numeroMillones.Value);
+        }
+
+        // Último respaldo: un monto con $ claramente expresado, aunque no diga "máximo".
+        var montoSimple = Regex.Match(
+            textoPrecio,
+            $@"\$\s*({numero})",
+            RegexOptions.IgnoreCase);
+
+        if (montoSimple.Success)
+        {
+            var valor = ParsePrecio(montoSimple.Groups[1].Value, operacion);
+            return (null, valor);
         }
 
         return (null, null);
@@ -196,10 +225,14 @@ public static class ExtractorInmobiliario
     {
         var zonas = new List<string>();
 
+        // Patrones más específicos primero. Así evitamos interpretar "en renta" como zona.
         var patrones = new[]
         {
-            @"(?:ubicad[ao]s?\s+en|ubicada\s+por\s+rumbos\s+de|rumbos?\s+de|rumbo\s+a|por\s+la\s+zona\s+de|zona\s+de|zona|en\s+el|en\s+la|en)\s+([^\n\.]+)",
-            @"(?:exclusivamente\s+en|cerca\s+de|fraccionamiento|col\.?|colonia)\s+([^\n\.]+)"
+            @"\b(?:en\s+renta|en\s+venta)\s+en\s+([^\n\.]+)",
+            @"\b(?:ubicad[ao]s?\s+en|ubicad[ao]s?\s+por\s+rumbos\s+de|rumbos?\s+de|rumbo\s+a|rumbo\s+al|por\s+la\s+zona\s+de|por\s+zona\s+de|zona\s+de|exclusivamente\s+en|cerca\s+de)\s+([^\n\.]+)",
+            @"\b(?:fraccionamiento|fracc\.?|col\.?|colonia)\s+([^\n\.]+)",
+            // Patrón genérico al final, con exclusión explícita de renta/venta/compra.
+            @"\ben\s+(?!renta\b|venta\b|compra\b)([^\n\.]+)"
         };
 
         foreach (var patron in patrones)
@@ -248,7 +281,7 @@ public static class ExtractorInmobiliario
     private static bool EsFalsoPositivoZona(string zona)
     {
         var z = zona.ToLowerInvariant();
-        return z is "renta" or "venta" or "compra" or "casa" or "departamento" or "terreno" or "bodega" or "local" ||
+        return z is "renta" or "venta" or "compra" or "casa" or "departamento" or "terreno" or "bodega" or "local" or "alrededores" ||
                z.StartsWith("renta ") || z.StartsWith("venta ") || z.StartsWith("compra ");
     }
 
