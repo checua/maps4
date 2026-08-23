@@ -8,7 +8,7 @@ using RSMaps.Radar.Listener.Services;
 Console.OutputEncoding = Encoding.UTF8;
 
 Console.WriteLine("==================================");
-Console.WriteLine("       RSMaps Radar v0.6");
+Console.WriteLine("      RSMaps Radar v0.6.1");
 Console.WriteLine("==================================");
 Console.WriteLine();
 
@@ -48,27 +48,26 @@ var ultimoPreviewPorChat = new Dictionary<string, string>(
     StringComparer.OrdinalIgnoreCase);
 
 Console.WriteLine();
-Console.WriteLine("Inicializando grupos visibles...");
+Console.WriteLine("Inicializando chats...");
 
 foreach (var chat in RadarSettings.ChatsMonitoreados)
 {
-    var fila = await BuscarFilaChat(page, chat);
+    var abierto = await AbrirChat(page, chat);
 
-    if (fila is null)
+    if (!abierto)
     {
-        Console.WriteLine($"⚠ No encontré '{chat}' en la lista visible de chats.");
-        Console.WriteLine("  Déjalo entre los chats recientes o ajustaremos la búsqueda en la siguiente iteración.");
+        Console.WriteLine($"⚠ No pude localizar '{chat}' ni en la lista ni mediante búsqueda.");
         continue;
     }
-
-    ultimoPreviewPorChat[chat] = await ObtenerPreview(fila);
-
-    await fila.ClickAsync();
-    await EsperarChatAbierto(page, chat);
 
     var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     await RegistrarMensajesExistentes(page, ids);
     idsConocidosPorChat[chat] = ids;
+
+    var fila = await BuscarFilaChatVisible(page, chat);
+    ultimoPreviewPorChat[chat] = fila is null
+        ? string.Empty
+        : await ObtenerPreview(fila);
 
     Console.WriteLine($"✓ {chat}: {ids.Count} mensajes actuales registrados.");
 }
@@ -77,7 +76,8 @@ Console.WriteLine();
 Console.WriteLine("==================================");
 Console.WriteLine("          RADAR ACTIVO");
 Console.WriteLine("==================================");
-Console.WriteLine("Monitoreando automáticamente los grupos configurados.");
+Console.WriteLine("Monitoreando automáticamente los chats configurados.");
+Console.WriteLine("Si un chat no está visible, Radar lo buscará por nombre.");
 Console.WriteLine("CTRL+C para terminar.");
 Console.WriteLine();
 
@@ -87,9 +87,29 @@ while (true)
     {
         foreach (var chat in RadarSettings.ChatsMonitoreados)
         {
-            var fila = await BuscarFilaChat(page, chat);
+            var fila = await BuscarFilaChatVisible(page, chat);
+
+            // Si no está visible, lo buscamos por nombre y procesamos por ID.
             if (fila is null)
+            {
+                var abierto = await AbrirChat(page, chat);
+                if (!abierto)
+                    continue;
+
+                if (!idsConocidosPorChat.TryGetValue(chat, out var idsNoVisible))
+                {
+                    idsNoVisible = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    idsConocidosPorChat[chat] = idsNoVisible;
+                }
+
+                await ProcesarMensajesNuevos(page, chat, idsNoVisible);
+
+                var filaDespues = await BuscarFilaChatVisible(page, chat);
+                if (filaDespues is not null)
+                    ultimoPreviewPorChat[chat] = await ObtenerPreview(filaDespues);
+
                 continue;
+            }
 
             var previewActual = await ObtenerPreview(fila);
 
@@ -115,10 +135,7 @@ while (true)
                 idsConocidosPorChat[chat] = idsConocidos;
             }
 
-            await ProcesarMensajesNuevos(
-                page,
-                chat,
-                idsConocidos);
+            await ProcesarMensajesNuevos(page, chat, idsConocidos);
         }
     }
     catch (PlaywrightException ex)
@@ -133,7 +150,63 @@ while (true)
     await Task.Delay(RadarSettings.IntervaloRevisionMs);
 }
 
-static async Task<ILocator?> BuscarFilaChat(IPage page, string nombreChat)
+static async Task<bool> AbrirChat(IPage page, string nombreChat)
+{
+    // 1) Camino rápido: chat visible en la lista.
+    var fila = await BuscarFilaChatVisible(page, nombreChat);
+    if (fila is not null)
+    {
+        await fila.ClickAsync();
+        await EsperarChatAbierto(page, nombreChat);
+        return true;
+    }
+
+    // 2) Fallback: buscador de WhatsApp.
+    var searchContainer = page.Locator("[data-testid='chat-list-search-container']");
+    if (await searchContainer.CountAsync() == 0)
+        return false;
+
+    var input = searchContainer.Locator("[contenteditable='true']").First;
+    if (await input.CountAsync() == 0)
+        input = searchContainer.Locator("[role='textbox']").First;
+
+    if (await input.CountAsync() == 0)
+        return false;
+
+    await input.ClickAsync();
+    await input.FillAsync(nombreChat);
+    await Task.Delay(RadarSettings.EsperaBusquedaMs);
+
+    fila = await BuscarFilaChatVisible(page, nombreChat);
+
+    if (fila is null)
+    {
+        await input.FillAsync(string.Empty);
+        await page.Keyboard.PressAsync("Escape");
+        return false;
+    }
+
+    await fila.ClickAsync();
+    await EsperarChatAbierto(page, nombreChat);
+
+    // Limpiamos el buscador para devolver la lista a su estado normal.
+    try
+    {
+        if (await input.IsVisibleAsync())
+            await input.FillAsync(string.Empty);
+
+        await page.Keyboard.PressAsync("Escape");
+    }
+    catch
+    {
+        // La interfaz puede reconstruir el buscador al abrir el chat.
+    }
+
+    await Task.Delay(250);
+    return true;
+}
+
+static async Task<ILocator?> BuscarFilaChatVisible(IPage page, string nombreChat)
 {
     var filas = page.Locator("[data-testid^='list-item-'][role='row']");
     var count = await filas.CountAsync();
@@ -219,7 +292,7 @@ static async Task ProcesarMensajesNuevos(
 
         if (classification != TipoMensaje.Demanda)
         {
-            Console.WriteLine($"  ↳ Nuevo mensaje ignorado ({classification}).");
+            Console.WriteLine($"  ↳ Nuevo mensaje ignorado ({classification}) en {chat}.");
             continue;
         }
 
