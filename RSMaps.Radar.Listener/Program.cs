@@ -8,7 +8,7 @@ using RSMaps.Radar.Listener.Services;
 Console.OutputEncoding = Encoding.UTF8;
 
 Console.WriteLine("==================================");
-Console.WriteLine("      RSMaps Radar v0.6.4.1");
+Console.WriteLine("      RSMaps Radar v0.6.4.2");
 Console.WriteLine("==================================");
 Console.WriteLine();
 
@@ -56,7 +56,7 @@ foreach (var chat in RadarSettings.ChatsMonitoreados)
     }
 
     var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-    await AbsorberMensajesActuales(page, ids);
+    await AbsorberHistorialEstable(page, ids);
     idsConocidosPorChat[chat] = ids;
 
     Console.WriteLine($"✓ {chat}: {ids.Count} mensajes actuales registrados.");
@@ -65,7 +65,7 @@ foreach (var chat in RadarSettings.ChatsMonitoreados)
 Console.WriteLine();
 Console.WriteLine("Estabilizando historial visible...");
 
-for (var ronda = 1; ronda <= 2; ronda++)
+for (var ronda = 1; ronda <= 3; ronda++)
 {
     foreach (var chat in RadarSettings.ChatsMonitoreados)
     {
@@ -75,8 +75,8 @@ for (var ronda = 1; ronda <= 2; ronda++)
         if (!await AbrirChat(page, chat))
             continue;
 
-        await Task.Delay(350);
-        await AbsorberMensajesActuales(page, ids);
+        await Task.Delay(900);
+        await AbsorberHistorialEstable(page, ids);
     }
 }
 
@@ -96,13 +96,16 @@ while (true)
         foreach (var chat in RadarSettings.ChatsMonitoreados)
         {
             if (!await AbrirChat(page, chat))
+            {
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] ⚠ No pude abrir {chat}.");
                 continue;
+            }
 
             if (!idsConocidosPorChat.TryGetValue(chat, out var idsConocidos))
             {
                 idsConocidos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 idsConocidosPorChat[chat] = idsConocidos;
-                await AbsorberMensajesActuales(page, idsConocidos);
+                await AbsorberHistorialEstable(page, idsConocidos);
                 continue;
             }
 
@@ -129,8 +132,14 @@ while (true)
 
 static async Task<bool> AbrirChat(IPage page, string nombreChat)
 {
-    if (await ClickChatPorTituloVisible(page, nombreChat))
-        return await EsperarChatAbierto(page, nombreChat);
+    if (await ClickChatPorTextoVisible(page, nombreChat))
+    {
+        if (await EsperarChatAbierto(page, nombreChat))
+        {
+            Console.WriteLine($"  ↳ {nombreChat}: abierto desde lista visible.");
+            return true;
+        }
+    }
 
     var searchContainer = page.Locator("[data-testid='chat-list-search-container']");
     if (await searchContainer.CountAsync() == 0)
@@ -150,19 +159,30 @@ static async Task<bool> AbrirChat(IPage page, string nombreChat)
             await input.ClickAsync();
             await input.FillAsync(string.Empty);
             await input.FillAsync(termino);
-            await Task.Delay(RadarSettings.EsperaBusquedaMs);
+            await Task.Delay(Math.Max(RadarSettings.EsperaBusquedaMs, 1000));
 
-            if (!await ClickChatPorTituloVisible(page, nombreChat))
+            Console.WriteLine($"  ↳ Buscando '{nombreChat}' con: {termino}");
+
+            if (!await ClickChatPorTextoVisible(page, nombreChat))
+            {
+                Console.WriteLine("     resultado visible no identificado.");
                 continue;
+            }
+
+            Console.WriteLine("     resultado encontrado; clic ejecutado.");
 
             if (await EsperarChatAbierto(page, nombreChat))
             {
+                Console.WriteLine("     chat confirmado abierto.");
                 await LimpiarBusqueda(page);
                 return true;
             }
+
+            Console.WriteLine("     el encabezado no confirmó el chat esperado.");
         }
-        catch
+        catch (Exception ex)
         {
+            Console.WriteLine($"     navegación falló: {ex.Message}");
         }
     }
 
@@ -170,38 +190,41 @@ static async Task<bool> AbrirChat(IPage page, string nombreChat)
     return false;
 }
 
-static async Task<bool> ClickChatPorTituloVisible(IPage page, string nombreChat)
+static async Task<bool> ClickChatPorTextoVisible(IPage page, string nombreChat)
 {
-    var titulos = page.Locator("[data-testid='cell-frame-title']");
-    var count = await titulos.CountAsync();
-
-    for (var i = 0; i < count; i++)
+    var scopes = new[]
     {
-        var titulo = titulos.Nth(i);
+        page.Locator("[data-testid='chat-list']"),
+        page.Locator("body")
+    };
 
-        try
+    foreach (var scope in scopes)
+    {
+        var candidatos = scope.GetByText(
+            nombreChat,
+            new LocatorGetByTextOptions { Exact = true });
+
+        var count = await candidatos.CountAsync();
+
+        for (var i = 0; i < count; i++)
         {
-            if (!await titulo.IsVisibleAsync())
-                continue;
+            var candidato = candidatos.Nth(i);
 
-            var textoTitulo = (await titulo.InnerTextAsync()).Trim();
-            if (!EsMismoChat(textoTitulo, nombreChat))
-                continue;
-
-            var clickable = titulo.Locator(
-                "xpath=ancestor::*[@role='row' or @role='listitem' or @tabindex='-1' or @tabindex='0'][1]");
-
-            if (await clickable.CountAsync() > 0)
+            try
             {
-                await clickable.First.ClickAsync();
+                if (!await candidato.IsVisibleAsync())
+                    continue;
+
+                await candidato.ClickAsync(new LocatorClickOptions
+                {
+                    Timeout = 3_000
+                });
+
                 return true;
             }
-
-            await titulo.ClickAsync();
-            return true;
-        }
-        catch
-        {
+            catch
+            {
+            }
         }
     }
 
@@ -224,7 +247,7 @@ static async Task LimpiarBusqueda(IPage page)
         }
 
         await page.Keyboard.PressAsync("Escape");
-        await Task.Delay(200);
+        await Task.Delay(250);
     }
     catch
     {
@@ -267,6 +290,17 @@ static async Task<bool> EsperarChatAbierto(IPage page, string chat)
     }
 
     return false;
+}
+
+static async Task AbsorberHistorialEstable(
+    IPage page,
+    HashSet<string> knownIds)
+{
+    for (var pasada = 1; pasada <= 4; pasada++)
+    {
+        await AbsorberMensajesActuales(page, knownIds);
+        await Task.Delay(500);
+    }
 }
 
 static async Task AbsorberMensajesActuales(
