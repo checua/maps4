@@ -8,7 +8,7 @@ using RSMaps.Radar.Listener.Services;
 Console.OutputEncoding = Encoding.UTF8;
 
 Console.WriteLine("==================================");
-Console.WriteLine("      RSMaps Radar v0.6.2");
+Console.WriteLine("      RSMaps Radar v0.6.3");
 Console.WriteLine("==================================");
 Console.WriteLine();
 
@@ -41,7 +41,6 @@ foreach (var chat in RadarSettings.ChatsMonitoreados)
     Console.WriteLine($"  • {chat}");
 
 var idsConocidosPorChat = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
-var ultimoPreviewPorChat = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
 Console.WriteLine();
 Console.WriteLine("Inicializando chats...");
@@ -59,9 +58,6 @@ foreach (var chat in RadarSettings.ChatsMonitoreados)
     await RegistrarMensajesExistentes(page, ids);
     idsConocidosPorChat[chat] = ids;
 
-    var fila = await BuscarFilaChatVisible(page, chat);
-    ultimoPreviewPorChat[chat] = fila is null ? string.Empty : await ObtenerPreview(fila);
-
     Console.WriteLine($"✓ {chat}: {ids.Count} mensajes actuales registrados.");
 }
 
@@ -69,7 +65,8 @@ Console.WriteLine();
 Console.WriteLine("==================================");
 Console.WriteLine("          RADAR ACTIVO");
 Console.WriteLine("==================================");
-Console.WriteLine("Monitoreando automáticamente los chats configurados.");
+Console.WriteLine("Escaneando secuencialmente los chats configurados.");
+Console.WriteLine("Cada chat se abre, se comparan los IDs y solo se procesan mensajes nuevos.");
 Console.WriteLine("CTRL+C para terminar.");
 Console.WriteLine();
 
@@ -79,48 +76,26 @@ while (true)
     {
         foreach (var chat in RadarSettings.ChatsMonitoreados)
         {
-            var fila = await BuscarFilaChatVisible(page, chat);
-
-            if (fila is null)
+            var abierto = await AbrirChat(page, chat);
+            if (!abierto)
             {
-                var abierto = await AbrirChat(page, chat);
-                if (!abierto)
-                    continue;
-
-                if (!idsConocidosPorChat.TryGetValue(chat, out var idsNoVisible))
-                {
-                    idsNoVisible = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                    idsConocidosPorChat[chat] = idsNoVisible;
-                }
-
-                await ProcesarMensajesNuevos(page, chat, idsNoVisible);
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] ⚠ No pude abrir {chat}.");
                 continue;
             }
-
-            var previewActual = await ObtenerPreview(fila);
-
-            if (!ultimoPreviewPorChat.TryGetValue(chat, out var previewAnterior))
-            {
-                ultimoPreviewPorChat[chat] = previewActual;
-                continue;
-            }
-
-            if (string.Equals(previewActual, previewAnterior, StringComparison.Ordinal))
-                continue;
-
-            ultimoPreviewPorChat[chat] = previewActual;
-            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Actividad detectada en: {chat}");
-
-            await fila.ClickAsync();
-            await EsperarChatAbierto(page, chat);
 
             if (!idsConocidosPorChat.TryGetValue(chat, out var idsConocidos))
             {
                 idsConocidos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 idsConocidosPorChat[chat] = idsConocidos;
+                await RegistrarMensajesExistentes(page, idsConocidos);
+                continue;
             }
 
-            await ProcesarMensajesNuevos(page, chat, idsConocidos);
+            var nuevos = await ProcesarMensajesNuevos(page, chat, idsConocidos);
+            if (nuevos > 0)
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {chat}: {nuevos} mensaje(s) nuevo(s) revisado(s).");
+
+            await Task.Delay(250);
         }
     }
     catch (PlaywrightException ex)
@@ -137,7 +112,6 @@ while (true)
 
 static async Task<bool> AbrirChat(IPage page, string nombreChat)
 {
-    // Camino rápido: ya visible en la lista.
     var fila = await BuscarFilaChatVisible(page, nombreChat);
     if (fila is not null)
     {
@@ -165,13 +139,10 @@ static async Task<bool> AbrirChat(IPage page, string nombreChat)
             await input.FillAsync(termino);
             await Task.Delay(RadarSettings.EsperaBusquedaMs);
 
-            // Buscamos primero el título esperado. Si la búsqueda fue por teléfono,
-            // WhatsApp puede devolver el chat con su nombre visible normal.
             fila = await BuscarFilaChatVisible(page, nombreChat);
 
             if (fila is null)
             {
-                // Fallback: tomamos filas de resultado y comprobamos su título.
                 var filas = page.Locator("[data-testid^='list-item-'][role='row']");
                 var count = await filas.CountAsync();
 
@@ -204,7 +175,7 @@ static async Task<bool> AbrirChat(IPage page, string nombreChat)
         }
         catch
         {
-            // Probamos el siguiente término alternativo.
+            // Probar siguiente término alternativo.
         }
     }
 
@@ -219,7 +190,7 @@ static async Task LimpiarBusqueda(IPage page, ILocator input)
         if (await input.IsVisibleAsync())
             await input.FillAsync(string.Empty);
         await page.Keyboard.PressAsync("Escape");
-        await Task.Delay(200);
+        await Task.Delay(150);
     }
     catch
     {
@@ -256,12 +227,6 @@ static async Task<ILocator?> BuscarFilaChatVisible(IPage page, string nombreChat
     return null;
 }
 
-static async Task<string> ObtenerPreview(ILocator fila)
-{
-    var preview = fila.Locator("[data-testid='cell-frame-secondary']");
-    return await preview.CountAsync() == 0 ? string.Empty : (await preview.InnerTextAsync()).Trim();
-}
-
 static async Task<bool> EsperarChatAbierto(IPage page, string chat, bool lanzarError = true)
 {
     var title = page.Locator("[data-testid='conversation-info-header-chat-title']");
@@ -272,8 +237,7 @@ static async Task<bool> EsperarChatAbierto(IPage page, string chat, bool lanzarE
     }
     catch
     {
-        if (lanzarError)
-            throw;
+        if (lanzarError) throw;
         return false;
     }
 
@@ -304,10 +268,11 @@ static async Task RegistrarMensajesExistentes(IPage page, HashSet<string> knownI
     }
 }
 
-static async Task ProcesarMensajesNuevos(IPage page, string chat, HashSet<string> knownIds)
+static async Task<int> ProcesarMensajesNuevos(IPage page, string chat, HashSet<string> knownIds)
 {
     var messages = page.Locator("[data-testid^='conv-msg-'][data-id]");
     var count = await messages.CountAsync();
+    var nuevos = 0;
 
     for (var i = 0; i < count; i++)
     {
@@ -316,6 +281,8 @@ static async Task ProcesarMensajesNuevos(IPage page, string chat, HashSet<string
 
         if (string.IsNullOrWhiteSpace(id) || !knownIds.Add(id))
             continue;
+
+        nuevos++;
 
         var text = (await message.InnerTextAsync()).Trim();
         if (string.IsNullOrWhiteSpace(text))
@@ -334,6 +301,8 @@ static async Task ProcesarMensajesNuevos(IPage page, string chat, HashSet<string
         solicitud.Telefono = telefono;
         MostrarSolicitud(solicitud);
     }
+
+    return nuevos;
 }
 
 static async Task<(string? Autor, string? Telefono)> ExtraerRemitente(ILocator message)
