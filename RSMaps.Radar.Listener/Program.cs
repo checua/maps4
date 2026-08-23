@@ -6,13 +6,11 @@ using RSMaps.Radar.Listener.Services;
 Console.OutputEncoding = Encoding.UTF8;
 
 Console.WriteLine("==================================");
-Console.WriteLine("       RSMaps Radar v0.4.1");
+Console.WriteLine("       RSMaps Radar v0.5");
 Console.WriteLine("==================================");
 Console.WriteLine();
 
-var userDataDir = Path.Combine(
-    AppContext.BaseDirectory,
-    "WhatsAppProfile");
+var userDataDir = Path.Combine(AppContext.BaseDirectory, "WhatsAppProfile");
 
 using var playwright = await Playwright.CreateAsync();
 
@@ -24,26 +22,19 @@ var context = await playwright.Chromium.LaunchPersistentContextAsync(
         ViewportSize = null
     });
 
-var page = context.Pages.FirstOrDefault()
-           ?? await context.NewPageAsync();
+var page = context.Pages.FirstOrDefault() ?? await context.NewPageAsync();
 
 await page.GotoAsync(
     "https://web.whatsapp.com",
-    new PageGotoOptions
-    {
-        WaitUntil = WaitUntilState.DOMContentLoaded
-    });
+    new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
 
 Console.WriteLine("WhatsApp Web abierto.");
 Console.WriteLine();
 Console.WriteLine("Abre manualmente un chat o grupo de prueba.");
 Console.WriteLine("Cuando esté abierto, vuelve aquí y presiona ENTER.");
-
 Console.ReadLine();
 
-var titleLocator = page.Locator(
-    "[data-testid='conversation-info-header-chat-title']");
-
+var titleLocator = page.Locator("[data-testid='conversation-info-header-chat-title']");
 var chatName = (await titleLocator.InnerTextAsync()).Trim();
 
 Console.WriteLine();
@@ -95,7 +86,6 @@ while (true)
                 continue;
 
             var text = (await message.InnerTextAsync()).Trim();
-
             if (string.IsNullOrWhiteSpace(text))
                 continue;
 
@@ -141,55 +131,50 @@ static TipoMensaje ClasificarMensaje(string texto)
 {
     var text = Normalizar(texto);
 
-    // Las expresiones de intención tienen prioridad sobre palabras
-    // descriptivas como "en renta" o "en venta".
-    string[] intencionesDemanda =
+    // Señales fuertes: expresan intención de conseguir una propiedad.
+    string[] demandaFuerte =
     {
-        "busco",
-        "buscando",
-        "estoy buscando",
-        "estamos buscando",
-        "solicito",
-        "solicitamos",
-        "necesito",
-        "necesitamos",
-        "requiero",
-        "requerimos",
-        "cliente busca",
-        "mi cliente busca",
-        "para cliente",
-        "algun compañero tiene",
-        "alguien tiene",
-        "tendran",
-        "tendras",
-        "alguna propiedad",
-        "alguna casa",
-        "algun terreno",
-        "alguna bodega",
-        "algun local"
+        "busco", "buscando", "ando buscando", "estoy buscando", "estamos buscando",
+        "sigo en busqueda", "aun sigo en busqueda", "solicito para cliente",
+        "solicito renta", "solicito casa", "solicito terreno", "solicito departamento",
+        "necesito", "necesitamos", "requiero", "requerimos", "cliente busca",
+        "mi cliente busca", "para un cliente", "para cliente", "alguien tendra",
+        "alguien traera", "algun compañero tiene", "alguien tiene",
+        "me pudiera compartir", "me pueden compartir opciones", "agradezco sus opciones",
+        "recibo propuesta", "recibo propuestas"
     };
 
-    string[] intencionesOferta =
+    // Señales de oferta/publicación de inventario.
+    string[] ofertaFuerte =
     {
-        "vendo",
-        "se vende",
-        "rento",
-        "se renta",
-        "ofrezco",
-        "ofrecemos",
-        "tenemos disponible",
-        "tengo disponible",
-        "propiedad disponible",
-        "casa disponible",
-        "departamento disponible",
-        "terreno disponible"
+        "ofrezco", "vendo", "rento", "se vende", "se renta", "pongo a su disposicion",
+        "pongo a la disposicion", "tenemos a la venta", "tenemos en venta",
+        "tenemos a la renta", "tenemos en renta", "propiedad en preventa",
+        "casa en preventa", "casa en venta", "departamento en renta",
+        "terreno en venta", "local en renta", "bodega en renta",
+        "tenemos disponible", "tengo disponible"
     };
 
-    if (intencionesDemanda.Any(text.Contains))
+    // Evita falsos positivos como "solicitar la licencia inmobiliaria".
+    string[] exclusionesDemanda =
+    {
+        "solicitar la licencia", "solicitar licencia", "solicitar informacion",
+        "solicitar constancia", "solicitar informes"
+    };
+
+    if (exclusionesDemanda.Any(text.Contains) && !demandaFuerte.Any(text.Contains))
+        return TipoMensaje.Otro;
+
+    if (demandaFuerte.Any(text.Contains))
         return TipoMensaje.Demanda;
 
-    if (intencionesOferta.Any(text.Contains))
+    if (ofertaFuerte.Any(text.Contains))
         return TipoMensaje.Oferta;
+
+    // Señales débiles solo se usan si no hubo una señal fuerte anterior.
+    var demandaDebil = new[] { "tendran", "tendras", "alguna propiedad", "alguna casa", "algun terreno", "alguna bodega", "algun local" };
+    if (demandaDebil.Any(text.Contains))
+        return TipoMensaje.Demanda;
 
     return TipoMensaje.Otro;
 }
@@ -235,17 +220,24 @@ static void MostrarSolicitud(SolicitudInmobiliaria solicitud)
     Console.WriteLine("==============================================");
     Console.WriteLine("🔥 SOLICITUD INMOBILIARIA");
     Console.WriteLine("==============================================");
-    Console.WriteLine($"Chat:         {solicitud.ChatOrigen}");
-    Console.WriteLine($"Operación:    {solicitud.Operacion ?? "No determinada"}");
-    Console.WriteLine($"Tipo:         {solicitud.TipoPropiedad ?? "No determinado"}");
-    Console.WriteLine($"Zona:         {solicitud.Zona ?? "No determinada"}");
-    Console.WriteLine($"Recámaras:    {solicitud.Recamaras?.ToString() ?? "-"}");
-    Console.WriteLine($"Baños:        {solicitud.Banos?.ToString() ?? "-"}");
-    Console.WriteLine($"Presupuesto:  {(solicitud.PrecioMaximo.HasValue ? solicitud.PrecioMaximo.Value.ToString("C0") : "-")}");
-    Console.WriteLine($"Terreno:      {(solicitud.TerrenoM2.HasValue ? $"{solicitud.TerrenoM2} m²" : "-")}");
-    Console.WriteLine($"Construcción: {(solicitud.ConstruccionM2.HasValue ? $"{solicitud.ConstruccionM2} m²" : "-")}");
-    Console.WriteLine($"Mascotas:     {MostrarBooleano(solicitud.AceptaMascotas)}");
-    Console.WriteLine($"Amueblado:    {MostrarBooleano(solicitud.Amueblado)}");
+
+    Console.WriteLine($"Chat:          {solicitud.ChatOrigen}");
+    Console.WriteLine($"Operación:     {solicitud.Operacion ?? "No determinada"}");
+    Console.WriteLine($"Tipos:         {MostrarLista(solicitud.TiposPropiedad)}");
+    Console.WriteLine($"Zonas:         {MostrarLista(solicitud.Zonas)}");
+    Console.WriteLine($"Precio mín.:   {MostrarDinero(solicitud.PrecioMinimo)}");
+    Console.WriteLine($"Precio máx.:   {MostrarDinero(solicitud.PrecioMaximo)}");
+    Console.WriteLine($"Recámaras:     {MostrarRango(solicitud.RecamarasMin, solicitud.RecamarasMax)}");
+    Console.WriteLine($"Baños:         {MostrarRango(solicitud.BanosMin, solicitud.BanosMax)}");
+    Console.WriteLine($"Terreno mín.:  {MostrarMetros(solicitud.TerrenoMinM2)}");
+    Console.WriteLine($"Construcc. mín:{MostrarMetros(solicitud.ConstruccionMinM2, true)}");
+    Console.WriteLine($"Mascotas:      {MostrarBooleano(solicitud.AceptaMascotas)}");
+    Console.WriteLine($"Amueblado:     {MostrarBooleano(solicitud.Amueblado)}");
+    Console.WriteLine($"Una planta:    {MostrarBooleano(solicitud.UnaPlanta)}");
+    Console.WriteLine($"Vigilancia:    {MostrarBooleano(solicitud.CasetaVigilancia)}");
+    Console.WriteLine($"Cochera mín.:  {(solicitud.CocheraMinAutos?.ToString() ?? "-")}");
+    Console.WriteLine($"Pago/crédito:  {MostrarLista(solicitud.ModalidadesPago)}");
+
     Console.WriteLine();
     Console.WriteLine("MENSAJE ORIGINAL:");
     Console.WriteLine(solicitud.MensajeOriginal);
@@ -253,6 +245,27 @@ static void MostrarSolicitud(SolicitudInmobiliaria solicitud)
     Console.WriteLine($"ID: {solicitud.MessageId}");
     Console.WriteLine("==============================================");
     Console.WriteLine();
+}
+
+static string MostrarLista(IEnumerable<string> valores)
+{
+    var lista = valores.ToList();
+    return lista.Count == 0 ? "-" : string.Join(" | ", lista);
+}
+
+static string MostrarDinero(decimal? valor) => valor.HasValue ? valor.Value.ToString("C0") : "-";
+
+static string MostrarRango(int? min, int? max)
+{
+    if (!min.HasValue && !max.HasValue) return "-";
+    if (min == max) return min?.ToString() ?? "-";
+    return $"{min?.ToString() ?? "-"} a {max?.ToString() ?? "-"}";
+}
+
+static string MostrarMetros(decimal? valor, bool espacioInicial = false)
+{
+    var resultado = valor.HasValue ? $"{valor:0.##} m²" : "-";
+    return espacioInicial ? $" {resultado}" : resultado;
 }
 
 static string MostrarBooleano(bool? valor)
