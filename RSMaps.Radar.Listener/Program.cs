@@ -8,7 +8,7 @@ using RSMaps.Radar.Listener.Services;
 Console.OutputEncoding = Encoding.UTF8;
 
 Console.WriteLine("==================================");
-Console.WriteLine("      RSMaps Radar v0.7.2-stable");
+Console.WriteLine("      RSMaps Radar v0.7.3-stable");
 Console.WriteLine("==================================");
 Console.WriteLine();
 
@@ -79,6 +79,7 @@ Console.WriteLine("==================================");
 Console.WriteLine("          RADAR ACTIVO");
 Console.WriteLine("==================================");
 Console.WriteLine("Las solicitudes nuevas se enviarán a Propiedades.");
+Console.WriteLine("Después del envío se intentará marcar Propiedades como no leído.");
 Console.WriteLine("CTRL+C para terminar.");
 Console.WriteLine();
 
@@ -111,9 +112,19 @@ while (true)
             {
                 MostrarSolicitud(solicitud);
                 var envio = await EnviarAlerta(page, solicitud);
-                Console.WriteLine(envio.Enviada
-                    ? $"  📤 Alerta enviada a '{AlertSettings.ChatDestino}'."
-                    : $"  ⚠ No pude enviar la alerta a '{AlertSettings.ChatDestino}'. Etapa: {envio.Detalle}");
+
+                if (!envio.Enviada)
+                {
+                    Console.WriteLine($"  ⚠ No pude enviar la alerta a '{AlertSettings.ChatDestino}'. Etapa: {envio.Detalle}");
+                }
+                else if (envio.MarcadoNoLeido)
+                {
+                    Console.WriteLine($"  📤 Alerta enviada a '{AlertSettings.ChatDestino}' y chat marcado como no leído.");
+                }
+                else
+                {
+                    Console.WriteLine($"  📤 Alerta enviada a '{AlertSettings.ChatDestino}'. ⚠ No pude marcar el chat como no leído.");
+                }
             }
         }
     }
@@ -354,12 +365,12 @@ static async Task<(int Revisados, List<SolicitudInmobiliaria> Solicitudes)> Proc
     return (revisados, solicitudes);
 }
 
-static async Task<(bool Enviada, string Detalle)> EnviarAlerta(IPage page, SolicitudInmobiliaria s)
+static async Task<(bool Enviada, bool MarcadoNoLeido, string Detalle)> EnviarAlerta(IPage page, SolicitudInmobiliaria s)
 {
     try
     {
         if (!await AbrirChat(page, AlertSettings.ChatDestino))
-            return (false, "abrir chat destino");
+            return (false, false, "abrir chat destino");
 
         ILocator? compose = null;
         var candidatos = new[]
@@ -381,7 +392,7 @@ static async Task<(bool Enviada, string Detalle)> EnviarAlerta(IPage page, Solic
         }
 
         if (compose is null)
-            return (false, "encontrar caja de mensaje");
+            return (false, false, "encontrar caja de mensaje");
 
         var alerta = ConstruirAlerta(s);
         await compose.ClickAsync();
@@ -391,11 +402,97 @@ static async Task<(bool Enviada, string Detalle)> EnviarAlerta(IPage page, Solic
         await Task.Delay(AlertSettings.EsperaEnvioMs);
         await page.Keyboard.PressAsync("Enter");
         await Task.Delay(700);
-        return (true, "ok");
+
+        var marcado = await MarcarChatComoNoLeido(page);
+        return (true, marcado, marcado ? "ok" : "enviado; no se pudo marcar no leído");
     }
     catch (Exception ex)
     {
-        return (false, ex.Message);
+        return (false, false, ex.Message);
+    }
+}
+
+static async Task<bool> MarcarChatComoNoLeido(IPage page)
+{
+    try
+    {
+        // Abrir el menú de la conversación actual. WhatsApp cambia con frecuencia
+        // sus test-id, por eso se prueban varias señales accesibles/visibles.
+        ILocator? menuButton = null;
+        var selectores = new[]
+        {
+            "header button[aria-label='Menú']",
+            "header button[aria-label='Menu']",
+            "header [data-testid='menu']",
+            "header span[data-icon='menu']"
+        };
+
+        foreach (var selector in selectores)
+        {
+            var candidatos = page.Locator(selector);
+            var total = await candidatos.CountAsync();
+            for (var i = total - 1; i >= 0; i--)
+            {
+                var candidato = candidatos.Nth(i);
+                if (!await candidato.IsVisibleAsync())
+                    continue;
+
+                if (selector.Contains("span[data-icon='menu']", StringComparison.Ordinal))
+                {
+                    var boton = candidato.Locator("xpath=ancestor::*[@role='button' or self::button][1]");
+                    if (await boton.CountAsync() > 0)
+                        menuButton = boton.First;
+                }
+                else
+                {
+                    menuButton = candidato;
+                }
+
+                if (menuButton is not null)
+                    break;
+            }
+
+            if (menuButton is not null)
+                break;
+        }
+
+        if (menuButton is null)
+            return false;
+
+        await menuButton.ClickAsync(new LocatorClickOptions { Timeout = 2_000 });
+        await Task.Delay(250);
+
+        var opciones = new[]
+        {
+            "Marcar como no leído",
+            "Marcar como no leido",
+            "Mark as unread"
+        };
+
+        foreach (var texto in opciones)
+        {
+            var opcion = page.GetByText(texto, new PageGetByTextOptions { Exact = true });
+            var total = await opcion.CountAsync();
+
+            for (var i = 0; i < total; i++)
+            {
+                var item = opcion.Nth(i);
+                if (!await item.IsVisibleAsync())
+                    continue;
+
+                await item.ClickAsync(new LocatorClickOptions { Timeout = 2_000 });
+                await Task.Delay(300);
+                return true;
+            }
+        }
+
+        await page.Keyboard.PressAsync("Escape");
+        return false;
+    }
+    catch
+    {
+        try { await page.Keyboard.PressAsync("Escape"); } catch { }
+        return false;
     }
 }
 
