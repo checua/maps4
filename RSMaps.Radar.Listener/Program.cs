@@ -1,12 +1,14 @@
 using Microsoft.Playwright;
 using System.Text;
+using System.Text.RegularExpressions;
+using RSMaps.Radar.Listener.Config;
 using RSMaps.Radar.Listener.Models;
 using RSMaps.Radar.Listener.Services;
 
 Console.OutputEncoding = Encoding.UTF8;
 
 Console.WriteLine("==================================");
-Console.WriteLine("       RSMaps Radar v0.5");
+Console.WriteLine("       RSMaps Radar v0.6");
 Console.WriteLine("==================================");
 Console.WriteLine();
 
@@ -29,28 +31,53 @@ await page.GotoAsync(
     new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
 
 Console.WriteLine("WhatsApp Web abierto.");
-Console.WriteLine();
-Console.WriteLine("Abre manualmente un chat o grupo de prueba.");
-Console.WriteLine("Cuando esté abierto, vuelve aquí y presiona ENTER.");
-Console.ReadLine();
+Console.WriteLine("Esperando que cargue la lista de chats...");
 
-var titleLocator = page.Locator("[data-testid='conversation-info-header-chat-title']");
-var chatName = (await titleLocator.InnerTextAsync()).Trim();
+await page.Locator("[data-testid='chat-list']").WaitForAsync(
+    new LocatorWaitForOptions { Timeout = 60_000 });
 
 Console.WriteLine();
-Console.WriteLine($"Chat seleccionado: {chatName}");
-Console.WriteLine("Inicializando Radar...");
+Console.WriteLine("Chats configurados para Radar:");
+foreach (var chat in RadarSettings.ChatsMonitoreados)
+    Console.WriteLine($"  • {chat}");
 
-var knownIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-await RegistrarMensajesExistentes(page, knownIds);
+var idsConocidosPorChat = new Dictionary<string, HashSet<string>>(
+    StringComparer.OrdinalIgnoreCase);
 
-Console.WriteLine($"Mensajes existentes registrados: {knownIds.Count}");
+var ultimoPreviewPorChat = new Dictionary<string, string>(
+    StringComparer.OrdinalIgnoreCase);
+
+Console.WriteLine();
+Console.WriteLine("Inicializando grupos visibles...");
+
+foreach (var chat in RadarSettings.ChatsMonitoreados)
+{
+    var fila = await BuscarFilaChat(page, chat);
+
+    if (fila is null)
+    {
+        Console.WriteLine($"⚠ No encontré '{chat}' en la lista visible de chats.");
+        Console.WriteLine("  Déjalo entre los chats recientes o ajustaremos la búsqueda en la siguiente iteración.");
+        continue;
+    }
+
+    ultimoPreviewPorChat[chat] = await ObtenerPreview(fila);
+
+    await fila.ClickAsync();
+    await EsperarChatAbierto(page, chat);
+
+    var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    await RegistrarMensajesExistentes(page, ids);
+    idsConocidosPorChat[chat] = ids;
+
+    Console.WriteLine($"✓ {chat}: {ids.Count} mensajes actuales registrados.");
+}
+
 Console.WriteLine();
 Console.WriteLine("==================================");
 Console.WriteLine("          RADAR ACTIVO");
 Console.WriteLine("==================================");
-Console.WriteLine();
-Console.WriteLine("Esperando mensajes nuevos...");
+Console.WriteLine("Monitoreando automáticamente los grupos configurados.");
 Console.WriteLine("CTRL+C para terminar.");
 Console.WriteLine();
 
@@ -58,48 +85,40 @@ while (true)
 {
     try
     {
-        var currentChat = (await titleLocator.InnerTextAsync()).Trim();
-
-        if (!string.Equals(currentChat, chatName, StringComparison.OrdinalIgnoreCase))
+        foreach (var chat in RadarSettings.ChatsMonitoreados)
         {
-            Console.WriteLine();
-            Console.WriteLine($"[CAMBIO DE CHAT] {chatName} -> {currentChat}");
-
-            chatName = currentChat;
-            knownIds.Clear();
-            await RegistrarMensajesExistentes(page, knownIds);
-
-            Console.WriteLine($"Radar inicializado en: {chatName}");
-            Console.WriteLine($"Mensajes existentes: {knownIds.Count}");
-            Console.WriteLine();
-        }
-
-        var messages = page.Locator("[data-testid^='conv-msg-'][data-id]");
-        var count = await messages.CountAsync();
-
-        for (var i = 0; i < count; i++)
-        {
-            var message = messages.Nth(i);
-            var id = await message.GetAttributeAsync("data-id");
-
-            if (string.IsNullOrWhiteSpace(id) || !knownIds.Add(id))
+            var fila = await BuscarFilaChat(page, chat);
+            if (fila is null)
                 continue;
 
-            var text = (await message.InnerTextAsync()).Trim();
-            if (string.IsNullOrWhiteSpace(text))
+            var previewActual = await ObtenerPreview(fila);
+
+            if (!ultimoPreviewPorChat.TryGetValue(chat, out var previewAnterior))
+            {
+                ultimoPreviewPorChat[chat] = previewActual;
+                continue;
+            }
+
+            if (string.Equals(previewActual, previewAnterior, StringComparison.Ordinal))
                 continue;
 
-            var classification = ClasificarMensaje(text);
+            ultimoPreviewPorChat[chat] = previewActual;
 
-            if (classification == TipoMensaje.Demanda)
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Actividad detectada en: {chat}");
+
+            await fila.ClickAsync();
+            await EsperarChatAbierto(page, chat);
+
+            if (!idsConocidosPorChat.TryGetValue(chat, out var idsConocidos))
             {
-                var solicitud = ExtractorInmobiliario.Extraer(text, chatName, id);
-                MostrarSolicitud(solicitud);
+                idsConocidos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                idsConocidosPorChat[chat] = idsConocidos;
             }
-            else
-            {
-                MostrarResultado(chatName, id, text, classification);
-            }
+
+            await ProcesarMensajesNuevos(
+                page,
+                chat,
+                idsConocidos);
         }
     }
     catch (PlaywrightException ex)
@@ -111,7 +130,55 @@ while (true)
         Console.WriteLine($"[RADAR] {ex.Message}");
     }
 
-    await Task.Delay(2000);
+    await Task.Delay(RadarSettings.IntervaloRevisionMs);
+}
+
+static async Task<ILocator?> BuscarFilaChat(IPage page, string nombreChat)
+{
+    var filas = page.Locator("[data-testid^='list-item-'][role='row']");
+    var count = await filas.CountAsync();
+
+    for (var i = 0; i < count; i++)
+    {
+        var fila = filas.Nth(i);
+        var titulo = fila.Locator("[data-testid='cell-frame-title']");
+
+        if (await titulo.CountAsync() == 0)
+            continue;
+
+        var textoTitulo = (await titulo.InnerTextAsync()).Trim();
+
+        if (string.Equals(textoTitulo, nombreChat, StringComparison.OrdinalIgnoreCase))
+            return fila;
+    }
+
+    return null;
+}
+
+static async Task<string> ObtenerPreview(ILocator fila)
+{
+    var preview = fila.Locator("[data-testid='cell-frame-secondary']");
+    if (await preview.CountAsync() == 0)
+        return string.Empty;
+
+    return (await preview.InnerTextAsync()).Trim();
+}
+
+static async Task EsperarChatAbierto(IPage page, string chat)
+{
+    var title = page.Locator("[data-testid='conversation-info-header-chat-title']");
+    await title.WaitForAsync(new LocatorWaitForOptions { Timeout = 15_000 });
+
+    for (var intento = 0; intento < 30; intento++)
+    {
+        var actual = (await title.InnerTextAsync()).Trim();
+        if (string.Equals(actual, chat, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        await Task.Delay(200);
+    }
+
+    throw new InvalidOperationException($"No se pudo confirmar la apertura del chat '{chat}'.");
 }
 
 static async Task RegistrarMensajesExistentes(IPage page, HashSet<string> knownIds)
@@ -127,11 +194,93 @@ static async Task RegistrarMensajesExistentes(IPage page, HashSet<string> knownI
     }
 }
 
+static async Task ProcesarMensajesNuevos(
+    IPage page,
+    string chat,
+    HashSet<string> knownIds)
+{
+    var messages = page.Locator("[data-testid^='conv-msg-'][data-id]");
+    var count = await messages.CountAsync();
+
+    for (var i = 0; i < count; i++)
+    {
+        var message = messages.Nth(i);
+        var id = await message.GetAttributeAsync("data-id");
+
+        if (string.IsNullOrWhiteSpace(id) || !knownIds.Add(id))
+            continue;
+
+        var text = (await message.InnerTextAsync()).Trim();
+        if (string.IsNullOrWhiteSpace(text))
+            continue;
+
+        var (autor, telefono) = await ExtraerRemitente(message);
+        var classification = ClasificarMensaje(text);
+
+        if (classification != TipoMensaje.Demanda)
+        {
+            Console.WriteLine($"  ↳ Nuevo mensaje ignorado ({classification}).");
+            continue;
+        }
+
+        var solicitud = ExtractorInmobiliario.Extraer(text, chat, id);
+        solicitud.Autor = autor;
+        solicitud.Telefono = telefono;
+
+        MostrarSolicitud(solicitud);
+    }
+}
+
+static async Task<(string? Autor, string? Telefono)> ExtraerRemitente(ILocator message)
+{
+    try
+    {
+        var fila = message.Locator("xpath=ancestor::*[@role='row'][1]");
+        if (await fila.CountAsync() == 0)
+            return (null, null);
+
+        var perfil = fila.Locator("[data-testid='group-chat-profile-picture']");
+        if (await perfil.CountAsync() == 0)
+            return (null, ExtraerTelefono(await fila.InnerTextAsync()));
+
+        var aria = await perfil.First.GetAttributeAsync("aria-label") ?? string.Empty;
+        var limpio = Regex.Replace(
+            aria,
+            @"^Abrir los detalles del chat para\s+(?:Quizá\s+)?",
+            string.Empty,
+            RegexOptions.IgnoreCase).Trim();
+
+        var telefono = ExtraerTelefono(limpio);
+        var autor = limpio;
+
+        if (!string.IsNullOrWhiteSpace(telefono))
+            autor = autor.Replace(telefono, string.Empty, StringComparison.OrdinalIgnoreCase).Trim();
+
+        autor = Regex.Replace(autor, @"\s+", " ").Trim();
+
+        return (
+            string.IsNullOrWhiteSpace(autor) ? null : autor,
+            telefono);
+    }
+    catch
+    {
+        return (null, null);
+    }
+}
+
+static string? ExtraerTelefono(string texto)
+{
+    var match = Regex.Match(
+        texto,
+        @"\+?\d{2,3}(?:\s+\d{1,3}){3,6}|\+?\d[\d\s-]{8,}\d");
+
+    return match.Success ? Regex.Replace(match.Value, @"\s+", " ").Trim() : null;
+}
+
 static TipoMensaje ClasificarMensaje(string texto)
 {
     var text = Normalizar(texto);
 
-    // Señales fuertes: expresan intención de conseguir una propiedad.
     string[] demandaFuerte =
     {
         "busco", "buscando", "ando buscando", "estoy buscando", "estamos buscando",
@@ -144,7 +293,6 @@ static TipoMensaje ClasificarMensaje(string texto)
         "recibo propuesta", "recibo propuestas"
     };
 
-    // Señales de oferta/publicación de inventario.
     string[] ofertaFuerte =
     {
         "ofrezco", "vendo", "rento", "se vende", "se renta", "pongo a su disposicion",
@@ -155,7 +303,6 @@ static TipoMensaje ClasificarMensaje(string texto)
         "tenemos disponible", "tengo disponible"
     };
 
-    // Evita falsos positivos como "solicitar la licencia inmobiliaria".
     string[] exclusionesDemanda =
     {
         "solicitar la licencia", "solicitar licencia", "solicitar informacion",
@@ -171,12 +318,15 @@ static TipoMensaje ClasificarMensaje(string texto)
     if (ofertaFuerte.Any(text.Contains))
         return TipoMensaje.Oferta;
 
-    // Señales débiles solo se usan si no hubo una señal fuerte anterior.
-    var demandaDebil = new[] { "tendran", "tendras", "alguna propiedad", "alguna casa", "algun terreno", "alguna bodega", "algun local" };
-    if (demandaDebil.Any(text.Contains))
-        return TipoMensaje.Demanda;
+    var demandaDebil = new[]
+    {
+        "tendran", "tendras", "alguna propiedad", "alguna casa",
+        "algun terreno", "alguna bodega", "algun local"
+    };
 
-    return TipoMensaje.Otro;
+    return demandaDebil.Any(text.Contains)
+        ? TipoMensaje.Demanda
+        : TipoMensaje.Otro;
 }
 
 static string Normalizar(string texto)
@@ -192,36 +342,15 @@ static string Normalizar(string texto)
         .Replace("ñ", "n");
 }
 
-static void MostrarResultado(string chat, string id, string texto, TipoMensaje tipo)
-{
-    Console.WriteLine();
-    Console.WriteLine("==============================================");
-    Console.WriteLine(tipo switch
-    {
-        TipoMensaje.Oferta => "🏠 OFERTA DE PROPIEDAD",
-        TipoMensaje.Otro => "⚪ OTRO / RUIDO",
-        _ => "🔥 SOLICITUD INMOBILIARIA DETECTADA"
-    });
-    Console.WriteLine("==============================================");
-    Console.WriteLine($"Chat: {chat}");
-    Console.WriteLine($"Tipo: {tipo}");
-    Console.WriteLine($"ID: {id}");
-    Console.WriteLine();
-    Console.WriteLine(texto);
-    Console.WriteLine();
-    Console.WriteLine($"Detectado: {DateTime.Now:dd/MM/yyyy HH:mm:ss}");
-    Console.WriteLine("==============================================");
-    Console.WriteLine();
-}
-
 static void MostrarSolicitud(SolicitudInmobiliaria solicitud)
 {
     Console.WriteLine();
     Console.WriteLine("==============================================");
     Console.WriteLine("🔥 SOLICITUD INMOBILIARIA");
     Console.WriteLine("==============================================");
-
     Console.WriteLine($"Chat:          {solicitud.ChatOrigen}");
+    Console.WriteLine($"Autor:         {solicitud.Autor ?? "-"}");
+    Console.WriteLine($"Teléfono:      {solicitud.Telefono ?? "-"}");
     Console.WriteLine($"Operación:     {solicitud.Operacion ?? "No determinada"}");
     Console.WriteLine($"Tipos:         {MostrarLista(solicitud.TiposPropiedad)}");
     Console.WriteLine($"Zonas:         {MostrarLista(solicitud.Zonas)}");
@@ -237,7 +366,6 @@ static void MostrarSolicitud(SolicitudInmobiliaria solicitud)
     Console.WriteLine($"Vigilancia:    {MostrarBooleano(solicitud.CasetaVigilancia)}");
     Console.WriteLine($"Cochera mín.:  {(solicitud.CocheraMinAutos?.ToString() ?? "-")}");
     Console.WriteLine($"Pago/crédito:  {MostrarLista(solicitud.ModalidadesPago)}");
-
     Console.WriteLine();
     Console.WriteLine("MENSAJE ORIGINAL:");
     Console.WriteLine(solicitud.MensajeOriginal);
