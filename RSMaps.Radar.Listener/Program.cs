@@ -8,7 +8,7 @@ using RSMaps.Radar.Listener.Services;
 Console.OutputEncoding = Encoding.UTF8;
 
 Console.WriteLine("==================================");
-Console.WriteLine("      RSMaps Radar v0.6.4");
+Console.WriteLine("       RSMaps Radar v0.7");
 Console.WriteLine("==================================");
 Console.WriteLine();
 
@@ -39,6 +39,10 @@ Console.WriteLine();
 Console.WriteLine("Chats configurados para Radar:");
 foreach (var chat in RadarSettings.ChatsMonitoreados)
     Console.WriteLine($"  • {chat}");
+
+Console.WriteLine($"Chat de alertas: {AlertSettings.ChatDestino}");
+Console.WriteLine($"Modo: {(RadarSettings.ModoPruebas ? "PRUEBAS" : "PRODUCCIÓN")}");
+Console.WriteLine($"Intervalo entre barridos: {TimeSpan.FromMilliseconds(RadarSettings.IntervaloRevisionMs)}");
 
 var idsConocidosPorChat = new Dictionary<string, HashSet<string>>(
     StringComparer.OrdinalIgnoreCase);
@@ -84,19 +88,27 @@ Console.WriteLine();
 Console.WriteLine("==================================");
 Console.WriteLine("          RADAR ACTIVO");
 Console.WriteLine("==================================");
-Console.WriteLine("Escaneando secuencialmente los chats configurados.");
-Console.WriteLine("Solo se procesarán IDs que aparezcan después de la estabilización.");
+Console.WriteLine("Las solicitudes nuevas se enviarán al chat de control.");
 Console.WriteLine("CTRL+C para terminar.");
 Console.WriteLine();
 
 while (true)
 {
+    var inicioCiclo = DateTime.Now;
+    var totalRevisados = 0;
+    var totalSolicitudes = 0;
+
+    Console.WriteLine($"[{inicioCiclo:HH:mm:ss}] Iniciando barrido...");
+
     try
     {
         foreach (var chat in RadarSettings.ChatsMonitoreados)
         {
             if (!await AbrirChat(page, chat))
+            {
+                Console.WriteLine($"  ⚠ No pude abrir {chat}.");
                 continue;
+            }
 
             if (!idsConocidosPorChat.TryGetValue(chat, out var idsConocidos))
             {
@@ -106,12 +118,25 @@ while (true)
                 continue;
             }
 
-            var revisados = await ProcesarMensajesNuevos(page, chat, idsConocidos);
+            var resultado = await ProcesarMensajesNuevos(page, chat, idsConocidos);
+            totalRevisados += resultado.Revisados;
+            totalSolicitudes += resultado.Solicitudes.Count;
 
-            if (revisados > 0)
+            if (resultado.Revisados > 0)
             {
                 Console.WriteLine(
-                    $"[{DateTime.Now:HH:mm:ss}] {chat}: {revisados} mensaje(s) nuevo(s) revisado(s).");
+                    $"  {chat}: {resultado.Revisados} nuevo(s), " +
+                    $"{resultado.Solicitudes.Count} solicitud(es).");
+            }
+
+            foreach (var solicitud in resultado.Solicitudes)
+            {
+                MostrarSolicitud(solicitud);
+
+                var enviada = await EnviarAlerta(page, solicitud);
+                Console.WriteLine(enviada
+                    ? $"  📤 Alerta enviada a '{AlertSettings.ChatDestino}'."
+                    : $"  ⚠ No pude enviar la alerta a '{AlertSettings.ChatDestino}'.");
             }
         }
     }
@@ -123,6 +148,13 @@ while (true)
     {
         Console.WriteLine($"[RADAR] {ex.Message}");
     }
+
+    var finCiclo = DateTime.Now;
+    Console.WriteLine(
+        $"[{finCiclo:HH:mm:ss}] Barrido terminado. " +
+        $"Mensajes nuevos: {totalRevisados}. Solicitudes: {totalSolicitudes}.");
+    Console.WriteLine($"Próximo barrido en {TimeSpan.FromMilliseconds(RadarSettings.IntervaloRevisionMs)}.");
+    Console.WriteLine();
 
     await Task.Delay(RadarSettings.IntervaloRevisionMs);
 }
@@ -269,7 +301,7 @@ static async Task AbsorberMensajesActuales(
     }
 }
 
-static async Task<int> ProcesarMensajesNuevos(
+static async Task<(int Revisados, List<SolicitudInmobiliaria> Solicitudes)> ProcesarMensajesNuevos(
     IPage page,
     string chat,
     HashSet<string> knownIds)
@@ -277,6 +309,7 @@ static async Task<int> ProcesarMensajesNuevos(
     var messages = page.Locator("[data-testid^='conv-msg-'][data-id]");
     var count = await messages.CountAsync();
     var revisados = 0;
+    var solicitudes = new List<SolicitudInmobiliaria>();
 
     for (var i = 0; i < count; i++)
     {
@@ -295,22 +328,101 @@ static async Task<int> ProcesarMensajesNuevos(
         var classification = ClasificarMensaje(text);
 
         if (classification != TipoMensaje.Demanda)
-        {
-            Console.WriteLine(
-                $"  ↳ Nuevo mensaje ignorado ({classification}) en {chat}.");
             continue;
-        }
 
         var (autor, telefono) = await ExtraerRemitente(message, text);
 
         var solicitud = ExtractorInmobiliario.Extraer(text, chat, id);
         solicitud.Autor = autor;
         solicitud.Telefono = telefono;
-
-        MostrarSolicitud(solicitud);
+        solicitudes.Add(solicitud);
     }
 
-    return revisados;
+    return (revisados, solicitudes);
+}
+
+static async Task<bool> EnviarAlerta(IPage page, SolicitudInmobiliaria s)
+{
+    try
+    {
+        if (!await AbrirChat(page, AlertSettings.ChatDestino))
+            return false;
+
+        var compose = page.Locator(
+            "[data-testid='conversation-compose-box-input'][contenteditable='true']").First;
+
+        if (await compose.CountAsync() == 0)
+            compose = page.Locator("footer [contenteditable='true'][role='textbox']").First;
+
+        if (await compose.CountAsync() == 0)
+            return false;
+
+        var alerta = ConstruirAlerta(s);
+
+        await compose.ClickAsync();
+        await compose.FillAsync(alerta);
+        await Task.Delay(AlertSettings.EsperaEnvioMs);
+        await compose.PressAsync("Enter");
+        await Task.Delay(AlertSettings.EsperaEnvioMs);
+
+        return true;
+    }
+    catch
+    {
+        return false;
+    }
+}
+
+static string ConstruirAlerta(SolicitudInmobiliaria s)
+{
+    var sb = new StringBuilder();
+
+    sb.AppendLine("🔥 RSMAPS RADAR");
+    sb.AppendLine();
+    sb.AppendLine("ORIGEN");
+    sb.AppendLine($"Chat: {s.ChatOrigen}");
+    sb.AppendLine($"Autor: {s.Autor ?? "No identificado"}");
+    sb.AppendLine($"Teléfono: {s.Telefono ?? "No disponible"}");
+    sb.AppendLine();
+    sb.AppendLine("SOLICITUD");
+    sb.AppendLine($"Operación: {s.Operacion ?? "No determinada"}");
+    sb.AppendLine($"Tipo: {MostrarLista(s.TiposPropiedad)}");
+    sb.AppendLine($"Zona: {MostrarLista(s.Zonas)}");
+
+    if (s.PrecioMinimo.HasValue)
+        sb.AppendLine($"Precio mínimo: {MostrarDinero(s.PrecioMinimo)}");
+
+    if (s.PrecioMaximo.HasValue)
+        sb.AppendLine($"Precio máximo: {MostrarDinero(s.PrecioMaximo)}");
+
+    if (s.RecamarasMin.HasValue || s.RecamarasMax.HasValue)
+        sb.AppendLine($"Recámaras: {MostrarRango(s.RecamarasMin, s.RecamarasMax)}");
+
+    if (s.BanosMin.HasValue || s.BanosMax.HasValue)
+        sb.AppendLine($"Baños: {MostrarRango(s.BanosMin, s.BanosMax)}");
+
+    if (s.TerrenoMinM2.HasValue)
+        sb.AppendLine($"Terreno mínimo: {MostrarMetros(s.TerrenoMinM2)}");
+
+    if (s.CocheraMinAutos.HasValue)
+        sb.AppendLine($"Cochera mínima: {s.CocheraMinAutos}");
+
+    if (s.AceptaMascotas.HasValue)
+        sb.AppendLine($"Mascotas: {MostrarBooleano(s.AceptaMascotas)}");
+
+    if (s.Amueblado.HasValue)
+        sb.AppendLine($"Amueblado: {MostrarBooleano(s.Amueblado)}");
+
+    if (s.ModalidadesPago.Count > 0)
+        sb.AppendLine($"Pago/crédito: {MostrarLista(s.ModalidadesPago)}");
+
+    sb.AppendLine();
+    sb.AppendLine("MENSAJE ORIGINAL");
+    sb.AppendLine(s.MensajeOriginal.Trim());
+    sb.AppendLine();
+    sb.AppendLine("Estado: pendiente de comparar con RSMaps");
+
+    return sb.ToString().Trim();
 }
 
 static async Task<(string? Autor, string? Telefono)> ExtraerRemitente(
