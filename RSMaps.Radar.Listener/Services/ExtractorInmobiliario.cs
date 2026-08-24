@@ -136,7 +136,7 @@ public static class ExtractorInmobiliario
 
         var rango = Regex.Match(
             textoPrecio,
-            $@"\$?\s*({numero})\s*(?:a|hasta|-)\s*\$?\s*({numero})",
+            $@"\$\s*({numero})\s*[\.,;:]?\s*(?:a|hasta|-)\s*\$?\s*({numero})",
             RegexOptions.IgnoreCase);
 
         if (rango.Success)
@@ -264,7 +264,7 @@ public static class ExtractorInmobiliario
     {
         var corte = Regex.Split(
             valor,
-            @"\b(?:presupuesto|maximo|max|precio|credito|preferencia|requisitos?|fraccionamiento\s+privado|de\s+\d+\s+(?:a\s+\d+\s+)?recamaras?|\d+\s+recamaras?|\d+\s+banos?|sin\s+amueblar|con\s+mascota|que\s+acepte|agradezco|para\s+credito)\b",
+            @"\b(?:presupuesto|minimo|maximo|max|precio|credito|preferencia|requisitos?|fraccionamiento\s+privado|de\s+\d+\s+(?:a\s+\d+\s+)?recamaras?|\d+\s+recamaras?|\d+\s+banos?|sin\s+amueblar|con\s+mascota|que\s+acepte|agradezco|para\s+credito)\b",
             RegexOptions.IgnoreCase);
 
         return corte[0].Trim(' ', ',', '-', ':');
@@ -287,10 +287,14 @@ public static class ExtractorInmobiliario
         return z is
                 "renta" or "venta" or "compra" or "casa" or "departamento" or
                 "terreno" or "bodega" or "local" or "alrededores" or "etc" or
-                "fracc" or "privado" or "fraccionamiento privado" ||
+                "fracc" or "privado" or "fraccionamiento privado" or "minimo" or
+                "planta baja" or "patio amplio" ||
                z.StartsWith("renta ") ||
                z.StartsWith("venta ") ||
-               z.StartsWith("compra ");
+               z.StartsWith("compra ") ||
+               z.StartsWith("minimo ") ||
+               z.StartsWith("planta baja") ||
+               z.StartsWith("patio ");
     }
 
     private static bool? ExtraerMascotas(string texto)
