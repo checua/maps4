@@ -2,17 +2,18 @@ namespace RSMaps.Radar.Listener.Config;
 
 public static class RadarSettings
 {
-    // Nombre EXACTO tal como aparece en WhatsApp Web.
+    // Nombre tal como normalmente aparece en WhatsApp Web.
     public static readonly string[] ChatsMonitoreados =
     [
         "INVENTARIOS Y PROSPECTOS",
         "Leones Inmobiliarios Dgo",
+        "Terrenos en venta Dgo",
+        "AISE tu socio en el éxito!",
         "José Juan (Tú)"
     ];
 
-    // Términos alternativos para localizar chats cuando el nombre visible
-    // no funciona bien en el buscador de WhatsApp Web.
-    // Para el chat propio usamos el número como fallback de búsqueda.
+    // Términos alternativos para localizar chats cuando el título visible
+    // contiene sufijos, emojis o WhatsApp lo indexa de otra forma.
     private static readonly Dictionary<string, string[]> TerminosBusqueda =
         new(StringComparer.OrdinalIgnoreCase)
         {
@@ -21,12 +22,20 @@ public static class RadarSettings
                 "+52 1 618 299 9621",
                 "6182999621",
                 "José Juan"
+            ],
+            ["AISE tu socio en el éxito!"] =
+            [
+                "AISE tu socio en el éxito",
+                "AISE tu socio"
+            ],
+            ["Terrenos en venta Dgo"] =
+            [
+                "Terrenos en venta"
             ]
         };
 
     public static IEnumerable<string> ObtenerTerminosBusqueda(string chat)
     {
-        // Siempre probamos primero el nombre visible.
         yield return chat;
 
         if (!TerminosBusqueda.TryGetValue(chat, out var alternativos))
