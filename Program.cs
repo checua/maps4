@@ -1,6 +1,7 @@
 using maps4.Models;
 using maps4.Repositorios.Contrato;
 using maps4.Repositorios.Implementacion;
+using maps4.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
@@ -21,6 +22,7 @@ builder.Services.AddScoped<IGenericRepository<Inmueble>, InmuebleRepository>();
 builder.Services.AddScoped<IInmuebleServicio<Inmueble>, InmuebleRegistroRepository>();
 builder.Services.AddScoped<IComentarioService, ComentarioService>();
 builder.Services.AddScoped<IInventarioRepository, InventarioRepository>();
+builder.Services.AddScoped<IRadarMatchingService, RadarMatchingService>();
 builder.Services.AddScoped<IBorradorInmuebleRepository, BorradorInmuebleRepository>();
 builder.Services.AddScoped<IPublicacionBorradorRepository, PublicacionBorradorRepository>();
 builder.Services.AddScoped<IInmuebleFotoRepository, InmuebleFotoRepository>();
