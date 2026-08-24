@@ -7,6 +7,9 @@ namespace maps4.Services
 {
     public class RadarMatchingService : IRadarMatchingService
     {
+        private const int PuntuacionMinimaCandidato = 55;
+        private const double ExcesoMaximoPrecio = 0.20;
+
         private readonly IInventarioRepository _inventarioRepository;
 
         public RadarMatchingService(IInventarioRepository inventarioRepository)
@@ -33,8 +36,14 @@ namespace maps4.Services
                 if (TipoIncompatible(solicitud.TiposPropiedad, inmueble.TipoNombre))
                     continue;
 
+                // Un inmueble puede ser parecido por tipo/operación, pero no debe
+                // presentarse como oportunidad si viola de forma importante un
+                // requisito duro que sí conocemos (por ejemplo, presupuesto).
+                if (!EsCandidatoViable(solicitud, inmueble))
+                    continue;
+
                 var resultado = Evaluar(solicitud, inmueble);
-                if (resultado.Puntuacion >= 45)
+                if (resultado.Puntuacion >= PuntuacionMinimaCandidato)
                     resultados.Add(resultado);
             }
 
@@ -50,6 +59,51 @@ namespace maps4.Services
                     .Take(maxResultados)
                     .ToList()
             };
+        }
+
+        private static bool EsCandidatoViable(
+            RadarMatchingRequest solicitud,
+            InventarioInmuebleViewModel inmueble)
+        {
+            if (solicitud.PrecioMaximo.HasValue && inmueble.Precio.HasValue && inmueble.Precio.Value > 0)
+            {
+                double maximo = (double)solicitud.PrecioMaximo.Value;
+                double exceso = (inmueble.Precio.Value - maximo) / Math.Max(maximo, 1);
+
+                // Hasta 20% arriba puede conservarse únicamente como alternativa
+                // aproximada. Más que eso ya no es una oportunidad razonable.
+                if (exceso > ExcesoMaximoPrecio)
+                    return false;
+            }
+
+            if (solicitud.RecamarasMin.HasValue && inmueble.Recamaras.HasValue)
+            {
+                if (inmueble.Recamaras.Value < solicitud.RecamarasMin.Value - 1)
+                    return false;
+            }
+
+            if (solicitud.BanosMin.HasValue && inmueble.BanosCompletos.HasValue)
+            {
+                if (inmueble.BanosCompletos.Value < solicitud.BanosMin.Value - 1)
+                    return false;
+            }
+
+            if (solicitud.TerrenoMinM2.HasValue && inmueble.Terreno.HasValue)
+            {
+                if (inmueble.Terreno.Value < (double)solicitud.TerrenoMinM2.Value * 0.80)
+                    return false;
+            }
+
+            if (solicitud.ConstruccionMinM2.HasValue && inmueble.Construccion.HasValue)
+            {
+                if (inmueble.Construccion.Value < (double)solicitud.ConstruccionMinM2.Value * 0.80)
+                    return false;
+            }
+
+            if (solicitud.UnaPlanta == true && inmueble.Niveles.HasValue && inmueble.Niveles.Value > 1)
+                return false;
+
+            return true;
         }
 
         private static RadarMatchingResultado Evaluar(
@@ -91,15 +145,19 @@ namespace maps4.Services
             if (solicitud.Zonas.Count > 0)
             {
                 var valor = CoincidenciaZona(solicitud.Zonas, inmueble);
+                string zonaCandidato = DireccionUtil(inmueble.Direccion)
+                    ? inmueble.Direccion!
+                    : "sin dirección útil registrada";
+
                 Agregar(25, valor,
-                    $"Zona compatible: {inmueble.Direccion}",
-                    $"Zona aproximada/no confirmada: {inmueble.Direccion ?? "sin dirección"}");
+                    $"Zona compatible: {zonaCandidato}",
+                    $"Zona no confirmada: {zonaCandidato}");
             }
 
             if (solicitud.PrecioMinimo.HasValue || solicitud.PrecioMaximo.HasValue)
             {
                 var valor = CoincidenciaPrecio(solicitud, inmueble.Precio);
-                string precioTexto = inmueble.Precio.HasValue
+                string precioTexto = inmueble.Precio.HasValue && inmueble.Precio.Value > 0
                     ? inmueble.Precio.Value.ToString("C0", CultureInfo.GetCultureInfo("es-MX"))
                     : "sin precio";
 
@@ -170,7 +228,7 @@ namespace maps4.Services
             {
                 double valor;
                 if (!inmueble.Niveles.HasValue)
-                    valor = 0.25;
+                    valor = 0.10;
                 else
                     valor = solicitud.UnaPlanta.Value == (inmueble.Niveles.Value <= 1) ? 1 : 0;
 
@@ -199,7 +257,7 @@ namespace maps4.Services
                 Nivel = puntuacion >= 85 ? "ALTA"
                     : puntuacion >= 70 ? "MEDIA"
                     : "APROXIMADA",
-                Direccion = inmueble.Direccion,
+                Direccion = DireccionUtil(inmueble.Direccion) ? inmueble.Direccion : null,
                 TipoNombre = inmueble.TipoNombre,
                 Precio = inmueble.Precio,
                 Recamaras = inmueble.Recamaras,
@@ -271,7 +329,7 @@ namespace maps4.Services
                 return 1;
 
             if (string.IsNullOrWhiteSpace(tipoNombre))
-                return 0.35;
+                return 0.20;
 
             string candidato = TipoCanonico(tipoNombre);
             var solicitados = tipos.Select(TipoCanonico).Where(x => !string.IsNullOrWhiteSpace(x));
@@ -294,7 +352,8 @@ namespace maps4.Services
 
         private static double CoincidenciaZona(List<string> zonas, InventarioInmuebleViewModel inmueble)
         {
-            string candidato = Normalizar($"{inmueble.Direccion} {inmueble.Observaciones}");
+            string direccion = DireccionUtil(inmueble.Direccion) ? inmueble.Direccion! : string.Empty;
+            string candidato = Normalizar($"{direccion} {inmueble.Observaciones}");
             if (string.IsNullOrWhiteSpace(candidato))
                 return 0;
 
@@ -337,7 +396,7 @@ namespace maps4.Services
         private static double CoincidenciaPrecio(RadarMatchingRequest solicitud, double? precio)
         {
             if (!precio.HasValue || precio.Value <= 0)
-                return 0.2;
+                return 0.10;
 
             double p = precio.Value;
             double? min = solicitud.PrecioMinimo.HasValue ? (double)solicitud.PrecioMinimo.Value : null;
@@ -369,7 +428,7 @@ namespace maps4.Services
         private static double CoincidenciaMinimo(int minimo, int? valor)
         {
             if (!valor.HasValue)
-                return 0.25;
+                return 0.10;
             if (valor.Value >= minimo)
                 return 1;
             if (valor.Value == minimo - 1)
@@ -380,7 +439,7 @@ namespace maps4.Services
         private static double CoincidenciaMinimo(double minimo, double? valor)
         {
             if (!valor.HasValue)
-                return 0.25;
+                return 0.10;
             if (valor.Value >= minimo)
                 return 1;
             if (valor.Value >= minimo * 0.9)
@@ -388,6 +447,15 @@ namespace maps4.Services
             if (valor.Value >= minimo * 0.8)
                 return 0.4;
             return 0;
+        }
+
+        private static bool DireccionUtil(string? direccion)
+        {
+            if (string.IsNullOrWhiteSpace(direccion))
+                return false;
+
+            string n = Normalizar(direccion);
+            return n is not ("DIRECCION" or "DOMICILIO" or "UBICACION" or "SIN DIRECCION");
         }
 
         private static bool TieneAmenidad(InventarioInmuebleViewModel inmueble, string codigo)
