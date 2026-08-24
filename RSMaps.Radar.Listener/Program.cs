@@ -8,7 +8,7 @@ using RSMaps.Radar.Listener.Services;
 Console.OutputEncoding = Encoding.UTF8;
 
 Console.WriteLine("==================================");
-Console.WriteLine("      RSMaps Radar v0.7.4-stable");
+Console.WriteLine("      RSMaps Radar v0.8.0-matching");
 Console.WriteLine("==================================");
 Console.WriteLine();
 
@@ -116,6 +116,11 @@ while (true)
             foreach (var solicitud in resultado.Solicitudes)
             {
                 MostrarSolicitud(solicitud);
+
+                solicitud.MatchingResumen = await RsMapsMatchingClient.ConstruirResumenAsync(solicitud);
+                Console.WriteLine(
+                    $"  MATCH RSMAPS: {solicitud.MatchingResumen.Replace("\r", " ").Replace("\n", " | ")}");
+
                 var envio = await EnviarAlerta(page, solicitud);
 
                 if (!envio.Enviada)
@@ -685,7 +690,15 @@ static string ConstruirAlerta(SolicitudInmobiliaria s)
     sb.AppendLine("MENSAJE ORIGINAL");
     sb.AppendLine(s.MensajeOriginal.Trim());
     sb.AppendLine();
-    sb.AppendLine("Estado: pendiente de comparar con RSMaps");
+    if (!string.IsNullOrWhiteSpace(s.MatchingResumen))
+    {
+        sb.AppendLine(s.MatchingResumen);
+    }
+    else
+    {
+        sb.AppendLine("COINCIDENCIAS RSMAPS");
+        sb.AppendLine("AVISO: Comparacion no disponible.");
+    }
 
     return sb.ToString().Trim();
 }
