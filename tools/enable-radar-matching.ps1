@@ -2,12 +2,18 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $programPath = Join-Path $repoRoot 'RSMaps.Radar.Listener\Program.cs'
+$tempPath = "$programPath.matching.tmp"
+$backupPath = "$programPath.pre-matching.bak"
 
 if (-not (Test-Path $programPath)) {
     throw "No encontré Program.cs en $programPath"
 }
 
 $content = Get-Content $programPath -Raw -Encoding UTF8
+if ([string]::IsNullOrWhiteSpace($content)) {
+    throw 'Program.cs está vacío. Recupéralo primero con: git restore --source=HEAD -- RSMaps.Radar.Listener/Program.cs'
+}
+
 $original = $content
 
 $oldVersion = 'Console.WriteLine("      RSMaps Radar v0.7.4-stable");'
@@ -71,6 +77,29 @@ if ($content -eq $original) {
     exit 0
 }
 
-Set-Content $programPath -Value $content -Encoding UTF8 -NoNewline
+# Escritura segura: primero genera un archivo temporal completo y luego hace
+# un reemplazo atómico. Si Program.cs está bloqueado, el reemplazo falla pero
+# el archivo original NO se trunca ni se pierde.
+try {
+    [System.IO.File]::WriteAllText(
+        $tempPath,
+        $content,
+        [System.Text.UTF8Encoding]::new($false))
+
+    if (Test-Path $backupPath) {
+        Remove-Item $backupPath -Force
+    }
+
+    [System.IO.File]::Replace($tempPath, $programPath, $backupPath, $true)
+}
+catch {
+    if (Test-Path $tempPath) {
+        Remove-Item $tempPath -Force -ErrorAction SilentlyContinue
+    }
+
+    throw "No pude reemplazar Program.cs de forma segura. El original se conserva. Detén el Listener/VS si lo está bloqueando y vuelve a intentar. Detalle: $($_.Exception.Message)"
+}
+
 Write-Host 'OK: Program.cs actualizado a Radar v0.8.0-matching.' -ForegroundColor Green
+Write-Host "Backup: $backupPath"
 Write-Host 'Revisa con: git diff -- RSMaps.Radar.Listener/Program.cs'
