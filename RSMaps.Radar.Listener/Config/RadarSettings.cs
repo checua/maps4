@@ -45,14 +45,14 @@ public static class RadarSettings
             yield return termino;
     }
 
-    // Durante desarrollo usamos ciclos cortos para poder probar sin esperar.
-    // En producción cambia ModoPruebas a false: el barrido será cada 5 minutos.
-    public const bool ModoPruebas = true;
+    // Operación normal: un barrido cada 20 minutos.
+    // Si necesitamos una prueba rápida puntual, se puede activar temporalmente ModoPruebas.
+    public const bool ModoPruebas = false;
 
     public static int IntervaloRevisionMs =>
         ModoPruebas
             ? 30_000
-            : 5 * 60_000;
+            : 20 * 60_000;
 
     public const int EsperaBusquedaMs = 900;
 }
