@@ -2,6 +2,7 @@ using maps4.Models;
 using maps4.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Net;
 
 namespace maps4.Controllers
 {
@@ -11,10 +12,14 @@ namespace maps4.Controllers
     public class RadarMatchingController : ControllerBase
     {
         private readonly IRadarMatchingService _matchingService;
+        private readonly IConfiguration _configuration;
 
-        public RadarMatchingController(IRadarMatchingService matchingService)
+        public RadarMatchingController(
+            IRadarMatchingService matchingService,
+            IConfiguration configuration)
         {
             _matchingService = matchingService;
+            _configuration = configuration;
         }
 
         [HttpPost]
@@ -26,6 +31,36 @@ namespace maps4.Controllers
 
             if (solicitud is null)
                 return BadRequest("La solicitud es obligatoria.");
+
+            RadarMatchingResponse resultado = await _matchingService.CompararAsync(correo, solicitud);
+            return Ok(resultado);
+        }
+
+        // Integración local con RSMaps.Radar.Listener.
+        // Se permite sin cookie únicamente desde loopback (localhost/127.0.0.1/::1).
+        // El correo del inventario se configura con user-secrets y nunca viaja desde WhatsApp.
+        [AllowAnonymous]
+        [HttpPost("local")]
+        public async Task<IActionResult> CompararLocal([FromBody] RadarMatchingRequest solicitud)
+        {
+            IPAddress? ip = HttpContext.Connection.RemoteIpAddress;
+            if (ip is null || !IPAddress.IsLoopback(ip))
+                return NotFound();
+
+            if (solicitud is null)
+                return BadRequest("La solicitud es obligatoria.");
+
+            string? correo = _configuration["RadarMatching:CorreoInventario"];
+            if (string.IsNullOrWhiteSpace(correo))
+            {
+                return StatusCode(
+                    StatusCodes.Status503ServiceUnavailable,
+                    new
+                    {
+                        success = false,
+                        message = "Falta configurar RadarMatching:CorreoInventario en user-secrets."
+                    });
+            }
 
             RadarMatchingResponse resultado = await _matchingService.CompararAsync(correo, solicitud);
             return Ok(resultado);
