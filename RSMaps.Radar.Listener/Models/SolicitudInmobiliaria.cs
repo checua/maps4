@@ -36,4 +36,8 @@ public class SolicitudInmobiliaria
 
     public double? MejorCoincidencia { get; set; }
     public int? IdInmuebleCoincidente { get; set; }
+
+    // Texto listo para anexar al mensaje que se envía a Propiedades.
+    // Se llena consultando el motor de matching de RSMaps antes del envío.
+    public string? MatchingResumen { get; set; }
 }
