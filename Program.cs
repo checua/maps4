@@ -65,8 +65,9 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Configurar rutas para Razor Pages y controladores de MVC
+// Configurar rutas para Razor Pages y controladores de MVC/API
 app.MapRazorPages(); // Permitir acceso a Razor Pages
+app.MapControllers();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
