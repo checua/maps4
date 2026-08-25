@@ -3,6 +3,7 @@ using maps4.Repositorios.Contrato;
 using Microsoft.Data.SqlClient;
 using System.Data;
 using System.Globalization;
+using System.Text;
 using System.Text.Json;
 
 namespace maps4.Repositorios.Implementacion
@@ -85,6 +86,12 @@ namespace maps4.Repositorios.Implementacion
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new();
             }
 
+            if (dr["AliasesJson"] != DBNull.Value)
+            {
+                string aliasJson = dr["AliasesJson"].ToString() ?? "[]";
+                zona.Aliases = LeerAliases(aliasJson);
+            }
+
             return zona;
         }
 
@@ -95,6 +102,22 @@ namespace maps4.Repositorios.Implementacion
 
             string verticesJson = JsonSerializer.Serialize(request.Vertices);
             string poligonoWkt = ConstruirPoligonoWkt(request.Vertices);
+
+            var aliases = (request.Aliases ?? new List<string>())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x.Trim())
+                .Where(x => x.Length >= 2 && x.Length <= 150)
+                .Select(x => new
+                {
+                    alias = x,
+                    aliasNormalizado = NormalizarAlias(x)
+                })
+                .Where(x => x.aliasNormalizado.Length >= 2)
+                .GroupBy(x => x.aliasNormalizado, StringComparer.OrdinalIgnoreCase)
+                .Select(g => g.First())
+                .ToList();
+
+            string aliasesJson = JsonSerializer.Serialize(aliases);
 
             using SqlConnection conexion = new(_cadenaSQL);
             await conexion.OpenAsync();
@@ -113,12 +136,69 @@ namespace maps4.Repositorios.Implementacion
             cmd.Parameters.Add("@colorHex", SqlDbType.Char, 7).Value = string.IsNullOrWhiteSpace(request.ColorHex) ? DBNull.Value : request.ColorHex.Trim();
             cmd.Parameters.Add("@verticesJson", SqlDbType.NVarChar, -1).Value = verticesJson;
             cmd.Parameters.Add("@poligonoWkt", SqlDbType.NVarChar, -1).Value = poligonoWkt;
+            cmd.Parameters.Add("@aliasesJson", SqlDbType.NVarChar, -1).Value = aliasesJson;
 
             object? resultado = await cmd.ExecuteScalarAsync();
             if (resultado == null || resultado == DBNull.Value)
                 throw new InvalidOperationException("No se obtuvo el identificador de la zona guardada.");
 
             return Convert.ToInt32(resultado);
+        }
+
+        private static List<string> LeerAliases(string json)
+        {
+            List<string> aliases = new();
+            try
+            {
+                using JsonDocument document = JsonDocument.Parse(json);
+                foreach (JsonElement item in document.RootElement.EnumerateArray())
+                {
+                    if (item.TryGetProperty("Alias", out JsonElement aliasElement) ||
+                        item.TryGetProperty("alias", out aliasElement))
+                    {
+                        string? valor = aliasElement.GetString();
+                        if (!string.IsNullOrWhiteSpace(valor))
+                            aliases.Add(valor.Trim());
+                    }
+                }
+            }
+            catch (JsonException)
+            {
+                return new();
+            }
+
+            return aliases
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(x => x, StringComparer.CurrentCultureIgnoreCase)
+                .ToList();
+        }
+
+        private static string NormalizarAlias(string value)
+        {
+            string texto = value.Trim().ToLowerInvariant().Normalize(NormalizationForm.FormD);
+            StringBuilder sb = new();
+            bool espacioPendiente = false;
+
+            foreach (char c in texto)
+            {
+                UnicodeCategory categoria = CharUnicodeInfo.GetUnicodeCategory(c);
+                if (categoria == UnicodeCategory.NonSpacingMark)
+                    continue;
+
+                if (char.IsLetterOrDigit(c))
+                {
+                    if (espacioPendiente && sb.Length > 0)
+                        sb.Append(' ');
+                    sb.Append(c);
+                    espacioPendiente = false;
+                }
+                else
+                {
+                    espacioPendiente = true;
+                }
+            }
+
+            return sb.ToString().Normalize(NormalizationForm.FormC).Trim();
         }
 
         private static string ConstruirPoligonoWkt(IReadOnlyList<ZonaVerticeViewModel> vertices)
