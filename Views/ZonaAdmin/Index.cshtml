@@ -26,6 +26,8 @@
     .zona-alias-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .zona-alias-chip button { border: 0; background: transparent; color: #6366f1; padding: 0 2px; line-height: 1; font-size: 1rem; cursor: pointer; }
     .zona-alias-help { color: #6b7280; font-size: .75rem; margin-top: 5px; line-height: 1.35; }
+    .zona-list-header { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
+    .zona-list-header-actions { display:flex; align-items:center; gap:7px; }
     @@media (max-width: 850px) {
         .zona-shell { grid-template-columns: 1fr; grid-template-rows: auto 68vh; }
         .zona-panel { max-height: none; border-right: 0; border-bottom: 1px solid #e5e7eb; }
@@ -91,9 +93,12 @@
             Pulsa <strong>Dibujar</strong> y haz clic alrededor del área. Desde el tercer punto aparecerá el polígono. Después puedes mover sus vértices directamente en el mapa antes de guardar.
         </div>
 
-        <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="zona-list-header">
             <strong>Zonas existentes</strong>
-            <span class="badge bg-secondary">@Model.Zonas.Count</span>
+            <div class="zona-list-header-actions">
+                <button id="btn-zona-ver-todas" type="button" class="btn btn-sm btn-outline-dark">Ver todas</button>
+                <span class="badge bg-secondary">@Model.Zonas.Count</span>
+            </div>
         </div>
 
         <div id="zona-lista">
