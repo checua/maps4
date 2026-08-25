@@ -303,6 +303,18 @@ BEGIN
 
     COMMIT;
 
+    /* Capturamos el resultset del recalculo para que el unico resultado
+       visible al backend sea IdZona. */
+    DECLARE @ResumenRecalculo TABLE
+    (
+        IdCuenta int,
+        InmueblesClasificados int,
+        AsignacionesAutomaticas int,
+        PrincipalesAutomaticas int,
+        Estado varchar(100)
+    );
+
+    INSERT INTO @ResumenRecalculo
     EXEC dbo.RSMAPS_sp_RecalcularZonasCuenta @correo = @correo;
 
     SELECT @idZona AS IdZona;
