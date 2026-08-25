@@ -77,6 +77,11 @@
                 ].join(' ').toLowerCase();
                 card.dataset.search = `${busquedaActual} ${extras}`.trim();
             });
+
+            // Si el usuario ya escribió una búsqueda, recalcularla ahora que las
+            // zonas forman parte del índice textual de cada tarjeta.
+            document.getElementById('inventorySearch')
+                ?.dispatchEvent(new Event('input', { bubbles: true }));
         } catch (error) {
             console.warn('No fue posible cargar las zonas del inventario.', error);
         }
