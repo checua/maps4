@@ -8,7 +8,7 @@
 
 <style>
     body { background: #f5f7fb; }
-    .zona-shell { min-height: 100vh; display: grid; grid-template-columns: 350px 1fr; }
+    .zona-shell { min-height: 100vh; display: grid; grid-template-columns: 380px 1fr; }
     .zona-panel { background: #fff; border-right: 1px solid #e5e7eb; padding: 18px; overflow-y: auto; max-height: 100vh; }
     .zona-map-wrap { position: relative; min-height: 100vh; }
     #zona-map { position: absolute; inset: 0; }
@@ -21,6 +21,11 @@
     .zona-help { background: #f8fafc; border-radius: 10px; padding: 10px 12px; font-size: .86rem; color: #475569; }
     .zona-status { position: absolute; top: 14px; left: 14px; z-index: 5; background: rgba(255,255,255,.96); border-radius: 10px; padding: 8px 12px; box-shadow: 0 4px 18px rgba(0,0,0,.12); font-size: .88rem; }
     .form-label { font-size: .84rem; font-weight: 600; margin-bottom: 4px; }
+    .zona-alias-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; min-height: 0; }
+    .zona-alias-chip { display: inline-flex; align-items: center; gap: 6px; background: #eef2ff; color: #3730a3; border: 1px solid #dbe3ff; border-radius: 999px; padding: 4px 8px 4px 10px; font-size: .78rem; max-width: 100%; }
+    .zona-alias-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .zona-alias-chip button { border: 0; background: transparent; color: #6366f1; padding: 0 2px; line-height: 1; font-size: 1rem; cursor: pointer; }
+    .zona-alias-help { color: #6b7280; font-size: .75rem; margin-top: 5px; line-height: 1.35; }
     @@media (max-width: 850px) {
         .zona-shell { grid-template-columns: 1fr; grid-template-rows: auto 68vh; }
         .zona-panel { max-height: none; border-right: 0; border-bottom: 1px solid #e5e7eb; }
@@ -64,6 +69,16 @@
             <textarea id="zona-descripcion" class="form-control" rows="2" maxlength="500" placeholder="Opcional"></textarea>
         </div>
 
+        <div class="mb-2">
+            <label class="form-label" for="zona-alias-input">Alias / nombres comunes</label>
+            <div class="input-group input-group-sm">
+                <input id="zona-alias-input" class="form-control" maxlength="150" placeholder="Ej. zona centro" autocomplete="off" />
+                <button id="btn-zona-alias-agregar" class="btn btn-outline-primary" type="button">Agregar</button>
+            </div>
+            <div id="zona-alias-list" class="zona-alias-list"></div>
+            <div class="zona-alias-help">Agrega las expresiones que la gente realmente usa. Puedes presionar Enter. Ej.: centro, zona centro, centro de la ciudad.</div>
+        </div>
+
         <div class="zona-actions">
             <button id="btn-zona-nueva" type="button" class="btn btn-outline-primary btn-sm">Nueva</button>
             <button id="btn-zona-dibujar" type="button" class="btn btn-primary btn-sm">Dibujar</button>
@@ -92,7 +107,7 @@
                         </div>
                         <small class="text-muted">@zona.Inmuebles inm.</small>
                     </div>
-                    <div class="small text-muted mt-1">@zona.Codigo · prioridad @zona.Prioridad · @zona.Poligonos polígono(s)</div>
+                    <div class="small text-muted mt-1">@zona.Codigo · prioridad @zona.Prioridad · @zona.Poligonos polígono(s) · @zona.Alias alias</div>
                 </div>
             }
         </div>
