@@ -8,6 +8,9 @@
     let infoWindow = null;
     let mapLoadTimeout = null;
     let zonaAliases = [];
+    let zonasOverview = [];
+    let zonasOverviewVisibles = false;
+    let zonasOverviewCargando = false;
 
     const defaultCenter = { lat: 24.0277, lng: -104.6532 };
 
@@ -136,7 +139,9 @@
         }
         modoDibujo = true;
         map.setOptions({ draggableCursor: 'crosshair' });
-        setStatus('Modo dibujo activo: haz clic para agregar vértices.');
+        setStatus(zonasOverviewVisibles
+            ? 'Modo dibujo activo con todas las zonas visibles: usa los polígonos tenues como referencia y haz clic para agregar vértices.'
+            : 'Modo dibujo activo: haz clic para agregar vértices.');
     }
 
     function agregarVertice(latLng) {
@@ -198,7 +203,9 @@
         zonaPolygon = null;
         modoDibujo = false;
         if (map) map.setOptions({ draggableCursor: null });
-        setStatus('Polígono limpio. Pulsa Dibujar para comenzar.');
+        setStatus(zonasOverviewVisibles
+            ? 'Polígono editable limpio. Las zonas existentes siguen visibles como referencia.'
+            : 'Polígono limpio. Pulsa Dibujar para comenzar.');
     }
 
     function nuevaZona() {
@@ -213,7 +220,9 @@
         renderAliases();
         codigoTocado = false;
         limpiarPoligono();
-        setStatus('Nueva zona. Escribe un nombre y dibuja el perímetro.');
+        setStatus(zonasOverviewVisibles
+            ? 'Nueva zona. Las zonas existentes quedan visibles para ayudarte a cubrir huecos sin solaparlas.'
+            : 'Nueva zona. Escribe un nombre y dibuja el perímetro.');
     }
 
     async function editarZona(idZona) {
@@ -262,6 +271,126 @@
         const bounds = new google.maps.LatLngBounds();
         zonaPolygon.getPath().forEach(p => bounds.extend(p));
         if (!bounds.isEmpty()) map.fitBounds(bounds, 40);
+    }
+
+    function obtenerIdsZonas() {
+        return Array.from(document.querySelectorAll('[data-id-zona]'))
+            .map(card => Number(card.dataset.idZona))
+            .filter(id => Number.isInteger(id) && id > 0);
+    }
+
+    function actualizarBotonTodasZonas() {
+        const boton = document.getElementById('btn-zona-ver-todas');
+        if (!boton) return;
+        boton.textContent = zonasOverviewVisibles ? 'Ocultar todas' : 'Ver todas';
+        boton.classList.toggle('btn-dark', zonasOverviewVisibles);
+        boton.classList.toggle('btn-outline-dark', !zonasOverviewVisibles);
+        boton.disabled = zonasOverviewCargando;
+    }
+
+    function ocultarTodasZonas() {
+        zonasOverview.forEach(item => item.polygon?.setMap(null));
+        zonasOverview = [];
+        zonasOverviewVisibles = false;
+        actualizarBotonTodasZonas();
+        setStatus(zonaPolygon
+            ? 'Vista general oculta. La zona seleccionada permanece editable.'
+            : 'Vista general oculta. Selecciona una zona o pulsa Nueva.');
+    }
+
+    async function mostrarTodasZonas() {
+        if (!map) {
+            Swal.fire('Zonas', 'El mapa todavía no está disponible.', 'warning');
+            return;
+        }
+        if (zonasOverviewCargando) return;
+
+        const ids = obtenerIdsZonas();
+        if (ids.length === 0) {
+            Swal.fire('Zonas', 'Todavía no hay zonas guardadas para mostrar.', 'info');
+            return;
+        }
+
+        zonasOverviewCargando = true;
+        actualizarBotonTodasZonas();
+        setStatus(`Cargando ${ids.length} zona(s) para la vista general…`);
+
+        try {
+            zonasOverview.forEach(item => item.polygon?.setMap(null));
+            zonasOverview = [];
+
+            const resultados = await Promise.all(ids.map(async idZona => {
+                try {
+                    const response = await fetch(`/ZonaAdmin/Obtener?id=${encodeURIComponent(idZona)}`, { credentials: 'same-origin' });
+                    if (!response.ok) return null;
+                    const data = await response.json();
+                    return data?.zona || null;
+                } catch (error) {
+                    console.warn(`No fue posible cargar la zona ${idZona} para la vista general.`, error);
+                    return null;
+                }
+            }));
+
+            const bounds = new google.maps.LatLngBounds();
+            let totalZonas = 0;
+            let totalVertices = 0;
+
+            resultados.filter(Boolean).forEach(zona => {
+                const vertices = Array.isArray(zona.vertices)
+                    ? zona.vertices
+                        .map(v => ({ lat: Number(v.lat), lng: Number(v.lng) }))
+                        .filter(v => Number.isFinite(v.lat) && Number.isFinite(v.lng))
+                    : [];
+
+                if (vertices.length < 3) return;
+
+                const color = /^#[0-9A-Fa-f]{6}$/.test(zona.colorHex || '') ? zona.colorHex : '#64748b';
+                const polygon = new google.maps.Polygon({
+                    map,
+                    paths: vertices,
+                    strokeColor: color,
+                    strokeOpacity: 0.82,
+                    strokeWeight: 2,
+                    fillColor: color,
+                    fillOpacity: 0.12,
+                    editable: false,
+                    draggable: false,
+                    clickable: false,
+                    zIndex: 4
+                });
+
+                vertices.forEach(v => bounds.extend(v));
+                zonasOverview.push({ idZona: Number(zona.idZona), nombre: zona.nombre || zona.codigo || 'Zona', polygon });
+                totalZonas++;
+                totalVertices += vertices.length;
+            });
+
+            if (totalZonas === 0) {
+                throw new Error('Ninguna zona guardada tiene un polígono válido para mostrar.');
+            }
+
+            zonasOverviewVisibles = true;
+            if (!bounds.isEmpty()) map.fitBounds(bounds, 35);
+            setStatus(`Vista general: ${totalZonas} zona(s) · ${totalVertices} vértices. Los polígonos tenues muestran la cobertura actual; puedes pulsar Nueva y dibujar sobre los huecos.`);
+        } catch (error) {
+            console.error(error);
+            zonasOverview.forEach(item => item.polygon?.setMap(null));
+            zonasOverview = [];
+            zonasOverviewVisibles = false;
+            Swal.fire('Zonas', error.message || 'No fue posible mostrar todas las zonas.', 'error');
+            setStatus('No fue posible cargar la vista general de zonas.');
+        } finally {
+            zonasOverviewCargando = false;
+            actualizarBotonTodasZonas();
+        }
+    }
+
+    async function toggleTodasZonas() {
+        if (zonasOverviewVisibles) {
+            ocultarTodasZonas();
+            return;
+        }
+        await mostrarTodasZonas();
     }
 
     function agregarAliasDesdeInput() {
@@ -445,6 +574,7 @@
         document.getElementById('btn-zona-deshacer')?.addEventListener('click', deshacerVertice);
         document.getElementById('btn-zona-limpiar')?.addEventListener('click', limpiarPoligono);
         document.getElementById('btn-zona-guardar')?.addEventListener('click', guardarZona);
+        document.getElementById('btn-zona-ver-todas')?.addEventListener('click', toggleTodasZonas);
         document.getElementById('btn-zona-alias-agregar')?.addEventListener('click', agregarAliasDesdeInput);
         document.getElementById('zona-color')?.addEventListener('input', aplicarColor);
 
@@ -465,6 +595,7 @@
         });
 
         renderAliases();
+        actualizarBotonTodasZonas();
         cargarGoogleMaps();
     });
 })();
