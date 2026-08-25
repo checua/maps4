@@ -107,6 +107,18 @@ namespace maps4.Controllers
             if (request.Vertices.Any(v => v.Lat < -90 || v.Lat > 90 || v.Lng < -180 || v.Lng > 180))
                 return BadRequest(new { success = false, message = "Hay vertices fuera del rango geografico valido." });
 
+            request.Aliases = (request.Aliases ?? new List<string>())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (request.Aliases.Count > 50)
+                return BadRequest(new { success = false, message = "Una zona puede tener hasta 50 alias en esta etapa." });
+
+            if (request.Aliases.Any(x => x.Length < 2 || x.Length > 150))
+                return BadRequest(new { success = false, message = "Cada alias debe tener entre 2 y 150 caracteres." });
+
             try
             {
                 int idZona = await _zonaRepository.GuardarAsync(correo, request);
@@ -114,7 +126,7 @@ namespace maps4.Controllers
                 {
                     success = true,
                     idZona,
-                    message = "Zona guardada. Los inmuebles de la cuenta fueron reclasificados automaticamente."
+                    message = "Zona y nombres comunes guardados. Los inmuebles de la cuenta fueron reclasificados automaticamente."
                 });
             }
             catch (ArgumentException ex)
@@ -125,7 +137,7 @@ namespace maps4.Controllers
             {
                 return Forbid();
             }
-            catch (SqlException ex) when (ex.Number is >= 53856 and <= 53865)
+            catch (SqlException ex) when ((ex.Number is >= 53856 and <= 53865) || ex.Number is 53883 or 53884)
             {
                 return BadRequest(new { success = false, message = ex.Message });
             }
