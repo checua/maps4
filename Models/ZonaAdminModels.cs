@@ -30,6 +30,7 @@ namespace maps4.Models
         public int Prioridad { get; set; }
         public string? ColorHex { get; set; }
         public bool Activa { get; set; }
+        public List<string> Aliases { get; set; } = new();
         public List<ZonaVerticeViewModel> Vertices { get; set; } = new();
     }
 
@@ -41,6 +42,7 @@ namespace maps4.Models
         public string? Descripcion { get; set; }
         public int Prioridad { get; set; } = 100;
         public string? ColorHex { get; set; } = "#ef4444";
+        public List<string> Aliases { get; set; } = new();
         public List<ZonaVerticeViewModel> Vertices { get; set; } = new();
     }
 
