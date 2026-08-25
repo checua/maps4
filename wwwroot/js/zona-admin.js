@@ -6,6 +6,7 @@
     let modoDibujo = false;
     let codigoTocado = false;
     let infoWindow = null;
+    let mapLoadTimeout = null;
 
     const defaultCenter = { lat: 24.0277, lng: -104.6532 };
 
@@ -15,19 +16,66 @@
             return;
         }
 
+        setStatus('Cargando Google Maps…');
+
+        // La API ya puede estar siendo cargada por otro script de la pagina.
+        const existente = document.querySelector('script[data-rsmaps-zona-google="1"]');
+        if (existente) return;
+
         const script = document.createElement('script');
-        // Misma clave cliente que usa actualmente el mapa principal de RSMaps.
         const apiKey = 'AIzaSyAZ7HVHi9uywPRyEgtb9U-0Ul0C_v5zQXg';
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&v=weekly&loading=async`;
+        const callbackName = '__rsMapsZonaGoogleReady';
+
+        window[callbackName] = () => {
+            if (mapLoadTimeout) {
+                clearTimeout(mapLoadTimeout);
+                mapLoadTimeout = null;
+            }
+            try {
+                inicializarMapa();
+            } catch (error) {
+                console.error('No fue posible inicializar el mapa de zonas.', error);
+                setStatus('Google Maps cargó, pero no fue posible inicializar el mapa. Revisa la consola.');
+            }
+        };
+
+        // Google invoca esta funcion cuando la clave tiene un problema de autorizacion.
+        const authAnterior = window.gm_authFailure;
+        window.gm_authFailure = () => {
+            if (typeof authAnterior === 'function') authAnterior();
+            setStatus('Google Maps rechazó la clave para esta página. Revisa las restricciones del API key.');
+        };
+
+        script.dataset.rsmapsZonaGoogle = '1';
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&callback=${callbackName}&v=weekly&loading=async`;
         script.async = true;
         script.defer = true;
-        script.onload = inicializarMapa;
-        script.onerror = () => setStatus('No fue posible cargar Google Maps.');
+        script.onerror = () => {
+            if (mapLoadTimeout) clearTimeout(mapLoadTimeout);
+            setStatus('No fue posible descargar Google Maps. Revisa conexión, bloqueadores o consola.');
+        };
         document.head.appendChild(script);
+
+        mapLoadTimeout = setTimeout(() => {
+            if (!map) {
+                setStatus('Google Maps está tardando demasiado. Abre F12 > Consola para ver el motivo.');
+            }
+        }, 10000);
     }
 
     function inicializarMapa() {
-        map = new google.maps.Map(document.getElementById('zona-map'), {
+        if (map) return;
+        if (!window.google?.maps) {
+            setStatus('La biblioteca de Google Maps todavía no está disponible.');
+            return;
+        }
+
+        const contenedor = document.getElementById('zona-map');
+        if (!contenedor) {
+            throw new Error('No existe el contenedor #zona-map.');
+        }
+
+        map = new google.maps.Map(contenedor, {
             center: defaultCenter,
             zoom: 12,
             mapTypeId: google.maps.MapTypeId.ROADMAP,
@@ -83,7 +131,10 @@
     }
 
     function iniciarDibujo() {
-        if (!map) return;
+        if (!map) {
+            Swal.fire('Zonas', 'El mapa todavía no está disponible.', 'warning');
+            return;
+        }
         modoDibujo = true;
         map.setOptions({ draggableCursor: 'crosshair' });
         setStatus('Modo dibujo activo: haz clic para agregar vértices.');
