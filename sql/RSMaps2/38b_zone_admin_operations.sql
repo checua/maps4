@@ -243,6 +243,17 @@ BEGIN
 
     COMMIT;
 
+    /* Absorbe el resumen del recalculo para que este SP devuelva un solo contrato estable. */
+    DECLARE @ResumenRecalculo TABLE
+    (
+        IdCuenta int,
+        InmueblesClasificados int,
+        AsignacionesAutomaticas int,
+        PrincipalesAutomaticas int,
+        Estado varchar(100)
+    );
+
+    INSERT @ResumenRecalculo
     EXEC dbo.RSMAPS_sp_RecalcularZonasCuenta @correo = @correo;
 
     SELECT
