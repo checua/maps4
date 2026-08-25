@@ -7,6 +7,7 @@
     let codigoTocado = false;
     let infoWindow = null;
     let mapLoadTimeout = null;
+    let zonaAliases = [];
 
     const defaultCenter = { lat: 24.0277, lng: -104.6532 };
 
@@ -18,7 +19,6 @@
 
         setStatus('Cargando Google Maps…');
 
-        // La API ya puede estar siendo cargada por otro script de la pagina.
         const existente = document.querySelector('script[data-rsmaps-zona-google="1"]');
         if (existente) return;
 
@@ -39,7 +39,6 @@
             }
         };
 
-        // Google invoca esta funcion cuando la clave tiene un problema de autorizacion.
         const authAnterior = window.gm_authFailure;
         window.gm_authFailure = () => {
             if (typeof authAnterior === 'function') authAnterior();
@@ -209,6 +208,9 @@
         document.getElementById('zona-prioridad').value = '100';
         document.getElementById('zona-color').value = '#ef4444';
         document.getElementById('zona-descripcion').value = '';
+        document.getElementById('zona-alias-input').value = '';
+        zonaAliases = [];
+        renderAliases();
         codigoTocado = false;
         limpiarPoligono();
         setStatus('Nueva zona. Escribe un nombre y dibuja el perímetro.');
@@ -232,13 +234,18 @@
             document.getElementById('zona-prioridad').value = zona.prioridad ?? 100;
             document.getElementById('zona-color').value = zona.colorHex || '#ef4444';
             document.getElementById('zona-descripcion').value = zona.descripcion || '';
+            document.getElementById('zona-alias-input').value = '';
+            zonaAliases = Array.isArray(zona.aliases)
+                ? zona.aliases.filter(x => typeof x === 'string' && x.trim()).map(x => x.trim())
+                : [];
+            renderAliases();
             codigoTocado = true;
 
             const vertices = Array.isArray(zona.vertices) ? zona.vertices.map(v => ({ lat: Number(v.lat), lng: Number(v.lng) })) : [];
             if (vertices.length >= 3) {
                 crearPoligono(vertices);
                 ajustarMapaAlPoligono();
-                setStatus(`${zona.nombre}: ${vertices.length} vértices. Puedes moverlos directamente.`);
+                setStatus(`${zona.nombre}: ${vertices.length} vértices · ${zonaAliases.length} alias. Puedes mover los puntos directamente.`);
             } else {
                 limpiarPoligono();
                 setStatus('La zona no tiene un polígono editable. Pulsa Dibujar.');
@@ -255,6 +262,75 @@
         const bounds = new google.maps.LatLngBounds();
         zonaPolygon.getPath().forEach(p => bounds.extend(p));
         if (!bounds.isEmpty()) map.fitBounds(bounds, 40);
+    }
+
+    function agregarAliasDesdeInput() {
+        const input = document.getElementById('zona-alias-input');
+        if (!input) return;
+
+        const valor = input.value.trim();
+        if (!valor) return;
+        if (valor.length < 2 || valor.length > 150) {
+            Swal.fire('Alias', 'El alias debe tener entre 2 y 150 caracteres.', 'warning');
+            return;
+        }
+        if (zonaAliases.length >= 50) {
+            Swal.fire('Alias', 'La zona ya tiene el máximo de 50 alias.', 'warning');
+            return;
+        }
+
+        const llave = normalizarAliasCliente(valor);
+        const existe = zonaAliases.some(x => normalizarAliasCliente(x) === llave);
+        if (!existe) {
+            zonaAliases.push(valor);
+            zonaAliases.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+            renderAliases();
+        }
+        input.value = '';
+        input.focus();
+    }
+
+    function eliminarAlias(indice) {
+        if (indice < 0 || indice >= zonaAliases.length) return;
+        zonaAliases.splice(indice, 1);
+        renderAliases();
+    }
+
+    function renderAliases() {
+        const container = document.getElementById('zona-alias-list');
+        if (!container) return;
+        container.innerHTML = '';
+
+        zonaAliases.forEach((alias, indice) => {
+            const chip = document.createElement('div');
+            chip.className = 'zona-alias-chip';
+
+            const texto = document.createElement('span');
+            texto.textContent = alias;
+            texto.title = alias;
+
+            const quitar = document.createElement('button');
+            quitar.type = 'button';
+            quitar.setAttribute('aria-label', `Quitar ${alias}`);
+            quitar.title = 'Quitar alias';
+            quitar.textContent = '×';
+            quitar.addEventListener('click', () => eliminarAlias(indice));
+
+            chip.appendChild(texto);
+            chip.appendChild(quitar);
+            container.appendChild(chip);
+        });
+    }
+
+    function normalizarAliasCliente(value) {
+        return String(value || '')
+            .trim()
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9ñ]+/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
     }
 
     async function guardarZona() {
@@ -277,7 +353,7 @@
 
         modoDibujo = false;
         if (map) map.setOptions({ draggableCursor: null });
-        setStatus('Guardando zona y reclasificando inmuebles…');
+        setStatus('Guardando zona, alias y reclasificando inmuebles…');
 
         const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
         const payload = {
@@ -287,6 +363,7 @@
             descripcion,
             prioridad,
             colorHex,
+            aliases: zonaAliases.slice(),
             vertices
         };
 
@@ -368,7 +445,15 @@
         document.getElementById('btn-zona-deshacer')?.addEventListener('click', deshacerVertice);
         document.getElementById('btn-zona-limpiar')?.addEventListener('click', limpiarPoligono);
         document.getElementById('btn-zona-guardar')?.addEventListener('click', guardarZona);
+        document.getElementById('btn-zona-alias-agregar')?.addEventListener('click', agregarAliasDesdeInput);
         document.getElementById('zona-color')?.addEventListener('input', aplicarColor);
+
+        document.getElementById('zona-alias-input')?.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                agregarAliasDesdeInput();
+            }
+        });
 
         document.getElementById('zona-nombre')?.addEventListener('input', (event) => {
             if (!codigoTocado) document.getElementById('zona-codigo').value = generarCodigo(event.target.value);
@@ -379,6 +464,7 @@
             card.addEventListener('click', () => editarZona(Number(card.dataset.idZona)));
         });
 
+        renderAliases();
         cargarGoogleMaps();
     });
 })();
