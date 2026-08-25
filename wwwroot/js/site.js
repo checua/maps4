@@ -23,6 +23,11 @@ document.addEventListener('DOMContentLoaded', () => {
         inventoryDraftScript.defer = true;
         document.body.appendChild(inventoryDraftScript);
 
+        const inventoryZonesScript = document.createElement('script');
+        inventoryZonesScript.src = '/js/inventory-zones.js';
+        inventoryZonesScript.defer = true;
+        document.body.appendChild(inventoryZonesScript);
+
         // Si venimos de crear/guardar un borrador, enfocarlo automáticamente.
         const idBorrador = new URLSearchParams(window.location.search).get('borrador');
         const search = document.getElementById('inventorySearch');
