@@ -80,6 +80,17 @@ namespace maps4.Repositorios.Implementacion
             List<InventarioInmuebleViewModel> lista = new();
 
             using SqlDataReader dr = await cmd.ExecuteReaderAsync();
+            HashSet<string> columnas = Enumerable
+                .Range(0, dr.FieldCount)
+                .Select(dr.GetName)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            string? ValorOpcional(string nombre)
+            {
+                if (!columnas.Contains(nombre) || dr[nombre] == DBNull.Value)
+                    return null;
+                return dr[nombre].ToString();
+            }
 
             while (await dr.ReadAsync())
             {
@@ -107,7 +118,10 @@ namespace maps4.Repositorios.Implementacion
                     EstadoCodigo = dr["EstadoCodigo"] == DBNull.Value ? string.Empty : dr["EstadoCodigo"].ToString() ?? string.Empty,
                     VisibilidadCodigo = dr["VisibilidadCodigo"] == DBNull.Value ? string.Empty : dr["VisibilidadCodigo"].ToString() ?? string.Empty,
                     FechaPublicacionUtc = dr["FechaPublicacionUtc"] == DBNull.Value ? null : Convert.ToDateTime(dr["FechaPublicacionUtc"]),
-                    FechaUltimoCambioEstadoUtc = dr["FechaUltimoCambioEstadoUtc"] == DBNull.Value ? null : Convert.ToDateTime(dr["FechaUltimoCambioEstadoUtc"])
+                    FechaUltimoCambioEstadoUtc = dr["FechaUltimoCambioEstadoUtc"] == DBNull.Value ? null : Convert.ToDateTime(dr["FechaUltimoCambioEstadoUtc"]),
+                    ZonaPrincipalCodigo = ValorOpcional("ZonaPrincipalCodigo"),
+                    ZonaPrincipalNombre = ValorOpcional("ZonaPrincipalNombre"),
+                    ZonasCsv = ValorOpcional("ZonasCsv")
                 });
             }
 
