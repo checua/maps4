@@ -9,6 +9,7 @@ namespace maps4.Services
     {
         private const int PuntuacionMinimaCandidato = 55;
         private const double ExcesoMaximoPrecio = 0.20;
+        private const double CoincidenciaMinimaZona = 0.80;
 
         private readonly IInventarioRepository _inventarioRepository;
 
@@ -65,6 +66,12 @@ namespace maps4.Services
             RadarMatchingRequest solicitud,
             InventarioInmuebleViewModel inmueble)
         {
+            if (solicitud.Zonas.Count > 0 &&
+                CoincidenciaZona(solicitud.Zonas, inmueble) < CoincidenciaMinimaZona)
+            {
+                return false;
+            }
+
             if (solicitud.PrecioMaximo.HasValue && inmueble.Precio.HasValue && inmueble.Precio.Value > 0)
             {
                 double maximo = (double)solicitud.PrecioMaximo.Value;
