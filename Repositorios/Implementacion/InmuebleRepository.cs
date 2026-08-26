@@ -7,51 +7,94 @@ namespace maps4.Repositorios.Implementacion
 {
     public class InmuebleRepository : IGenericRepository<Inmueble>
     {
+        private const int MaxIntentosSql = 3;
         private readonly string _cadenaSQL = "";
 
         public InmuebleRepository(IConfiguration configuration)
         {
-            _cadenaSQL = configuration.GetConnectionString("cadenaSQL");
+            _cadenaSQL = configuration.GetConnectionString("cadenaSQL") ?? string.Empty;
         }
 
         public async Task<List<Inmueble>> Lista()
         {
-            List<Inmueble> _lista = new List<Inmueble>();
-
-            using (var conexion = new SqlConnection(_cadenaSQL))
+            return await EjecutarConReintentoAsync(async conexion =>
             {
-                conexion.Open();
-                SqlCommand cmd = new SqlCommand("RSMAPS_sp_ListaInmuebles", conexion);
-                cmd.CommandType = CommandType.StoredProcedure;
+                List<Inmueble> lista = new();
 
-                using (var dr = await cmd.ExecuteReaderAsync())
+                using SqlCommand cmd = new("RSMAPS_sp_ListaInmuebles", conexion)
                 {
-                    while (await dr.ReadAsync())
-                        _lista.Add(MapearInmueblePublico(dr));
-                }
-            }
+                    CommandType = CommandType.StoredProcedure
+                };
 
-            return _lista;
+                using SqlDataReader dr = await cmd.ExecuteReaderAsync();
+                while (await dr.ReadAsync())
+                    lista.Add(MapearInmueblePublico(dr));
+
+                return lista;
+            });
         }
 
         public async Task<List<Inmueble>> GetInmuebleById(int inmuebleId)
         {
-            List<Inmueble> _lista = new List<Inmueble>();
-
-            using (var conexion = new SqlConnection(_cadenaSQL))
+            return await EjecutarConReintentoAsync(async conexion =>
             {
-                conexion.Open();
-                SqlCommand cmd = new SqlCommand("sp_GetInmuebleById", conexion);
-                cmd.Parameters.AddWithValue("idInmueble", inmuebleId);
-                cmd.CommandType = CommandType.StoredProcedure;
+                List<Inmueble> lista = new();
 
-                using (var dr = await cmd.ExecuteReaderAsync())
+                using SqlCommand cmd = new("sp_GetInmuebleById", conexion)
                 {
-                    while (await dr.ReadAsync())
-                        _lista.Add(MapearInmueblePublico(dr));
+                    CommandType = CommandType.StoredProcedure
+                };
+                cmd.Parameters.Add("@idInmueble", SqlDbType.Int).Value = inmuebleId;
+
+                using SqlDataReader dr = await cmd.ExecuteReaderAsync();
+                while (await dr.ReadAsync())
+                    lista.Add(MapearInmueblePublico(dr));
+
+                return lista;
+            });
+        }
+
+        private async Task<T> EjecutarConReintentoAsync<T>(Func<SqlConnection, Task<T>> operacion)
+        {
+            Exception? ultimaExcepcion = null;
+
+            for (int intento = 1; intento <= MaxIntentosSql; intento++)
+            {
+                try
+                {
+                    await using SqlConnection conexion = new(_cadenaSQL);
+                    await conexion.OpenAsync();
+                    return await operacion(conexion);
+                }
+                catch (SqlException ex) when (intento < MaxIntentosSql && EsErrorSqlTransitorio(ex))
+                {
+                    ultimaExcepcion = ex;
+                    await Task.Delay(TimeSpan.FromSeconds(intento));
+                }
+                catch (TimeoutException ex) when (intento < MaxIntentosSql)
+                {
+                    ultimaExcepcion = ex;
+                    await Task.Delay(TimeSpan.FromSeconds(intento));
                 }
             }
-            return _lista;
+
+            throw ultimaExcepcion ?? new InvalidOperationException("No fue posible completar la consulta a SQL Server.");
+        }
+
+        private static bool EsErrorSqlTransitorio(SqlException ex)
+        {
+            // Errores vistos durante conexiones inestables hacia Azure SQL:
+            // 10054: conexión interrumpida por el host remoto.
+            // 258: timeout durante el handshake SSL/TLS.
+            // -2: timeout de SQL Client.
+            if (ex.Number is 10054 or 258 or -2)
+                return true;
+
+            string mensaje = ex.Message.ToUpperInvariant();
+            return mensaje.Contains("SSL")
+                || mensaje.Contains("HANDSHAKE")
+                || mensaje.Contains("TIEMPO DE ESPERA")
+                || mensaje.Contains("TIMEOUT");
         }
 
         private static Inmueble MapearInmueblePublico(SqlDataReader dr)

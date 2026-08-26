@@ -17,7 +17,17 @@ namespace maps4.Models
         public double? Construccion { get; set; }
         public double? Precio { get; set; }
         public string? Observaciones { get; set; }
+        public string? Link { get; set; }
         public int Imagenes { get; set; }
+
+        public int? Recamaras { get; set; }
+        public int? BanosCompletos { get; set; }
+        public int? MediosBanos { get; set; }
+        public int? Estacionamientos { get; set; }
+        public int? Niveles { get; set; }
+        public int? AntiguedadAnos { get; set; }
+        public string? AmenidadesCsv { get; set; }
+
         public string EstadoCodigo { get; set; } = string.Empty;
         public string VisibilidadCodigo { get; set; } = string.Empty;
         public DateTime? FechaPublicacionUtc { get; set; }

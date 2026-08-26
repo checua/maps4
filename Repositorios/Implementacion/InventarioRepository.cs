@@ -27,7 +27,9 @@ namespace maps4.Repositorios.Implementacion
             cmd.Parameters.Add("@IdCuenta", SqlDbType.Int).Value = idCuenta;
             cmd.Parameters.Add("@IdAsesor", SqlDbType.Int).Value = idAsesor;
 
-            return await LeerInventarioAsync(cmd);
+            var lista = await LeerInventarioAsync(cmd);
+            await CompletarDatosEstructuradosAsync(conexion, lista);
+            return lista;
         }
 
         public async Task<List<InventarioInmuebleViewModel>> ListarAutorizadosAsync(string correo)
@@ -42,7 +44,9 @@ namespace maps4.Repositorios.Implementacion
 
             cmd.Parameters.Add("@correo", SqlDbType.VarChar, 200).Value = correo;
 
-            return await LeerInventarioAsync(cmd);
+            var lista = await LeerInventarioAsync(cmd);
+            await CompletarDatosEstructuradosAsync(conexion, lista);
+            return lista;
         }
 
         public async Task<InventarioAutorizacionContexto?> ObtenerContextoAutorizacionAsync(string correo)
@@ -114,6 +118,7 @@ namespace maps4.Repositorios.Implementacion
                     Construccion = dr["construccion"] == DBNull.Value ? null : Convert.ToDouble(dr["construccion"]),
                     Precio = dr["precio"] == DBNull.Value ? null : Convert.ToDouble(dr["precio"]),
                     Observaciones = dr["observaciones"] == DBNull.Value ? null : dr["observaciones"].ToString(),
+                    Link = ObtenerString(dr, "link"),
                     Imagenes = dr["imagenes"] == DBNull.Value ? 0 : Convert.ToInt32(dr["imagenes"]),
                     EstadoCodigo = dr["EstadoCodigo"] == DBNull.Value ? string.Empty : dr["EstadoCodigo"].ToString() ?? string.Empty,
                     VisibilidadCodigo = dr["VisibilidadCodigo"] == DBNull.Value ? string.Empty : dr["VisibilidadCodigo"].ToString() ?? string.Empty,
@@ -126,6 +131,71 @@ namespace maps4.Repositorios.Implementacion
             }
 
             return lista;
+        }
+
+        private static async Task CompletarDatosEstructuradosAsync(
+            SqlConnection conexion,
+            List<InventarioInmuebleViewModel> lista)
+        {
+            if (lista.Count == 0)
+                return;
+
+            var porId = lista.ToDictionary(x => x.IdInmueble);
+            var nombresParametros = lista
+                .Select((_, index) => $"@id{index}")
+                .ToArray();
+
+            string sql = $@"
+SELECT
+    i.idInmueble,
+    i.Recamaras,
+    i.BanosCompletos,
+    i.MediosBanos,
+    i.Estacionamientos,
+    i.Niveles,
+    i.AntiguedadAnos,
+    a.AmenidadesCsv
+FROM dbo.RSMAPS_Inmueble i
+OUTER APPLY
+(
+    SELECT STRING_AGG(CONVERT(varchar(max), ia.AmenidadCodigo), ',') AS AmenidadesCsv
+    FROM dbo.RSMAPS_InmuebleAmenidad ia
+    WHERE ia.IdInmueble = i.idInmueble
+) a
+WHERE i.idInmueble IN ({string.Join(",", nombresParametros)});";
+
+            using SqlCommand cmd = new SqlCommand(sql, conexion);
+            for (int i = 0; i < lista.Count; i++)
+                cmd.Parameters.Add(nombresParametros[i], SqlDbType.Int).Value = lista[i].IdInmueble;
+
+            using SqlDataReader dr = await cmd.ExecuteReaderAsync();
+            while (await dr.ReadAsync())
+            {
+                int id = Convert.ToInt32(dr["idInmueble"]);
+                if (!porId.TryGetValue(id, out var inmueble))
+                    continue;
+
+                inmueble.Recamaras = dr["Recamaras"] == DBNull.Value ? null : Convert.ToInt32(dr["Recamaras"]);
+                inmueble.BanosCompletos = dr["BanosCompletos"] == DBNull.Value ? null : Convert.ToInt32(dr["BanosCompletos"]);
+                inmueble.MediosBanos = dr["MediosBanos"] == DBNull.Value ? null : Convert.ToInt32(dr["MediosBanos"]);
+                inmueble.Estacionamientos = dr["Estacionamientos"] == DBNull.Value ? null : Convert.ToInt32(dr["Estacionamientos"]);
+                inmueble.Niveles = dr["Niveles"] == DBNull.Value ? null : Convert.ToInt32(dr["Niveles"]);
+                inmueble.AntiguedadAnos = dr["AntiguedadAnos"] == DBNull.Value ? null : Convert.ToInt32(dr["AntiguedadAnos"]);
+                inmueble.AmenidadesCsv = dr["AmenidadesCsv"] == DBNull.Value ? null : dr["AmenidadesCsv"].ToString();
+            }
+        }
+
+        private static string? ObtenerString(SqlDataReader dr, string nombreColumna)
+        {
+            for (int i = 0; i < dr.FieldCount; i++)
+            {
+                if (!string.Equals(dr.GetName(i), nombreColumna, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                return dr.IsDBNull(i) ? null : dr.GetValue(i)?.ToString();
+            }
+
+            return null;
         }
 
         public async Task CambiarEstadoOVisibilidadAsync(
@@ -150,7 +220,7 @@ namespace maps4.Repositorios.Implementacion
             cmd.Parameters.Add("@VisibilidadNueva", SqlDbType.VarChar, 20).Value =
                 string.IsNullOrWhiteSpace(visibilidadNueva) ? DBNull.Value : visibilidadNueva;
             cmd.Parameters.Add("@Motivo", SqlDbType.NVarChar, 500).Value =
-                string.IsNullOrWhiteSpace(motivo) ? DBNull.Value : motivo;
+                string.IsNullOrWhiteSpace(motivo) ? DBNull.Value : motivo.Trim();
 
             await cmd.ExecuteNonQueryAsync();
         }
