@@ -145,9 +145,7 @@ namespace maps4.Services
             if (solicitud.Zonas.Count > 0)
             {
                 var valor = CoincidenciaZona(solicitud.Zonas, inmueble);
-                string zonaCandidato = DireccionUtil(inmueble.Direccion)
-                    ? inmueble.Direccion!
-                    : "sin dirección útil registrada";
+                string zonaCandidato = DescribirZonaCandidato(inmueble);
 
                 Agregar(25, valor,
                     $"Zona compatible: {zonaCandidato}",
@@ -352,30 +350,67 @@ namespace maps4.Services
 
         private static double CoincidenciaZona(List<string> zonas, InventarioInmuebleViewModel inmueble)
         {
+            string estructuradas = Normalizar($"{inmueble.ZonaPrincipalNombre} {inmueble.ZonasCsv}");
             string direccion = DireccionUtil(inmueble.Direccion) ? inmueble.Direccion! : string.Empty;
-            string candidato = Normalizar($"{direccion} {inmueble.Observaciones}");
-            if (string.IsNullOrWhiteSpace(candidato))
+            string respaldo = Normalizar($"{direccion} {inmueble.Observaciones}");
+
+            if (string.IsNullOrWhiteSpace(estructuradas) && string.IsNullOrWhiteSpace(respaldo))
                 return 0;
 
             double mejor = 0;
+
             foreach (var zona in zonas)
             {
                 string z = Normalizar(zona);
                 if (string.IsNullOrWhiteSpace(z))
                     continue;
 
-                if (candidato.Contains(z, StringComparison.OrdinalIgnoreCase))
-                    return 1;
+                if (!string.IsNullOrWhiteSpace(estructuradas))
+                {
+                    if (estructuradas.Contains(z, StringComparison.OrdinalIgnoreCase))
+                        return 1;
 
-                var tokens = TokensZona(z).ToList();
-                if (tokens.Count == 0)
-                    continue;
+                    var tokensEstructurados = TokensZona(z).ToList();
+                    if (tokensEstructurados.Count > 0)
+                    {
+                        int encontrados = tokensEstructurados.Count(t =>
+                            estructuradas.Contains(t, StringComparison.OrdinalIgnoreCase));
+                        mejor = Math.Max(mejor, (double)encontrados / tokensEstructurados.Count);
+                    }
+                }
 
-                int encontrados = tokens.Count(t => candidato.Contains(t, StringComparison.OrdinalIgnoreCase));
-                mejor = Math.Max(mejor, (double)encontrados / tokens.Count);
+                if (!string.IsNullOrWhiteSpace(respaldo))
+                {
+                    if (respaldo.Contains(z, StringComparison.OrdinalIgnoreCase))
+                        mejor = Math.Max(mejor, 0.85);
+
+                    var tokensRespaldo = TokensZona(z).ToList();
+                    if (tokensRespaldo.Count > 0)
+                    {
+                        int encontrados = tokensRespaldo.Count(t =>
+                            respaldo.Contains(t, StringComparison.OrdinalIgnoreCase));
+                        mejor = Math.Max(
+                            mejor,
+                            ((double)encontrados / tokensRespaldo.Count) * 0.75);
+                    }
+                }
             }
 
             return mejor;
+        }
+
+        private static string DescribirZonaCandidato(InventarioInmuebleViewModel inmueble)
+        {
+            if (!string.IsNullOrWhiteSpace(inmueble.ZonaPrincipalNombre))
+                return inmueble.ZonaPrincipalNombre!;
+
+            if (!string.IsNullOrWhiteSpace(inmueble.ZonasCsv))
+                return inmueble.ZonasCsv!;
+
+            if (DireccionUtil(inmueble.Direccion))
+                return inmueble.Direccion!;
+
+            return "sin zona estructurada ni dirección útil";
         }
 
         private static IEnumerable<string> TokensZona(string texto)
