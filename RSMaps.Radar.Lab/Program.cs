@@ -49,6 +49,10 @@ var casos = new (string Id, string Texto)[]
     (
         "altamira-infonavit",
         "Busco casa por el rumbo de Fracc. Altamira, hasta $1,400,000, que pase por crédito Infonavit Conyugal. También puede ser en zonas cercanas, no muy retiradas."
+    ),
+    (
+        "knowledge-semiduplex",
+        "Busco semi duplex por Jardines, máximo $1,800,000, Infonavit."
     )
 };
 
@@ -151,11 +155,18 @@ static IRadarInterpreter CrearRadarIntelligenceInterpreter()
     var apiKey = ObtenerApiKey();
     var model = Environment.GetEnvironmentVariable("RADAR_OPENAI_MODEL") ?? "gpt-5.4-nano";
     var fallbackModel = Environment.GetEnvironmentVariable("RADAR_OPENAI_FALLBACK_MODEL") ?? "gpt-5-mini";
+    var knowledgeProvider = CrearKnowledgeProvider();
 
-    var primario = new OpenAiRadarInterpreter(apiKey, model);
+    IRadarInterpreter primario = new OpenAiRadarInterpreter(apiKey, model);
+    if (knowledgeProvider is not null)
+        primario = new RadarKnowledgeAwareInterpreter(primario, knowledgeProvider);
+
     IRadarInterpreter? fallback = string.Equals(fallbackModel, "none", StringComparison.OrdinalIgnoreCase)
         ? null
         : new OpenAiRadarInterpreter(apiKey, fallbackModel);
+
+    if (fallback is not null && knowledgeProvider is not null)
+        fallback = new RadarKnowledgeAwareInterpreter(fallback, knowledgeProvider);
 
     return new RadarIntelligenceInterpreter(primario, fallback);
 }
@@ -165,6 +176,29 @@ static IRadarInterpreter CrearOpenAiRawInterpreter()
     var apiKey = ObtenerApiKey();
     var model = Environment.GetEnvironmentVariable("RADAR_OPENAI_MODEL") ?? "gpt-5.4-nano";
     return new OpenAiRadarInterpreter(apiKey, model);
+}
+
+static IRadarKnowledgeProvider? CrearKnowledgeProvider()
+{
+    var path = Environment.GetEnvironmentVariable("RADAR_KNOWLEDGE_PATH");
+
+    if (string.IsNullOrWhiteSpace(path))
+    {
+        path = Path.Combine(
+            Environment.CurrentDirectory,
+            "RSMaps.Radar.Lab",
+            "Knowledge",
+            "radar-knowledge.json");
+    }
+
+    if (!File.Exists(path))
+    {
+        Console.WriteLine($"RADAR Knowledge: no se encontró '{path}'. El pipeline continúa sin conocimiento adicional.");
+        return null;
+    }
+
+    Console.WriteLine($"RADAR Knowledge: {path}");
+    return new JsonRadarKnowledgeProvider(path);
 }
 
 static string ObtenerApiKey()
