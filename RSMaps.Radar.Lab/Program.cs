@@ -51,8 +51,8 @@ var casos = new (string Id, string Texto)[]
         "Busco casa por el rumbo de Fracc. Altamira, hasta $1,400,000, que pase por crédito Infonavit Conyugal. También puede ser en zonas cercanas, no muy retiradas."
     ),
     (
-        "knowledge-semiduplex",
-        "Busco semi duplex por Jardines, máximo $1,800,000, Infonavit."
+        "knowledge-duplex",
+        "Busco casa dúplex por Jardines, máximo $1,800,000, Infonavit."
     )
 };
 
@@ -119,6 +119,7 @@ foreach (var caso in casos)
             Console.WriteLine($"    Tipos: {Mostrar(s.TiposPropiedad)}");
             Console.WriteLine($"    Subtipos: {Mostrar(s.SubtiposPropiedad)}");
             Console.WriteLine($"    Zonas: {Mostrar(s.Zonas)}");
+            Console.WriteLine($"    Tipo fracc.: {s.TipoFraccionamiento ?? "-"}");
             Console.WriteLine($"    Precio mín.: {MostrarDinero(s.PrecioMinimo)}");
             Console.WriteLine($"    Precio máx.: {MostrarDinero(s.PrecioMaximo)}");
             Console.WriteLine($"    Recámaras: {MostrarRango(s.RecamarasMin, s.RecamarasMax)}");
