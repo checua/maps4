@@ -49,6 +49,100 @@ public static class RadarInterpretationNormalizer
             NormalizarRecamaras(solicitud, mensaje.TextoOriginal);
         }
 
+        // Sólo hacemos recuperación determinística desde el mensaje completo cuando
+        // hay una única solicitud. En mensajes con varias solicitudes, usar el texto
+        // completo podría contaminar una solicitud con datos pertenecientes a otra.
+        if (resultado.Solicitudes.Count == 1)
+        {
+            var solicitud = resultado.Solicitudes[0];
+            EnriquecerDesdeMensaje(solicitud, mensaje.TextoOriginal);
+            solicitud.ModalidadesPago = FiltrarModalidadesRespaldadas(
+                solicitud.ModalidadesPago,
+                mensaje.TextoOriginal);
+        }
+
+        return resultado;
+    }
+
+    private static void EnriquecerDesdeMensaje(
+        SolicitudInmobiliaria solicitud,
+        string mensajeOriginal)
+    {
+        var texto = NormalizarTexto(mensajeOriginal);
+
+        if (solicitud.TiposPropiedad.Count == 0)
+            solicitud.TiposPropiedad = ExtraerTiposRespaldados(texto);
+
+        if (string.IsNullOrWhiteSpace(solicitud.Operacion))
+        {
+            if (Regex.IsMatch(texto, @"\b(?:renta|rentar|arrendar|alquiler)\b", RegexOptions.IgnoreCase))
+            {
+                solicitud.Operacion = "Renta";
+            }
+            else if (Regex.IsMatch(texto, @"\b(?:venta|compra|comprar|adquirir)\b", RegexOptions.IgnoreCase))
+            {
+                solicitud.Operacion = "Venta";
+            }
+            else if (TieneCreditoDeCompra(texto))
+            {
+                // Infonavit/Fovissste/Banjercito/hipotecario son señales fuertes de compra.
+                solicitud.Operacion = "Venta";
+            }
+        }
+    }
+
+    private static List<string> ExtraerTiposRespaldados(string texto)
+    {
+        var tipos = new List<string>();
+
+        void AgregarSi(bool condicion, string tipo)
+        {
+            if (condicion && !tipos.Contains(tipo, StringComparer.OrdinalIgnoreCase))
+                tipos.Add(tipo);
+        }
+
+        AgregarSi(Regex.IsMatch(texto, @"\bcasa\b|\bresidencia\b|\bvivienda\b"), "Casa");
+        AgregarSi(Regex.IsMatch(texto, @"\bdepartamento\b|\bdepto\b|\bapartamento\b"), "Departamento");
+        AgregarSi(Regex.IsMatch(texto, @"\bterreno\b|\blote\b"), "Terreno");
+        AgregarSi(Regex.IsMatch(texto, @"\blocal\b"), "Local");
+        AgregarSi(Regex.IsMatch(texto, @"\bbodega\b|\bnave\b"), "Bodega");
+        AgregarSi(Regex.IsMatch(texto, @"\boficina\b|\bdespacho\b"), "Oficina");
+        AgregarSi(Regex.IsMatch(texto, @"\brancho\b|\bquinta\b"), "Rancho");
+        AgregarSi(Regex.IsMatch(texto, @"\bedificio\b"), "Edificio");
+
+        return tipos;
+    }
+
+    private static bool TieneCreditoDeCompra(string texto) =>
+        Regex.IsMatch(
+            texto,
+            @"\b(?:infonavit|fovissste|banjercito|credito\s+(?:hipotecario|bancario))\b",
+            RegexOptions.IgnoreCase);
+
+    private static List<string> FiltrarModalidadesRespaldadas(
+        IEnumerable<string> modalidades,
+        string mensajeOriginal)
+    {
+        var texto = NormalizarTexto(mensajeOriginal);
+        var resultado = new List<string>();
+
+        foreach (var modalidad in modalidades)
+        {
+            var respaldada = modalidad switch
+            {
+                "Infonavit" => texto.Contains("infonavit"),
+                "Fovissste" => texto.Contains("fovissste"),
+                "Banjercito" => texto.Contains("banjercito"),
+                "Contado" => texto.Contains("contado") || texto.Contains("efectivo"),
+                "Crédito bancario" => texto.Contains("credito bancario") || texto.Contains("bancario"),
+                "Crédito hipotecario" => texto.Contains("credito hipotecario") || texto.Contains("hipotecario"),
+                _ => true
+            };
+
+            if (respaldada && !resultado.Contains(modalidad, StringComparer.OrdinalIgnoreCase))
+                resultado.Add(modalidad);
+        }
+
         return resultado;
     }
 
