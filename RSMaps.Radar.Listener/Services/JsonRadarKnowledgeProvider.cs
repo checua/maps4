@@ -22,37 +22,12 @@ public sealed class JsonRadarKnowledgeProvider : IRadarKnowledgeProvider
         RadarMessage mensaje,
         CancellationToken cancellationToken = default)
     {
-        if (!File.Exists(_path))
-            return null;
-
-        RadarKnowledgeDocument? document;
-        try
-        {
-            await using var stream = File.OpenRead(_path);
-            document = await JsonSerializer.DeserializeAsync<RadarKnowledgeDocument>(
-                stream,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true },
-                cancellationToken);
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
-        catch (IOException)
-        {
-            return null;
-        }
-
+        var document = await CargarDocumentoAsync(cancellationToken);
         if (document is null)
             return null;
 
         var texto = Normalizar(mensaje.TextoOriginal);
-
-        var terminos = document.Terminos
-            .Where(x => x.Activo && x.ConfirmadoPorHumano)
-            .Where(x => CoincideTermino(x, texto))
-            .Take(12)
-            .ToList();
+        var terminos = ObtenerTerminosRelevantes(document, texto);
 
         var ejemplos = document.Ejemplos
             .Where(x => x.Activo && x.ConfirmadoPorHumano)
@@ -81,6 +56,9 @@ public sealed class JsonRadarKnowledgeProvider : IRadarKnowledgeProvider
                 if (!string.IsNullOrWhiteSpace(termino.ValorCanonico))
                     sb.Append(" => ").Append(termino.ValorCanonico);
 
+                if (!string.IsNullOrWhiteSpace(termino.TipoBaseCanonico))
+                    sb.Append("; tipo base => ").Append(termino.TipoBaseCanonico);
+
                 if (!string.IsNullOrWhiteSpace(termino.Instruccion))
                     sb.Append(". ").Append(termino.Instruccion.Trim());
 
@@ -100,6 +78,50 @@ public sealed class JsonRadarKnowledgeProvider : IRadarKnowledgeProvider
 
         return sb.ToString().TrimEnd();
     }
+
+    public async Task<IReadOnlyList<RadarKnowledgeTerm>> ObtenerTerminosRelevantesAsync(
+        RadarMessage mensaje,
+        CancellationToken cancellationToken = default)
+    {
+        var document = await CargarDocumentoAsync(cancellationToken);
+        if (document is null)
+            return [];
+
+        return ObtenerTerminosRelevantes(document, Normalizar(mensaje.TextoOriginal));
+    }
+
+    private async Task<RadarKnowledgeDocument?> CargarDocumentoAsync(
+        CancellationToken cancellationToken)
+    {
+        if (!File.Exists(_path))
+            return null;
+
+        try
+        {
+            await using var stream = File.OpenRead(_path);
+            return await JsonSerializer.DeserializeAsync<RadarKnowledgeDocument>(
+                stream,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true },
+                cancellationToken);
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+        catch (IOException)
+        {
+            return null;
+        }
+    }
+
+    private static List<RadarKnowledgeTerm> ObtenerTerminosRelevantes(
+        RadarKnowledgeDocument document,
+        string textoNormalizado) =>
+        document.Terminos
+            .Where(x => x.Activo && x.ConfirmadoPorHumano)
+            .Where(x => CoincideTermino(x, textoNormalizado))
+            .Take(12)
+            .ToList();
 
     private static bool CoincideTermino(RadarKnowledgeTerm termino, string textoNormalizado)
     {
