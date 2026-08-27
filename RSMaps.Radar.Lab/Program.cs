@@ -117,6 +117,7 @@ foreach (var caso in casos)
             Console.WriteLine($"  Solicitud #{i + 1}");
             Console.WriteLine($"    Operación: {s.Operacion ?? "-"}");
             Console.WriteLine($"    Tipos: {Mostrar(s.TiposPropiedad)}");
+            Console.WriteLine($"    Subtipos: {Mostrar(s.SubtiposPropiedad)}");
             Console.WriteLine($"    Zonas: {Mostrar(s.Zonas)}");
             Console.WriteLine($"    Precio mín.: {MostrarDinero(s.PrecioMinimo)}");
             Console.WriteLine($"    Precio máx.: {MostrarDinero(s.PrecioMaximo)}");
