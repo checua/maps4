@@ -2,15 +2,27 @@ namespace RSMaps.Radar.Listener.Config;
 
 public static class RadarSettings
 {
-    // Nombre tal como normalmente aparece en WhatsApp Web.
-    public static readonly string[] ChatsMonitoreados =
-    [
-        "INVENTARIOS Y PROSPECTOS",
-        "Leones Inmobiliarios Dgo",
-        "Terrenos en venta Dgo",
-        "AISE tu socio en el éxito!",
-        "José Juan (Tú)"
-    ];
+    public static bool ModoSeguroLab =>
+        string.Equals(
+            Environment.GetEnvironmentVariable("RADAR_SAFE_LAB"),
+            "1",
+            StringComparison.OrdinalIgnoreCase)
+        || string.Equals(
+            Environment.GetEnvironmentVariable("RADAR_SAFE_LAB"),
+            "true",
+            StringComparison.OrdinalIgnoreCase);
+
+    // En modo seguro sólo se observa el chat de pruebas del propio usuario.
+    public static string[] ChatsMonitoreados => ModoSeguroLab
+        ? ["José Juan (Tú)"]
+        :
+        [
+            "INVENTARIOS Y PROSPECTOS",
+            "Leones Inmobiliarios Dgo",
+            "Terrenos en venta Dgo",
+            "AISE tu socio en el éxito!",
+            "José Juan (Tú)"
+        ];
 
     // Términos alternativos para localizar chats cuando el título visible
     // contiene sufijos, emojis o WhatsApp lo indexa de otra forma.
@@ -45,13 +57,10 @@ public static class RadarSettings
             yield return termino;
     }
 
-    // Operación normal: un barrido cada 20 minutos.
-    // Si necesitamos una prueba rápida puntual, se puede activar temporalmente ModoPruebas.
-    public const bool ModoPruebas = false;
-
+    // El modo seguro revisa rápido para pruebas E2E; producción conserva 20 minutos.
     public static int IntervaloRevisionMs =>
-        ModoPruebas
-            ? 30_000
+        ModoSeguroLab
+            ? 10_000
             : 20 * 60_000;
 
     public const int EsperaBusquedaMs = 900;
