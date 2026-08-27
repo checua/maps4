@@ -19,7 +19,11 @@ public sealed class RadarKnowledgeAwareInterpreter : IRadarInterpreter
         RadarMessage mensaje,
         CancellationToken cancellationToken = default)
     {
+        var terminos = await _knowledgeProvider.ObtenerTerminosRelevantesAsync(
+            mensaje,
+            cancellationToken);
         var contexto = await _knowledgeProvider.ConstruirContextoAsync(mensaje, cancellationToken);
+
         if (string.IsNullOrWhiteSpace(contexto))
             return await _inner.InterpretarAsync(mensaje, cancellationToken);
 
@@ -54,10 +58,70 @@ IMPORTANTE: interpreta únicamente la demanda contenida entre <<< >>>. El conoci
             solicitud.MensajeOriginal = mensaje.TextoOriginal;
         }
 
+        // La aplicación determinística del término se limita a una sola solicitud.
+        // En mensajes con varias demandas, aplicar un término globalmente podría
+        // contaminar solicitudes que no lo contienen.
+        if (resultado.Solicitudes.Count == 1)
+            AplicarTerminosAprobados(resultado.Solicitudes[0], terminos);
+
         resultado.Observaciones = string.IsNullOrWhiteSpace(resultado.Observaciones)
             ? "RADAR Knowledge aplicado."
             : $"{resultado.Observaciones} | RADAR Knowledge aplicado.";
 
         return resultado;
+    }
+
+    private static void AplicarTerminosAprobados(
+        SolicitudInmobiliaria solicitud,
+        IReadOnlyList<RadarKnowledgeTerm> terminos)
+    {
+        foreach (var termino in terminos.Where(x =>
+                     string.Equals(x.Categoria, "SubtipoPropiedad", StringComparison.OrdinalIgnoreCase)))
+        {
+            if (string.IsNullOrWhiteSpace(termino.ValorCanonico))
+                continue;
+
+            var subtipo = termino.ValorCanonico.Trim();
+
+            if (!solicitud.SubtiposPropiedad.Contains(subtipo, StringComparer.OrdinalIgnoreCase))
+                solicitud.SubtiposPropiedad.Add(subtipo);
+
+            solicitud.TiposPropiedad = solicitud.TiposPropiedad
+                .Where(x => !CoincideConTermino(x, termino))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            solicitud.Zonas = solicitud.Zonas
+                .Where(x => !CoincideConTermino(x, termino))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (!string.IsNullOrWhiteSpace(termino.TipoBaseCanonico) &&
+                !solicitud.TiposPropiedad.Contains(
+                    termino.TipoBaseCanonico,
+                    StringComparer.OrdinalIgnoreCase))
+            {
+                solicitud.TiposPropiedad.Add(termino.TipoBaseCanonico.Trim());
+            }
+        }
+    }
+
+    private static bool CoincideConTermino(string valor, RadarKnowledgeTerm termino)
+    {
+        var n = RadarInterpretationNormalizer.NormalizarTexto(valor);
+        if (string.IsNullOrWhiteSpace(n))
+            return false;
+
+        var candidatos = new List<string>
+        {
+            termino.Termino,
+            termino.ValorCanonico ?? string.Empty
+        };
+        candidatos.AddRange(termino.Alias);
+
+        return candidatos
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(RadarInterpretationNormalizer.NormalizarTexto)
+            .Any(x => string.Equals(x, n, StringComparison.OrdinalIgnoreCase));
     }
 }
