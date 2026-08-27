@@ -9,10 +9,11 @@ var engine = (Environment.GetEnvironmentVariable("RADAR_LAB_INTERPRETER") ?? "ru
 
 IRadarInterpreter interpreter = engine switch
 {
-    "openai" => CrearOpenAiInterpreter(),
+    "openai" or "radar" => CrearRadarIntelligenceInterpreter(),
+    "openai_raw" => CrearOpenAiRawInterpreter(),
     "rules" or "rule_based" => new RuleBasedRadarInterpreter(),
     _ => throw new InvalidOperationException(
-        $"RADAR_LAB_INTERPRETER='{engine}' no es válido. Usa 'rules' u 'openai'.")
+        $"RADAR_LAB_INTERPRETER='{engine}' no es válido. Usa 'rules', 'openai', 'radar' u 'openai_raw'.")
 };
 
 var casos = new (string Id, string Texto)[]
@@ -54,13 +55,14 @@ var casos = new (string Id, string Texto)[]
 Console.WriteLine("==============================================");
 Console.WriteLine("          RADAR INTERPRETER LAB");
 Console.WriteLine("==============================================");
-Console.WriteLine($"Motor: {interpreter.GetType().Name}");
+Console.WriteLine($"Pipeline: {interpreter.GetType().Name}");
 Console.WriteLine($"Casos: {casos.Length}");
 Console.WriteLine();
 
 var totalInputTokens = 0;
 var totalOutputTokens = 0;
 var totalTokens = 0;
+var totalFallbacks = 0;
 
 foreach (var caso in casos)
 {
@@ -80,10 +82,20 @@ foreach (var caso in casos)
         Console.WriteLine($"CASO: {caso.Id}");
         Console.WriteLine($"Motor: {resultado.Motor}");
         Console.WriteLine($"Confianza: {MostrarConfianza(resultado.ConfianzaInterpretacion)}");
+        Console.WriteLine($"Fallback: {(resultado.UsoFallback ? "Sí" : "No")}");
         Console.WriteLine($"Solicitudes: {resultado.Solicitudes.Count}");
+
+        if (resultado.UsoFallback)
+            totalFallbacks++;
 
         if (!string.IsNullOrWhiteSpace(resultado.Observaciones))
             Console.WriteLine($"Observaciones: {resultado.Observaciones}");
+
+        foreach (var problema in resultado.ProblemasValidacion)
+            Console.WriteLine($"VALIDACIÓN: {problema}");
+
+        foreach (var advertencia in resultado.AdvertenciasValidacion)
+            Console.WriteLine($"AVISO: {advertencia}");
 
         if (resultado.TotalTokens.HasValue)
         {
@@ -130,10 +142,32 @@ if (totalTokens > 0)
     Console.WriteLine($"Tokens entrada: {totalInputTokens}");
     Console.WriteLine($"Tokens salida:  {totalOutputTokens}");
     Console.WriteLine($"Tokens total:   {totalTokens}");
+    Console.WriteLine($"Fallbacks:      {totalFallbacks}");
     Console.WriteLine("==============================================");
 }
 
-static IRadarInterpreter CrearOpenAiInterpreter()
+static IRadarInterpreter CrearRadarIntelligenceInterpreter()
+{
+    var apiKey = ObtenerApiKey();
+    var model = Environment.GetEnvironmentVariable("RADAR_OPENAI_MODEL") ?? "gpt-5.4-nano";
+    var fallbackModel = Environment.GetEnvironmentVariable("RADAR_OPENAI_FALLBACK_MODEL") ?? "gpt-5-mini";
+
+    var primario = new OpenAiRadarInterpreter(apiKey, model);
+    IRadarInterpreter? fallback = string.Equals(fallbackModel, "none", StringComparison.OrdinalIgnoreCase)
+        ? null
+        : new OpenAiRadarInterpreter(apiKey, fallbackModel);
+
+    return new RadarIntelligenceInterpreter(primario, fallback);
+}
+
+static IRadarInterpreter CrearOpenAiRawInterpreter()
+{
+    var apiKey = ObtenerApiKey();
+    var model = Environment.GetEnvironmentVariable("RADAR_OPENAI_MODEL") ?? "gpt-5.4-nano";
+    return new OpenAiRadarInterpreter(apiKey, model);
+}
+
+static string ObtenerApiKey()
 {
     var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
     if (string.IsNullOrWhiteSpace(apiKey))
@@ -142,8 +176,7 @@ static IRadarInterpreter CrearOpenAiInterpreter()
             "Para usar OpenAI define la variable de entorno OPENAI_API_KEY. La clave nunca debe guardarse en Git.");
     }
 
-    var model = Environment.GetEnvironmentVariable("RADAR_OPENAI_MODEL") ?? "gpt-5-mini";
-    return new OpenAiRadarInterpreter(apiKey, model);
+    return apiKey;
 }
 
 static string Mostrar(IEnumerable<string> valores)
