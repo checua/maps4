@@ -12,6 +12,7 @@ public class SolicitudInmobiliaria
 
     public string? Operacion { get; set; }
     public List<string> TiposPropiedad { get; set; } = [];
+    public List<string> SubtiposPropiedad { get; set; } = [];
     public List<string> Zonas { get; set; } = [];
 
     public decimal? PrecioMinimo { get; set; }
