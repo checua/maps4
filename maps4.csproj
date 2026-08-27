@@ -8,10 +8,10 @@
 
     <!--
       Evita que el proyecto web maps4 intente compilar o incluir
-      archivos pertenecientes al proyecto RSMaps.Radar.Listener.
+      archivos pertenecientes a los proyectos RADAR anidados.
     -->
     <DefaultItemExcludes>
-      $(DefaultItemExcludes);RSMaps.Radar.Listener\**
+      $(DefaultItemExcludes);RSMaps.Radar.Listener\**;RSMaps.Radar.Lab\**
     </DefaultItemExcludes>
   </PropertyGroup>
 
