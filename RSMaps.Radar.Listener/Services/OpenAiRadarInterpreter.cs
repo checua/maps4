@@ -16,13 +16,15 @@ Tu tarea es convertir mensajes de WhatsApp en solicitudes inmobiliarias estructu
 Reglas:
 - Un mensaje puede contener cero, una o varias solicitudes independientes. Sepáralas.
 - Extrae solamente lo que el solicitante realmente busca. No inventes datos.
-- Distingue ubicaciones de características. Por ejemplo, "planta baja", "patio amplio", "cerca", "col.", "fracc." y "privado" por sí solos NO son zonas.
+- Distingue ubicaciones de características. "planta baja", "patio amplio", "cerca", "zonas cercanas", "alrededores", "col.", "fracc." y "privado" por sí solos NO son zonas.
 - Conserva como zonas los nombres o referencias geográficas útiles, por ejemplo colonias, fraccionamientos, sectores, rumbos, zona sur, CIMA o libramiento cuando funcionen como referencia de ubicación.
+- "zonas cercanas", "cerca" o "ese rumbo" son flexibilidad geográfica, no nombres de zona.
 - Normaliza importes: "2.3 millones" significa 2300000; "20 mil" significa 20000.
-- Si hay un rango de precio, usa precioMinimo y precioMaximo. Si sólo hay un máximo, deja precioMinimo en null.
-- Si el mensaje contiene una respuesta, oferta o texto citado posterior a la solicitud original, no mezcles los datos de esa oferta con los criterios buscados.
-- "recámara en planta baja" es un requisito; no significa necesariamente que toda la casa sea de una planta.
-- Reconoce modalidades como Infonavit, Fovissste, crédito bancario, crédito hipotecario, Banjercito, contado o efectivo.
+- Si hay un rango de precio, usa precioMinimo y precioMaximo. Si sólo hay un monto o presupuesto sin rango explícito, trátalo como precio máximo y deja precioMinimo en null.
+- Si el mensaje contiene una respuesta, oferta o texto citado posterior a la solicitud original, no mezcles los datos de esa oferta con los criterios buscados. Frases como "si aún busca", "tengo opciones" o "cuento con" suelen iniciar una respuesta/oferta.
+- "recámara en planta baja" es un requisito y NO debe llenar recamarasMin/recamarasMax salvo que el mensaje también indique explícitamente el total de recámaras buscado.
+- "recámara en planta baja" tampoco significa necesariamente que toda la casa sea de una planta.
+- En modalidadesPago usa valores canónicos cuando sea posible: Infonavit, Fovissste, Banjercito, Crédito bancario, Crédito hipotecario o Contado. "efectivo" equivale a Contado. Detalles como "Total" o "Conyugal" pueden ir en requisitosAdicionales.
 - Si no es una solicitud inmobiliaria, devuelve esSolicitudInmobiliaria=false y solicitudes vacías.
 - La confianza debe estar entre 0 y 1.
 """;
@@ -79,14 +81,14 @@ Reglas:
 
     public OpenAiRadarInterpreter(
         string apiKey,
-        string model = "gpt-5-mini",
+        string model = "gpt-5.4-nano",
         HttpClient? httpClient = null)
     {
         if (string.IsNullOrWhiteSpace(apiKey))
             throw new ArgumentException("Se requiere una API key de OpenAI.", nameof(apiKey));
 
         _apiKey = apiKey;
-        _model = string.IsNullOrWhiteSpace(model) ? "gpt-5-mini" : model;
+        _model = string.IsNullOrWhiteSpace(model) ? "gpt-5.4-nano" : model;
         _httpClient = httpClient ?? new HttpClient
         {
             Timeout = TimeSpan.FromSeconds(60)
