@@ -21,6 +21,7 @@ public sealed class RadarIntelligenceInterpreter : IRadarInterpreter
     {
         var primario = await _primario.InterpretarAsync(mensaje, cancellationToken);
         RadarInterpretationNormalizer.Normalizar(primario, mensaje);
+        RadarInterpretationSemanticCleaner.Limpiar(primario);
         var validacionPrimaria = RadarInterpretationValidator.Validar(primario, mensaje);
 
         if (!validacionPrimaria.RequiereFallback || _fallback is null)
@@ -37,6 +38,7 @@ public sealed class RadarIntelligenceInterpreter : IRadarInterpreter
 
         var secundario = await _fallback.InterpretarAsync(mensaje, cancellationToken);
         RadarInterpretationNormalizer.Normalizar(secundario, mensaje);
+        RadarInterpretationSemanticCleaner.Limpiar(secundario);
         var validacionSecundaria = RadarInterpretationValidator.Validar(secundario, mensaje);
 
         var usarFallback = validacionSecundaria.Problemas.Count <= validacionPrimaria.Problemas.Count;
