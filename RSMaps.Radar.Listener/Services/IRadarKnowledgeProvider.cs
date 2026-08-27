@@ -7,4 +7,8 @@ public interface IRadarKnowledgeProvider
     Task<string?> ConstruirContextoAsync(
         RadarMessage mensaje,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<RadarKnowledgeTerm>> ObtenerTerminosRelevantesAsync(
+        RadarMessage mensaje,
+        CancellationToken cancellationToken = default);
 }
