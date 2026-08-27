@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "terminos": [
+    {
+      "id": "duplex",
+      "termino": "dúplex",
+      "categoria": "SubtipoPropiedad",
+      "valorCanonico": "Dúplex",
+      "alias": ["duplex", "casa duplex", "casa dúplex"],
+      "instruccion": "Consérvalo como subtipo o requisito de la propiedad; no lo interpretes como zona. No asumas características constructivas no indicadas por el mensaje.",
+      "ambito": "Global",
+      "activo": true,
+      "confirmadoPorHumano": true
+    },
+    {
+      "id": "semiduplex",
+      "termino": "semi dúplex",
+      "categoria": "SubtipoPropiedad",
+      "valorCanonico": "Semidúplex",
+      "alias": ["semi duplex", "semiduplex", "semi-duplex", "semi-dúplex"],
+      "instruccion": "Consérvalo como subtipo o requisito de la propiedad; no lo interpretes como zona. No inventes una definición adicional si el mensaje no la proporciona.",
+      "ambito": "Global",
+      "activo": true,
+      "confirmadoPorHumano": true
+    },
+    {
+      "id": "duplex-inverter",
+      "termino": "dúplex inverter",
+      "categoria": "TerminoDominio",
+      "valorCanonico": "Dúplex inverter",
+      "alias": ["duplex inverter"],
+      "instruccion": "Es un término de dominio configurable. Consérvalo textualmente como requisito/subtipo y no lo conviertas en zona ni le atribuyas propiedades que no estén definidas en RADAR Knowledge.",
+      "ambito": "Global",
+      "activo": true,
+      "confirmadoPorHumano": true
+    },
+    {
+      "id": "pb",
+      "termino": "PB",
+      "categoria": "Abreviatura",
+      "valorCanonico": "planta baja",
+      "alias": ["p.b."],
+      "instruccion": "Interprétalo como planta baja cuando el contexto sea una característica del inmueble.",
+      "ambito": "Global",
+      "activo": true,
+      "confirmadoPorHumano": true
+    },
+    {
+      "id": "fovi",
+      "termino": "Fovi",
+      "categoria": "ModalidadPago",
+      "valorCanonico": "Fovissste",
+      "alias": ["fovi"],
+      "instruccion": "Interprétalo como referencia a Fovissste sólo cuando el contexto sea crédito o modalidad de pago.",
+      "ambito": "Global",
+      "activo": true,
+      "confirmadoPorHumano": true
+    }
+  ],
+  "ejemplos": [
+    {
+      "id": "ejemplo-semiduplex",
+      "mensaje": "Busco semi duplex por Jardines, máximo 1.8, Infonavit.",
+      "activadores": ["semi duplex", "semiduplex"],
+      "interpretacionCorrecta": "Es una solicitud inmobiliaria. 'semi duplex' es un subtipo/requisito, no una zona. 'Jardines' es referencia geográfica, 1.8 es presupuesto máximo según el contexto y el pago es Infonavit. No inventar características del semidúplex.",
+      "ambito": "Global",
+      "activo": true,
+      "confirmadoPorHumano": true
+    }
+  ]
+}
