@@ -9,4 +9,8 @@ public class RadarInterpretationResult
     public List<SolicitudInmobiliaria> Solicitudes { get; set; } = [];
 
     public string? Observaciones { get; set; }
+
+    public int? InputTokens { get; set; }
+    public int? OutputTokens { get; set; }
+    public int? TotalTokens { get; set; }
 }
