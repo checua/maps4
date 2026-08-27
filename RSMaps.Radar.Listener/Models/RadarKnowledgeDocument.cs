@@ -13,6 +13,7 @@ public sealed class RadarKnowledgeTerm
     public string Termino { get; set; } = "";
     public string Categoria { get; set; } = "";
     public string? ValorCanonico { get; set; }
+    public string? TipoBaseCanonico { get; set; }
     public List<string> Alias { get; set; } = [];
     public string? Instruccion { get; set; }
     public string Ambito { get; set; } = "Global";
