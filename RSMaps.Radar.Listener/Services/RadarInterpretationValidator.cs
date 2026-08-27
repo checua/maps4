@@ -59,6 +59,13 @@ public static class RadarInterpretationValidator
                     validacion.Problemas.Add($"{prefijo}: tipo de propiedad no canónico '{tipo}'.");
             }
 
+            if (!string.IsNullOrWhiteSpace(s.TipoFraccionamiento) &&
+                !string.Equals(s.TipoFraccionamiento, "Privado", StringComparison.OrdinalIgnoreCase))
+            {
+                validacion.Problemas.Add(
+                    $"{prefijo}: tipo de fraccionamiento no canónico '{s.TipoFraccionamiento}'.");
+            }
+
             foreach (var zona in s.Zonas)
             {
                 if (!ZonaRespaldadaPorMensaje(zona, texto))
@@ -114,7 +121,9 @@ public static class RadarInterpretationValidator
 
         if (!string.IsNullOrWhiteSpace(s.Operacion)) total++;
         if (s.TiposPropiedad.Count > 0) total++;
+        if (s.SubtiposPropiedad.Count > 0) total++;
         if (s.Zonas.Count > 0) total++;
+        if (!string.IsNullOrWhiteSpace(s.TipoFraccionamiento)) total++;
         if (s.PrecioMinimo.HasValue || s.PrecioMaximo.HasValue) total++;
         if (s.RecamarasMin.HasValue || s.RecamarasMax.HasValue) total++;
         if (s.BanosMin.HasValue || s.BanosMax.HasValue) total++;
