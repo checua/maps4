@@ -44,6 +44,9 @@ Console.WriteLine($"Chat de alertas: {AlertSettings.ChatDestino}");
 var idsConocidosPorChat = new Dictionary<string, HashSet<string>>(
     StringComparer.OrdinalIgnoreCase);
 
+IRadarInterpreter interpreter = new RuleBasedRadarInterpreter();
+Console.WriteLine($"Intérprete Radar: {interpreter.GetType().Name}");
+
 Console.WriteLine();
 Console.WriteLine("Inicializando chats...");
 
@@ -104,7 +107,7 @@ while (true)
                 continue;
             }
 
-            var resultado = await ProcesarMensajesNuevos(page, chat, idsConocidos);
+            var resultado = await ProcesarMensajesNuevos(page, chat, idsConocidos, interpreter);
 
             if (resultado.Revisados > 0)
             {
@@ -378,7 +381,8 @@ static async Task AbsorberMensajesActuales(IPage page, HashSet<string> knownIds)
 static async Task<(int Revisados, List<SolicitudInmobiliaria> Solicitudes)> ProcesarMensajesNuevos(
     IPage page,
     string chat,
-    HashSet<string> knownIds)
+    HashSet<string> knownIds,
+    IRadarInterpreter interpreter)
 {
     var messages = page.Locator("[data-testid^='conv-msg-'][data-id]");
     var count = await messages.CountAsync();
@@ -407,10 +411,21 @@ static async Task<(int Revisados, List<SolicitudInmobiliaria> Solicitudes)> Proc
         }
 
         var (autor, telefono) = await ExtraerRemitente(message, text);
-        var solicitud = ExtractorInmobiliario.Extraer(text, chat, id);
-        solicitud.Autor = autor;
-        solicitud.Telefono = telefono;
-        solicitudes.Add(solicitud);
+        var radarMessage = new RadarMessage
+        {
+            MessageId = id,
+            ChatOrigen = chat,
+            Autor = autor,
+            Telefono = telefono,
+            TextoOriginal = text,
+            DetectadoEn = DateTime.Now
+        };
+
+        var interpretacion = await interpreter.InterpretarAsync(radarMessage);
+        Console.WriteLine(
+            $"  ↳ Interpretación {interpretacion.Motor}: {interpretacion.Solicitudes.Count} solicitud(es).");
+
+        solicitudes.AddRange(interpretacion.Solicitudes);
     }
 
     return (revisados, solicitudes);
