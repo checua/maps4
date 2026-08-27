@@ -124,25 +124,27 @@ ORDER BY z.Prioridad DESC, z.Nombre, zp.Orden, zp.IdZonaPoligono;";
             double? lat = null;
             double? lng = null;
 
-            using SqlDataReader dr = await cmd.ExecuteReaderAsync();
-            while (await dr.ReadAsync())
+            using (SqlDataReader dr = await cmd.ExecuteReaderAsync())
             {
-                idCuenta ??= Convert.ToInt32(dr["IdCuenta"]);
-                lat ??= dr["Lat"] == DBNull.Value ? null : Convert.ToDouble(dr["Lat"]);
-                lng ??= dr["Lng"] == DBNull.Value ? null : Convert.ToDouble(dr["Lng"]);
-
-                coincidencias.Add(new
+                while (await dr.ReadAsync())
                 {
-                    idZona = Convert.ToInt32(dr["IdZona"]),
-                    codigo = dr["Codigo"]?.ToString(),
-                    nombre = dr["Nombre"]?.ToString(),
-                    prioridad = Convert.ToInt32(dr["Prioridad"]),
-                    idZonaPoligono = Convert.ToInt32(dr["IdZonaPoligono"]),
-                    poligonoNombre = dr["PoligonoNombre"] == DBNull.Value ? null : dr["PoligonoNombre"].ToString(),
-                    yaAsignada = dr["YaAsignada"] != DBNull.Value && Convert.ToBoolean(dr["YaAsignada"]),
-                    origen = dr["Origen"] == DBNull.Value ? null : dr["Origen"].ToString(),
-                    esPrincipal = dr["EsPrincipal"] != DBNull.Value && Convert.ToBoolean(dr["EsPrincipal"])
-                });
+                    idCuenta ??= Convert.ToInt32(dr["IdCuenta"]);
+                    lat ??= dr["Lat"] == DBNull.Value ? null : Convert.ToDouble(dr["Lat"]);
+                    lng ??= dr["Lng"] == DBNull.Value ? null : Convert.ToDouble(dr["Lng"]);
+
+                    coincidencias.Add(new
+                    {
+                        idZona = Convert.ToInt32(dr["IdZona"]),
+                        codigo = dr["Codigo"]?.ToString(),
+                        nombre = dr["Nombre"]?.ToString(),
+                        prioridad = Convert.ToInt32(dr["Prioridad"]),
+                        idZonaPoligono = Convert.ToInt32(dr["IdZonaPoligono"]),
+                        poligonoNombre = dr["PoligonoNombre"] == DBNull.Value ? null : dr["PoligonoNombre"].ToString(),
+                        yaAsignada = dr["YaAsignada"] != DBNull.Value && Convert.ToBoolean(dr["YaAsignada"]),
+                        origen = dr["Origen"] == DBNull.Value ? null : dr["Origen"].ToString(),
+                        esPrincipal = dr["EsPrincipal"] != DBNull.Value && Convert.ToBoolean(dr["EsPrincipal"])
+                    });
+                }
             }
 
             if (idCuenta is null)
