@@ -17,8 +17,9 @@ Reglas:
 - Un mensaje puede contener cero, una o varias solicitudes independientes. Sepáralas.
 - Extrae solamente lo que el solicitante realmente busca. No inventes datos.
 - En tiposPropiedad usa únicamente tipos base cuando sean conocidos: Casa, Departamento, Terreno, Local, Bodega, Oficina, Rancho o Edificio.
-- Los subtipos o términos constructivos como Dúplex, Semidúplex u otros definidos por RADAR Knowledge van en subtiposPropiedad, no sustituyen al tipo base. Si RADAR Knowledge indica un tipo base canónico, inclúyelo en tiposPropiedad.
-- Distingue ubicaciones de características. "planta baja", "patio amplio", "cerca", "zonas cercanas", "alrededores", "col.", "fracc.", "privado" y descriptores como "fraccionamiento privado" por sí solos NO son zonas.
+- Los subtipos o términos constructivos como Dúplex u otros definidos por RADAR Knowledge van en subtiposPropiedad, no sustituyen al tipo base. Si RADAR Knowledge indica un tipo base canónico, inclúyelo en tiposPropiedad.
+- Distingue ubicaciones de características. "planta baja", "patio amplio", "cerca", "zonas cercanas", "alrededores", "col.", "fracc." y "privado" por sí solos NO son zonas.
+- "fraccionamiento privado" describe el tipo de fraccionamiento y debe representarse como tipoFraccionamiento="Privado". No es una zona y no implica por sí mismo caseta de vigilancia.
 - Conserva como zonas los nombres o referencias geográficas útiles, por ejemplo colonias, fraccionamientos con nombre propio, sectores, rumbos, zona sur, CIMA o libramiento cuando funcionen como referencia de ubicación.
 - "zonas cercanas", "cerca" o "ese rumbo" son flexibilidad geográfica, no nombres de zona.
 - Normaliza importes: "2.3 millones" significa 2300000; "20 mil" significa 20000.
@@ -47,6 +48,7 @@ Reglas:
           "tiposPropiedad": { "type": "array", "items": { "type": "string" } },
           "subtiposPropiedad": { "type": "array", "items": { "type": "string" } },
           "zonas": { "type": "array", "items": { "type": "string" } },
+          "tipoFraccionamiento": { "type": ["string", "null"], "enum": ["Privado", null] },
           "precioMinimo": { "type": ["number", "null"] },
           "precioMaximo": { "type": ["number", "null"] },
           "recamarasMin": { "type": ["integer", "null"] },
@@ -64,9 +66,9 @@ Reglas:
           "requisitosAdicionales": { "type": ["string", "null"] }
         },
         "required": [
-          "operacion", "tiposPropiedad", "subtiposPropiedad", "zonas", "precioMinimo", "precioMaximo",
-          "recamarasMin", "recamarasMax", "banosMin", "banosMax", "terrenoMinM2",
-          "construccionMinM2", "aceptaMascotas", "amueblado", "unaPlanta",
+          "operacion", "tiposPropiedad", "subtiposPropiedad", "zonas", "tipoFraccionamiento",
+          "precioMinimo", "precioMaximo", "recamarasMin", "recamarasMax", "banosMin", "banosMax",
+          "terrenoMinM2", "construccionMinM2", "aceptaMascotas", "amueblado", "unaPlanta",
           "casetaVigilancia", "cocheraMinAutos", "modalidadesPago", "requisitosAdicionales"
         ],
         "additionalProperties": false
@@ -183,6 +185,7 @@ Reglas:
                 TiposPropiedad = item.TiposPropiedad ?? [],
                 SubtiposPropiedad = item.SubtiposPropiedad ?? [],
                 Zonas = item.Zonas ?? [],
+                TipoFraccionamiento = item.TipoFraccionamiento,
                 PrecioMinimo = item.PrecioMinimo,
                 PrecioMaximo = item.PrecioMaximo,
                 RecamarasMin = item.RecamarasMin,
@@ -269,6 +272,7 @@ Reglas:
         public List<string>? TiposPropiedad { get; set; }
         public List<string>? SubtiposPropiedad { get; set; }
         public List<string>? Zonas { get; set; }
+        public string? TipoFraccionamiento { get; set; }
         public decimal? PrecioMinimo { get; set; }
         public decimal? PrecioMaximo { get; set; }
         public int? RecamarasMin { get; set; }
