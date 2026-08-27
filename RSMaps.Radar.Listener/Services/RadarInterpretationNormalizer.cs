@@ -17,7 +17,11 @@ public static class RadarInterpretationNormalizer
         "ese rumbo",
         "por ese rumbo",
         "no muy retiradas",
-        "no muy retirada"
+        "no muy retirada",
+        "fraccionamiento privado",
+        "fraccionamiento privada",
+        "fracc privado",
+        "fracc privada"
     };
 
     private static readonly string[] MarcadoresRespuestaOferta =
@@ -43,6 +47,7 @@ public static class RadarInterpretationNormalizer
             solicitud.Operacion = NormalizarOperacion(solicitud.Operacion);
             solicitud.TiposPropiedad = NormalizarTipos(solicitud.TiposPropiedad);
             solicitud.Zonas = NormalizarZonas(solicitud.Zonas, mensaje.TextoOriginal);
+            solicitud.TipoFraccionamiento = NormalizarTipoFraccionamiento(solicitud.TipoFraccionamiento);
             solicitud.ModalidadesPago = NormalizarModalidadesPago(solicitud.ModalidadesPago);
 
             NormalizarPrecioExactoComoMaximo(solicitud, mensaje.TextoOriginal);
@@ -72,6 +77,15 @@ public static class RadarInterpretationNormalizer
 
         if (solicitud.TiposPropiedad.Count == 0)
             solicitud.TiposPropiedad = ExtraerTiposRespaldados(texto);
+
+        if (string.IsNullOrWhiteSpace(solicitud.TipoFraccionamiento) &&
+            Regex.IsMatch(
+                texto,
+                @"\bfraccionamiento\s+privad[oa]\b",
+                RegexOptions.IgnoreCase))
+        {
+            solicitud.TipoFraccionamiento = "Privado";
+        }
 
         if (string.IsNullOrWhiteSpace(solicitud.Operacion))
         {
@@ -222,6 +236,21 @@ public static class RadarInterpretationNormalizer
         }
 
         return resultado;
+    }
+
+    private static string? NormalizarTipoFraccionamiento(string? valor)
+    {
+        if (string.IsNullOrWhiteSpace(valor))
+            return null;
+
+        var n = NormalizarTexto(valor);
+        if (n == "privado" || n == "privada" ||
+            n == "fraccionamiento privado" || n == "fraccionamiento privada")
+        {
+            return "Privado";
+        }
+
+        return valor.Trim();
     }
 
     private static List<string> NormalizarModalidadesPago(IEnumerable<string> modalidades)
