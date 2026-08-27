@@ -3,7 +3,17 @@ using RSMaps.Radar.Listener.Services;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
-IRadarInterpreter interpreter = new RuleBasedRadarInterpreter();
+var engine = (Environment.GetEnvironmentVariable("RADAR_LAB_INTERPRETER") ?? "rules")
+    .Trim()
+    .ToLowerInvariant();
+
+IRadarInterpreter interpreter = engine switch
+{
+    "openai" => CrearOpenAiInterpreter(),
+    "rules" or "rule_based" => new RuleBasedRadarInterpreter(),
+    _ => throw new InvalidOperationException(
+        $"RADAR_LAB_INTERPRETER='{engine}' no es válido. Usa 'rules' u 'openai'.")
+};
 
 var casos = new (string Id, string Texto)[]
 {
@@ -42,11 +52,15 @@ var casos = new (string Id, string Texto)[]
 };
 
 Console.WriteLine("==============================================");
-Console.WriteLine("       RADAR INTERPRETER LAB - BASELINE");
+Console.WriteLine("          RADAR INTERPRETER LAB");
 Console.WriteLine("==============================================");
 Console.WriteLine($"Motor: {interpreter.GetType().Name}");
 Console.WriteLine($"Casos: {casos.Length}");
 Console.WriteLine();
+
+var totalInputTokens = 0;
+var totalOutputTokens = 0;
+var totalTokens = 0;
 
 foreach (var caso in casos)
 {
@@ -58,29 +72,78 @@ foreach (var caso in casos)
         DetectadoEn = DateTime.Now
     };
 
-    var resultado = await interpreter.InterpretarAsync(mensaje);
-
-    Console.WriteLine("----------------------------------------------");
-    Console.WriteLine($"CASO: {caso.Id}");
-    Console.WriteLine($"Motor: {resultado.Motor}");
-    Console.WriteLine($"Solicitudes: {resultado.Solicitudes.Count}");
-
-    for (var i = 0; i < resultado.Solicitudes.Count; i++)
+    try
     {
-        var s = resultado.Solicitudes[i];
-        Console.WriteLine($"  Solicitud #{i + 1}");
-        Console.WriteLine($"    Operación: {s.Operacion ?? "-"}");
-        Console.WriteLine($"    Tipos: {Mostrar(s.TiposPropiedad)}");
-        Console.WriteLine($"    Zonas: {Mostrar(s.Zonas)}");
-        Console.WriteLine($"    Precio mín.: {MostrarDinero(s.PrecioMinimo)}");
-        Console.WriteLine($"    Precio máx.: {MostrarDinero(s.PrecioMaximo)}");
-        Console.WriteLine($"    Recámaras: {MostrarRango(s.RecamarasMin, s.RecamarasMax)}");
-        Console.WriteLine($"    Baños: {MostrarRango(s.BanosMin, s.BanosMax)}");
-        Console.WriteLine($"    Una planta: {MostrarBooleano(s.UnaPlanta)}");
-        Console.WriteLine($"    Pago: {Mostrar(s.ModalidadesPago)}");
+        var resultado = await interpreter.InterpretarAsync(mensaje);
+
+        Console.WriteLine("----------------------------------------------");
+        Console.WriteLine($"CASO: {caso.Id}");
+        Console.WriteLine($"Motor: {resultado.Motor}");
+        Console.WriteLine($"Confianza: {MostrarConfianza(resultado.ConfianzaInterpretacion)}");
+        Console.WriteLine($"Solicitudes: {resultado.Solicitudes.Count}");
+
+        if (!string.IsNullOrWhiteSpace(resultado.Observaciones))
+            Console.WriteLine($"Observaciones: {resultado.Observaciones}");
+
+        if (resultado.TotalTokens.HasValue)
+        {
+            Console.WriteLine(
+                $"Tokens: entrada {resultado.InputTokens ?? 0}, salida {resultado.OutputTokens ?? 0}, total {resultado.TotalTokens.Value}");
+
+            totalInputTokens += resultado.InputTokens ?? 0;
+            totalOutputTokens += resultado.OutputTokens ?? 0;
+            totalTokens += resultado.TotalTokens.Value;
+        }
+
+        for (var i = 0; i < resultado.Solicitudes.Count; i++)
+        {
+            var s = resultado.Solicitudes[i];
+            Console.WriteLine($"  Solicitud #{i + 1}");
+            Console.WriteLine($"    Operación: {s.Operacion ?? "-"}");
+            Console.WriteLine($"    Tipos: {Mostrar(s.TiposPropiedad)}");
+            Console.WriteLine($"    Zonas: {Mostrar(s.Zonas)}");
+            Console.WriteLine($"    Precio mín.: {MostrarDinero(s.PrecioMinimo)}");
+            Console.WriteLine($"    Precio máx.: {MostrarDinero(s.PrecioMaximo)}");
+            Console.WriteLine($"    Recámaras: {MostrarRango(s.RecamarasMin, s.RecamarasMax)}");
+            Console.WriteLine($"    Baños: {MostrarRango(s.BanosMin, s.BanosMax)}");
+            Console.WriteLine($"    Una planta: {MostrarBooleano(s.UnaPlanta)}");
+            Console.WriteLine($"    Pago: {Mostrar(s.ModalidadesPago)}");
+
+            if (!string.IsNullOrWhiteSpace(s.RequisitosAdicionales))
+                Console.WriteLine($"    Requisitos: {s.RequisitosAdicionales}");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("----------------------------------------------");
+        Console.WriteLine($"CASO: {caso.Id}");
+        Console.WriteLine($"ERROR: {ex.Message}");
     }
 
     Console.WriteLine();
+}
+
+if (totalTokens > 0)
+{
+    Console.WriteLine("==============================================");
+    Console.WriteLine("USO TOTAL DEL BENCHMARK");
+    Console.WriteLine($"Tokens entrada: {totalInputTokens}");
+    Console.WriteLine($"Tokens salida:  {totalOutputTokens}");
+    Console.WriteLine($"Tokens total:   {totalTokens}");
+    Console.WriteLine("==============================================");
+}
+
+static IRadarInterpreter CrearOpenAiInterpreter()
+{
+    var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+    if (string.IsNullOrWhiteSpace(apiKey))
+    {
+        throw new InvalidOperationException(
+            "Para usar OpenAI define la variable de entorno OPENAI_API_KEY. La clave nunca debe guardarse en Git.");
+    }
+
+    var model = Environment.GetEnvironmentVariable("RADAR_OPENAI_MODEL") ?? "gpt-5-mini";
+    return new OpenAiRadarInterpreter(apiKey, model);
 }
 
 static string Mostrar(IEnumerable<string> valores)
@@ -109,3 +172,6 @@ static string MostrarBooleano(bool? valor) => valor switch
     false => "No",
     null => "-"
 };
+
+static string MostrarConfianza(double? valor) =>
+    valor.HasValue ? $"{valor.Value:P0}" : "-";
