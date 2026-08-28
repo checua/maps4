@@ -15,6 +15,26 @@ document.addEventListener('DOMContentLoaded', () => {
         marketplaceFilters.src = '/js/marketplace-filters.js';
         marketplaceFilters.defer = true;
         document.body.appendChild(marketplaceFilters);
+
+        // Navegación privada visible desde el mismo menú flotante del mapa.
+        // Las rutas protegidas conservan la autorización del servidor.
+        const menu = document.getElementById('menu-flotante');
+        if (menu && !menu.querySelector('[data-rsmaps-nav="inventario"]')) {
+            const inventario = document.createElement('a');
+            inventario.href = '/Inventario';
+            inventario.className = 'btn btn-info';
+            inventario.dataset.rsmapsNav = 'inventario';
+            inventario.textContent = 'Mi inventario';
+
+            const zonas = document.createElement('a');
+            zonas.href = '/ZonaAdmin';
+            zonas.className = 'btn btn-info';
+            zonas.dataset.rsmapsNav = 'zonas';
+            zonas.textContent = 'Administrar zonas';
+
+            menu.appendChild(inventario);
+            menu.appendChild(zonas);
+        }
     }
 
     if (path === '/inventario' || path === '/inventario/index') {
@@ -28,13 +48,81 @@ document.addEventListener('DOMContentLoaded', () => {
         inventoryZonesScript.defer = true;
         document.body.appendChild(inventoryZonesScript);
 
+        // Desde Inventario debe ser evidente cómo volver al administrador de zonas.
+        const inventoryActions = document.querySelector('.inventory-actions');
+        if (inventoryActions && !inventoryActions.querySelector('[data-rsmaps-nav="zonas"]')) {
+            const zonas = document.createElement('a');
+            zonas.href = '/ZonaAdmin';
+            zonas.className = 'back-map';
+            zonas.dataset.rsmapsNav = 'zonas';
+            zonas.textContent = 'Administrar zonas';
+            inventoryActions.appendChild(zonas);
+        }
+
+        // Un borrador propio debe poder retomarse sin recordar su ID ni escribir rutas.
+        document.querySelectorAll('.property-card[data-state="BORRADOR"][data-owner="true"]').forEach(card => {
+            const idText = card.querySelector('.property-id')?.textContent || '';
+            const match = idText.match(/\d+/);
+            if (!match) return;
+
+            const idInmueble = match[0];
+            const primaryLink = card.querySelector('.property-footer > a');
+            if (!primaryLink) return;
+
+            primaryLink.href = `/Borrador/Editar/${encodeURIComponent(idInmueble)}`;
+            primaryLink.textContent = 'Continuar borrador →';
+            primaryLink.dataset.rsmapsDraftContinue = 'true';
+        });
+
+        // Aceptar también búsquedas escritas naturalmente como #176.
+        const search = document.getElementById('inventorySearch');
+        search?.addEventListener('input', () => {
+            const value = search.value.trim();
+            if (/^#\d+$/.test(value)) {
+                search.value = value.substring(1);
+                search.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        });
+
         // Si venimos de crear/guardar un borrador, enfocarlo automáticamente.
         const idBorrador = new URLSearchParams(window.location.search).get('borrador');
-        const search = document.getElementById('inventorySearch');
 
         if (idBorrador && search) {
             search.value = idBorrador;
             search.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    }
+
+    if (path === '/zonaadmin' || path === '/zonaadmin/index') {
+        // ZonaAdmin ya tenía acceso al inventario; hacemos la navegación de los
+        // tres módulos explícita y consistente sin alterar su lógica espacial.
+        const header = document.querySelector('.zona-panel .d-flex.justify-content-between.align-items-start');
+        const inventario = header?.querySelector('a[href="/Inventario"]');
+        if (inventario) {
+            inventario.textContent = 'Mi inventario';
+            inventario.dataset.rsmapsNav = 'inventario';
+        }
+
+        if (header && !header.querySelector('[data-rsmaps-nav="mapa"]')) {
+            const acciones = document.createElement('div');
+            acciones.style.display = 'flex';
+            acciones.style.gap = '6px';
+            acciones.style.flexWrap = 'wrap';
+
+            const mapa = document.createElement('a');
+            mapa.href = '/';
+            mapa.className = 'btn btn-sm btn-outline-secondary';
+            mapa.dataset.rsmapsNav = 'mapa';
+            mapa.textContent = 'Mapa';
+
+            if (inventario) {
+                inventario.parentNode?.insertBefore(acciones, inventario);
+                acciones.appendChild(mapa);
+                acciones.appendChild(inventario);
+            } else {
+                acciones.appendChild(mapa);
+                header.appendChild(acciones);
+            }
         }
     }
 
