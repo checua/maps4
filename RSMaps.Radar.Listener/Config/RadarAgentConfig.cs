@@ -45,6 +45,12 @@ public static class RadarAgentConfigLoader
                 config.TerminosBusqueda ?? new Dictionary<string, string[]>(),
                 StringComparer.OrdinalIgnoreCase);
 
+            Console.WriteLine();
+            Console.WriteLine("RADAR Agent configurado:");
+            Console.WriteLine($"  Usuario: {Mostrar(config.Usuario)}");
+            Console.WriteLine($"  Cuenta:  {Mostrar(config.Cuenta)}");
+            Console.WriteLine($"  Archivo: {path}");
+
             return config;
         }
         catch (JsonException ex)
@@ -54,4 +60,7 @@ public static class RadarAgentConfigLoader
                 ex);
         }
     }
+
+    private static string Mostrar(string? valor) =>
+        string.IsNullOrWhiteSpace(valor) ? "(sin configurar)" : valor.Trim();
 }
