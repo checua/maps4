@@ -151,11 +151,23 @@ namespace maps4.Services
 
             if (solicitud.Zonas.Count > 0)
             {
-                var valor = CoincidenciaZona(solicitud.Zonas, inmueble);
-                string zonaCandidato = DescribirZonaCandidato(inmueble);
+                var evaluacionZona = EvaluarCoincidenciaZona(solicitud.Zonas, inmueble);
+                string zonaCandidato = evaluacionZona.ZonaCoincidente
+                    ?? DescribirZonaCandidato(inmueble);
 
-                Agregar(25, valor,
-                    $"Zona compatible: {zonaCandidato}",
+                string coincidenciaZona = $"Zona solicitada compatible: {zonaCandidato}";
+                if (!string.IsNullOrWhiteSpace(evaluacionZona.ZonaCoincidente)
+                    && !string.IsNullOrWhiteSpace(inmueble.ZonaPrincipalNombre)
+                    && !string.Equals(
+                        Normalizar(evaluacionZona.ZonaCoincidente),
+                        Normalizar(inmueble.ZonaPrincipalNombre),
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    coincidenciaZona += $" (principal: {inmueble.ZonaPrincipalNombre})";
+                }
+
+                Agregar(25, evaluacionZona.Valor,
+                    coincidenciaZona,
                     $"Zona no confirmada: {zonaCandidato}");
             }
 
@@ -355,38 +367,72 @@ namespace maps4.Services
             return string.Empty;
         }
 
-        private static double CoincidenciaZona(List<string> zonas, InventarioInmuebleViewModel inmueble)
+        private static double CoincidenciaZona(List<string> zonas, InventarioInmuebleViewModel inmueble) =>
+            EvaluarCoincidenciaZona(zonas, inmueble).Valor;
+
+        private static (double Valor, string? ZonaCoincidente) EvaluarCoincidenciaZona(
+            List<string> zonas,
+            InventarioInmuebleViewModel inmueble)
         {
             // Para un filtro geográfico duro, RADAR solo confía en la geografía
-            // estructurada que RSMaps ya conoce. Dirección y observaciones pueden
-            // contener palabras incidentales ("jardines", "sur", etc.) y no deben
-            // convertir por sí solas una propiedad en candidata de una zona.
-            string estructuradas = Normalizar($"{inmueble.ZonaPrincipalNombre} {inmueble.ZonasCsv}");
-
-            if (string.IsNullOrWhiteSpace(estructuradas))
-                return 0;
+            // estructurada que RSMaps ya conoce. Evaluamos cada zona del inmueble
+            // por separado para poder explicar cuál de ellas produjo la coincidencia.
+            var zonasEstructuradas = ObtenerZonasEstructuradas(inmueble).ToList();
+            if (zonasEstructuradas.Count == 0)
+                return (0, null);
 
             double mejor = 0;
+            string? mejorZona = null;
 
-            foreach (var zona in zonas)
+            foreach (var zonaSolicitada in zonas)
             {
-                string z = Normalizar(zona);
-                if (string.IsNullOrWhiteSpace(z))
-                    continue;
+                foreach (var zonaInmueble in zonasEstructuradas)
+                {
+                    double valor = CoincidenciaNombreZona(zonaSolicitada, zonaInmueble);
+                    if (valor > mejor)
+                    {
+                        mejor = valor;
+                        mejorZona = zonaInmueble;
+                    }
 
-                if (estructuradas.Contains(z, StringComparison.OrdinalIgnoreCase))
-                    return 1;
-
-                var tokens = TokensZona(z).ToList();
-                if (tokens.Count == 0)
-                    continue;
-
-                int encontrados = tokens.Count(t =>
-                    estructuradas.Contains(t, StringComparison.OrdinalIgnoreCase));
-                mejor = Math.Max(mejor, (double)encontrados / tokens.Count);
+                    if (valor >= 1)
+                        return (1, zonaInmueble);
+                }
             }
 
-            return mejor;
+            return (mejor, mejor >= CoincidenciaMinimaZona ? mejorZona : null);
+        }
+
+        private static double CoincidenciaNombreZona(string solicitada, string candidata)
+        {
+            var tokensSolicitados = TokensZona(Normalizar(solicitada)).ToList();
+            if (tokensSolicitados.Count == 0)
+                return 0;
+
+            var tokensCandidatos = Normalizar(candidata)
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            int encontrados = tokensSolicitados.Count(tokensCandidatos.Contains);
+            return (double)encontrados / tokensSolicitados.Count;
+        }
+
+        private static IEnumerable<string> ObtenerZonasEstructuradas(InventarioInmuebleViewModel inmueble)
+        {
+            var zonas = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(inmueble.ZonaPrincipalNombre))
+                zonas.Add(inmueble.ZonaPrincipalNombre.Trim());
+
+            if (!string.IsNullOrWhiteSpace(inmueble.ZonasCsv))
+            {
+                zonas.AddRange(inmueble.ZonasCsv
+                    .Split(new[] { '·', ',', ';', '|' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+            }
+
+            return zonas
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase);
         }
 
         private static string DescribirZonaCandidato(InventarioInmuebleViewModel inmueble)
@@ -397,10 +443,7 @@ namespace maps4.Services
             if (!string.IsNullOrWhiteSpace(inmueble.ZonasCsv))
                 return inmueble.ZonasCsv!;
 
-            if (DireccionUtil(inmueble.Direccion))
-                return inmueble.Direccion!;
-
-            return "sin zona estructurada ni dirección útil";
+            return "sin zona estructurada";
         }
 
         private static IEnumerable<string> TokensZona(string texto)
