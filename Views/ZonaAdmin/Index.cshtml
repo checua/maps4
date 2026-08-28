@@ -4,6 +4,10 @@
     ViewData["Title"] = "Administrador de zonas";
     var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     string inmueblesJson = JsonSerializer.Serialize(Model.Inmuebles, jsonOptions);
+    var coberturaPendiente = Model.Inmuebles
+        .Where(x => x.CoberturaPendiente)
+        .OrderBy(x => x.IdInmueble)
+        .ToList();
 }
 
 <style>
@@ -28,6 +32,12 @@
     .zona-alias-help { color: #6b7280; font-size: .75rem; margin-top: 5px; line-height: 1.35; }
     .zona-list-header { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; }
     .zona-list-header-actions { display:flex; align-items:center; gap:7px; }
+    .zona-coverage-alert { border: 1px solid #f59e0b; background: #fffbeb; border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; }
+    .zona-coverage-title { display:flex; align-items:center; justify-content:space-between; gap:8px; color:#92400e; font-weight:700; }
+    .zona-coverage-text { color:#78350f; font-size:.82rem; line-height:1.35; margin-top:4px; }
+    .zona-coverage-list { margin-top:8px; display:grid; gap:5px; }
+    .zona-coverage-item { background:rgba(255,255,255,.72); border:1px solid #fde68a; border-radius:8px; padding:6px 8px; font-size:.78rem; color:#78350f; }
+    .zona-coverage-coords { color:#92400e; font-size:.72rem; }
     @@media (max-width: 850px) {
         .zona-shell { grid-template-columns: 1fr; grid-template-rows: auto 68vh; }
         .zona-panel { max-height: none; border-right: 0; border-bottom: 1px solid #e5e7eb; }
@@ -92,6 +102,36 @@
         <div class="zona-help mb-3">
             Pulsa <strong>Dibujar</strong> y haz clic alrededor del área. Desde el tercer punto aparecerá el polígono. Después puedes mover sus vértices directamente en el mapa antes de guardar.
         </div>
+
+        @if (coberturaPendiente.Count > 0)
+        {
+            <div class="zona-coverage-alert">
+                <div class="zona-coverage-title">
+                    <span>⚠ Cobertura pendiente</span>
+                    <span class="badge bg-warning text-dark">@coberturaPendiente.Count</span>
+                </div>
+                <div class="zona-coverage-text">
+                    Estos inmuebles tienen ubicación válida, pero no pertenecen a ninguna zona estructurada actual. Revisa el área para ampliar una zona existente o crear una nueva.
+                </div>
+                <div class="zona-coverage-list">
+                    @foreach (var pendiente in coberturaPendiente.Take(8))
+                    {
+                        <div class="zona-coverage-item">
+                            <strong>#@pendiente.IdInmueble · @(pendiente.Tipo ?? "Inmueble")</strong>
+                            @if (pendiente.Precio.HasValue && pendiente.Precio.Value > 0)
+                            {
+                                <span> · @pendiente.Precio.Value.ToString("C0")</span>
+                            }
+                            <div class="zona-coverage-coords">@pendiente.Lat, @pendiente.Lng</div>
+                        </div>
+                    }
+                    @if (coberturaPendiente.Count > 8)
+                    {
+                        <div class="zona-coverage-item">Y @(coberturaPendiente.Count - 8) inmueble(s) más.</div>
+                    }
+                </div>
+            </div>
+        }
 
         <div class="zona-list-header">
             <strong>Zonas existentes</strong>
