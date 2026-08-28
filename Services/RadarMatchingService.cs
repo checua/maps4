@@ -52,7 +52,7 @@ namespace maps4.Services
 
             return new RadarMatchingResponse
             {
-                TotalInventarioEvaluado = inventario.Count,
+                TotalInventarioEvaluado = disponibles.Count,
                 TotalCandidatos = resultados.Count,
                 Resultados = resultados
                     .OrderByDescending(x => x.Puntuacion)
