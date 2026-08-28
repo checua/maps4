@@ -82,6 +82,7 @@ public sealed class RadarAgentController : Controller
     private bool TryGetContextoActual(out string correo, out int idCuenta)
     {
         correo = User.Identity?.Name ?? string.Empty;
+        idCuenta = 0;
         string? idCuentaClaim = User.FindFirst("IdCuenta")?.Value;
 
         return !string.IsNullOrWhiteSpace(correo)
