@@ -11,7 +11,7 @@
       archivos pertenecientes a los proyectos RADAR anidados.
     -->
     <DefaultItemExcludes>
-      $(DefaultItemExcludes);RSMaps.Radar.Listener\**;RSMaps.Radar.Lab\**
+      $(DefaultItemExcludes);RSMaps.Radar.Listener\**;RSMaps.Radar.Intelligence\**;RSMaps.Radar.Lab\**
     </DefaultItemExcludes>
   </PropertyGroup>
 
