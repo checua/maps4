@@ -6,6 +6,18 @@ public sealed class RadarAgentPairingPageViewModel
     public string? CuentaNombre { get; set; }
     public string? Codigo { get; set; }
     public DateTime? ExpiraUtc { get; set; }
+    public List<RadarAgentDeviceListItem> Agents { get; set; } = [];
+}
+
+public sealed class RadarAgentDeviceListItem
+{
+    public Guid IdAgent { get; set; }
+    public string NombreAgent { get; set; } = "";
+    public string? EquipoNombre { get; set; }
+    public bool Activo { get; set; }
+    public DateTime FechaAltaUtc { get; set; }
+    public DateTime? UltimoUsoUtc { get; set; }
+    public DateTime? RevocadoUtc { get; set; }
 }
 
 public sealed class RadarAgentPairingCreateResult

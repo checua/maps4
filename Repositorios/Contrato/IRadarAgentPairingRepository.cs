@@ -6,6 +6,7 @@ public interface IRadarAgentPairingRepository
 {
     Task<RadarAgentPairingCreateResult> CrearCodigoAsync(
         string correo,
+        int idCuenta,
         string nombreAgent,
         CancellationToken cancellationToken = default);
 
@@ -17,5 +18,16 @@ public interface IRadarAgentPairingRepository
 
     Task<RadarAgentAuthenticationResult?> ValidarCredencialAsync(
         string credencial,
+        CancellationToken cancellationToken = default);
+
+    Task<List<RadarAgentDeviceListItem>> ListarAgentsAsync(
+        string correo,
+        int idCuenta,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> RevocarAgentAsync(
+        string correo,
+        int idCuenta,
+        Guid idAgent,
         CancellationToken cancellationToken = default);
 }

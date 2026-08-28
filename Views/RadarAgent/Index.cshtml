@@ -1,22 +1,114 @@
 @model RadarAgentPairingPageViewModel
 
 @{
-    ViewData["Title"] = "RADAR Agent";
+    ViewData["Title"] = "RADAR Agents";
+    string? mensaje = TempData["RadarAgentMensaje"] as string;
 }
 
-<div class="container py-4" style="max-width:760px;">
+<div class="container py-4" style="max-width:980px;">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-4">
+        <div>
+            <h2 class="mb-1">RADAR Agents</h2>
+            <div class="text-muted">
+                Cuenta: <strong>@(string.IsNullOrWhiteSpace(Model.CuentaNombre) ? "Cuenta actual" : Model.CuentaNombre)</strong>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(mensaje))
+    {
+        <div class="alert alert-success" role="alert">@mensaje</div>
+    }
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h4 class="mb-1">Equipos vinculados</h4>
+                    <div class="text-muted small">Cada Agent tiene una credencial independiente y puede revocarse sin afectar a los demás.</div>
+                </div>
+                <span class="badge bg-secondary">@Model.Agents.Count</span>
+            </div>
+
+            @if (Model.Agents.Count == 0)
+            {
+                <div class="alert alert-light border mb-0">
+                    Todavía no hay RADAR Agents vinculados a este usuario en la cuenta actual.
+                </div>
+            }
+            else
+            {
+                <div class="row g-3">
+                    @foreach (var agent in Model.Agents)
+                    {
+                        bool activo = agent.Activo && !agent.RevocadoUtc.HasValue;
+
+                        <div class="col-12">
+                            <div class="border rounded p-3">
+                                <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
+                                    <div>
+                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                            <strong>@agent.NombreAgent</strong>
+                                            @if (activo)
+                                            {
+                                                <span class="badge bg-success">Activo</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">Revocado</span>
+                                            }
+                                        </div>
+
+                                        <div class="text-muted small">
+                                            Equipo: @(string.IsNullOrWhiteSpace(agent.EquipoNombre) ? "No registrado" : agent.EquipoNombre)
+                                        </div>
+                                        <div class="text-muted small">
+                                            Vinculado: @agent.FechaAltaUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                        </div>
+                                        <div class="text-muted small">
+                                            Último uso:
+                                            @(agent.UltimoUsoUtc.HasValue
+                                                ? agent.UltimoUsoUtc.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                                : "Todavía sin uso registrado")
+                                        </div>
+
+                                        @if (agent.RevocadoUtc.HasValue)
+                                        {
+                                            <div class="text-muted small">
+                                                Revocado: @agent.RevocadoUtc.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                            </div>
+                                        }
+                                    </div>
+
+                                    @if (activo)
+                                    {
+                                        <div class="align-self-md-center">
+                                            <form asp-action="Revocar" method="post"
+                                                  onsubmit="return confirm('¿Revocar el acceso de este RADAR Agent? El equipo dejará de autenticarse inmediatamente.');">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="idAgent" value="@agent.IdAgent" />
+                                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                                    Revocar acceso
+                                                </button>
+                                            </form>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
     <div class="card shadow-sm">
         <div class="card-body p-4">
-            <h2 class="mb-2">Vincular RADAR Agent</h2>
+            <h4 class="mb-2">Vincular nuevo RADAR Agent</h4>
             <p class="text-muted mb-4">
-                Genera un código temporal para vincular este equipo con tu usuario y cuenta actuales de RSMaps.
+                Genera un código temporal para vincular otro equipo con tu usuario y la cuenta actual de RSMaps.
                 El código dura 10 minutos y solo puede utilizarse una vez.
             </p>
-
-            <div class="mb-3">
-                <strong>Cuenta:</strong>
-                <span>@(string.IsNullOrWhiteSpace(Model.CuentaNombre) ? "Cuenta actual" : Model.CuentaNombre)</span>
-            </div>
 
             <form asp-action="CrearCodigo" method="post">
                 @Html.AntiForgeryToken()
@@ -24,7 +116,7 @@
                 <div class="mb-3">
                     <label asp-for="NombreAgent" class="form-label">Nombre del Agent</label>
                     <input asp-for="NombreAgent" class="form-control" maxlength="120" autocomplete="off" />
-                    <div class="form-text">Ejemplo: Agent Che</div>
+                    <div class="form-text">Ejemplo: Agent Che Casa</div>
                 </div>
 
                 <button type="submit" class="btn btn-primary">Generar código de vinculación</button>

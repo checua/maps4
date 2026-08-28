@@ -16,13 +16,19 @@ public sealed class RadarAgentController : Controller
     }
 
     [HttpGet]
-    public IActionResult Index()
+    public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
-        return View(new RadarAgentPairingPageViewModel
+        if (!TryGetContextoActual(out string correo, out int idCuenta))
+            return Forbid();
+
+        var model = new RadarAgentPairingPageViewModel
         {
             NombreAgent = "RADAR Agent",
-            CuentaNombre = User.FindFirst("CuentaNombre")?.Value
-        });
+            CuentaNombre = User.FindFirst("CuentaNombre")?.Value,
+            Agents = await _pairingRepository.ListarAgentsAsync(correo, idCuenta, cancellationToken)
+        };
+
+        return View(model);
     }
 
     [HttpPost]
@@ -31,12 +37,12 @@ public sealed class RadarAgentController : Controller
         RadarAgentPairingPageViewModel model,
         CancellationToken cancellationToken)
     {
-        string? correo = User.Identity?.Name;
-        if (string.IsNullOrWhiteSpace(correo))
+        if (!TryGetContextoActual(out string correo, out int idCuenta))
             return Forbid();
 
         RadarAgentPairingCreateResult resultado = await _pairingRepository.CrearCodigoAsync(
             correo,
+            idCuenta,
             model.NombreAgent,
             cancellationToken);
 
@@ -46,7 +52,40 @@ public sealed class RadarAgentController : Controller
         model.CuentaNombre = resultado.CuentaNombre;
         model.Codigo = resultado.Codigo;
         model.ExpiraUtc = resultado.ExpiraUtc;
+        model.Agents = await _pairingRepository.ListarAgentsAsync(correo, idCuenta, cancellationToken);
 
         return View("Index", model);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Revocar(
+        Guid idAgent,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetContextoActual(out string correo, out int idCuenta))
+            return Forbid();
+
+        bool revocado = await _pairingRepository.RevocarAgentAsync(
+            correo,
+            idCuenta,
+            idAgent,
+            cancellationToken);
+
+        if (!revocado)
+            return NotFound();
+
+        TempData["RadarAgentMensaje"] = "El acceso del RADAR Agent fue revocado.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    private bool TryGetContextoActual(out string correo, out int idCuenta)
+    {
+        correo = User.Identity?.Name ?? string.Empty;
+        string? idCuentaClaim = User.FindFirst("IdCuenta")?.Value;
+
+        return !string.IsNullOrWhiteSpace(correo)
+            && int.TryParse(idCuentaClaim, out idCuenta)
+            && idCuenta > 0;
     }
 }

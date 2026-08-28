@@ -18,11 +18,14 @@ public sealed class RadarAgentPairingRepository : IRadarAgentPairingRepository
 
     public async Task<RadarAgentPairingCreateResult> CrearCodigoAsync(
         string correo,
+        int idCuenta,
         string nombreAgent,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(correo))
             throw new ArgumentException("Se requiere el correo autenticado.", nameof(correo));
+        if (idCuenta <= 0)
+            throw new ArgumentOutOfRangeException(nameof(idCuenta));
 
         string nombre = NormalizarNombreAgent(nombreAgent);
         string codigo = CrearCodigoHumano();
@@ -41,26 +44,25 @@ SELECT TOP (1)
 FROM dbo.RSMAPS_Usuario u
 INNER JOIN dbo.RSMAPS_CuentaUsuario cu
     ON cu.IdAsesor = u.idAsesor
+   AND cu.IdCuenta = @idCuenta
    AND cu.Activo = 1
 INNER JOIN dbo.RSMAPS_Cuenta c
     ON c.IdCuenta = cu.IdCuenta
    AND c.Activo = 1
-WHERE u.correo = @correo
-ORDER BY cu.EsPredeterminada DESC, cu.IdCuenta;";
+WHERE u.correo = @correo;";
 
         int idAsesor;
-        int idCuenta;
         string cuentaNombre;
 
         await using (SqlCommand cmd = new(sqlContexto, conexion, tx))
         {
             cmd.Parameters.Add("@correo", SqlDbType.VarChar, 200).Value = correo.Trim();
+            cmd.Parameters.Add("@idCuenta", SqlDbType.Int).Value = idCuenta;
             await using SqlDataReader dr = await cmd.ExecuteReaderAsync(cancellationToken);
             if (!await dr.ReadAsync(cancellationToken))
-                throw new InvalidOperationException("El usuario no tiene una cuenta activa para vincular RADAR Agent.");
+                throw new InvalidOperationException("El usuario no tiene acceso activo a la cuenta actual para vincular RADAR Agent.");
 
             idAsesor = Convert.ToInt32(dr["idAsesor"]);
-            idCuenta = Convert.ToInt32(dr["IdCuenta"]);
             cuentaNombre = dr["CuentaNombre"].ToString() ?? string.Empty;
         }
 
@@ -307,6 +309,105 @@ WHERE d.TokenHash = @tokenHash
             RolCodigo = dr["RolCodigo"].ToString() ?? string.Empty,
             Correo = dr["Correo"].ToString() ?? string.Empty
         };
+    }
+
+    public async Task<List<RadarAgentDeviceListItem>> ListarAgentsAsync(
+        string correo,
+        int idCuenta,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(correo) || idCuenta <= 0)
+            return [];
+
+        const string sql = @"
+SELECT
+    d.IdAgent,
+    d.NombreAgent,
+    d.EquipoNombre,
+    d.Activo,
+    d.FechaAltaUtc,
+    d.UltimoUsoUtc,
+    d.RevocadoUtc
+FROM dbo.RSMAPS_RadarAgentDevice d
+INNER JOIN dbo.RSMAPS_Usuario u
+    ON u.idAsesor = d.IdAsesor
+INNER JOIN dbo.RSMAPS_CuentaUsuario cu
+    ON cu.IdAsesor = d.IdAsesor
+   AND cu.IdCuenta = d.IdCuenta
+   AND cu.Activo = 1
+INNER JOIN dbo.RSMAPS_Cuenta c
+    ON c.IdCuenta = d.IdCuenta
+   AND c.Activo = 1
+WHERE u.correo = @correo
+  AND d.IdCuenta = @idCuenta
+ORDER BY
+    CASE WHEN d.Activo = 1 AND d.RevocadoUtc IS NULL THEN 0 ELSE 1 END,
+    d.FechaAltaUtc DESC;";
+
+        var agents = new List<RadarAgentDeviceListItem>();
+
+        await using SqlConnection conexion = new(_cadenaSQL);
+        await conexion.OpenAsync(cancellationToken);
+        await using SqlCommand cmd = new(sql, conexion);
+        cmd.Parameters.Add("@correo", SqlDbType.VarChar, 200).Value = correo.Trim();
+        cmd.Parameters.Add("@idCuenta", SqlDbType.Int).Value = idCuenta;
+
+        await using SqlDataReader dr = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await dr.ReadAsync(cancellationToken))
+        {
+            agents.Add(new RadarAgentDeviceListItem
+            {
+                IdAgent = (Guid)dr["IdAgent"],
+                NombreAgent = dr["NombreAgent"].ToString() ?? string.Empty,
+                EquipoNombre = dr["EquipoNombre"] == DBNull.Value ? null : dr["EquipoNombre"].ToString(),
+                Activo = Convert.ToBoolean(dr["Activo"]),
+                FechaAltaUtc = Convert.ToDateTime(dr["FechaAltaUtc"]),
+                UltimoUsoUtc = dr["UltimoUsoUtc"] == DBNull.Value ? null : Convert.ToDateTime(dr["UltimoUsoUtc"]),
+                RevocadoUtc = dr["RevocadoUtc"] == DBNull.Value ? null : Convert.ToDateTime(dr["RevocadoUtc"])
+            });
+        }
+
+        return agents;
+    }
+
+    public async Task<bool> RevocarAgentAsync(
+        string correo,
+        int idCuenta,
+        Guid idAgent,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(correo) || idCuenta <= 0 || idAgent == Guid.Empty)
+            return false;
+
+        const string sql = @"
+UPDATE d
+SET
+    Activo = 0,
+    RevocadoUtc = COALESCE(d.RevocadoUtc, SYSUTCDATETIME())
+FROM dbo.RSMAPS_RadarAgentDevice d
+INNER JOIN dbo.RSMAPS_Usuario u
+    ON u.idAsesor = d.IdAsesor
+INNER JOIN dbo.RSMAPS_CuentaUsuario cu
+    ON cu.IdAsesor = d.IdAsesor
+   AND cu.IdCuenta = d.IdCuenta
+   AND cu.Activo = 1
+INNER JOIN dbo.RSMAPS_Cuenta c
+    ON c.IdCuenta = d.IdCuenta
+   AND c.Activo = 1
+WHERE d.IdAgent = @idAgent
+  AND d.IdCuenta = @idCuenta
+  AND u.correo = @correo
+  AND d.Activo = 1
+  AND d.RevocadoUtc IS NULL;";
+
+        await using SqlConnection conexion = new(_cadenaSQL);
+        await conexion.OpenAsync(cancellationToken);
+        await using SqlCommand cmd = new(sql, conexion);
+        cmd.Parameters.Add("@idAgent", SqlDbType.UniqueIdentifier).Value = idAgent;
+        cmd.Parameters.Add("@idCuenta", SqlDbType.Int).Value = idCuenta;
+        cmd.Parameters.Add("@correo", SqlDbType.VarChar, 200).Value = correo.Trim();
+
+        return await cmd.ExecuteNonQueryAsync(cancellationToken) == 1;
     }
 
     private static string NormalizarNombreAgent(string nombreAgent)
