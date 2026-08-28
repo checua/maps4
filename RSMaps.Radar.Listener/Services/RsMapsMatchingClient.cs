@@ -1,5 +1,7 @@
+using RSMaps.Radar.Listener.Config;
 using RSMaps.Radar.Listener.Models;
 using System.Globalization;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 
@@ -12,15 +14,39 @@ public static class RsMapsMatchingClient
         Timeout = TimeSpan.FromSeconds(20)
     };
 
-    private static string Endpoint =>
+    private static string LegacyEndpoint =>
         Environment.GetEnvironmentVariable("RSMAPS_MATCHING_URL")?.Trim()
         ?? "http://localhost:5102/api/radar/matching/local";
 
+    private static string AgentEndpoint =>
+        Environment.GetEnvironmentVariable("RSMAPS_AGENT_MATCHING_URL")?.Trim()
+        ?? $"{RadarAgentBackendClient.BaseUrl}/api/radar/matching/agent";
+
     public static async Task<string> ConstruirResumenAsync(SolicitudInmobiliaria solicitud)
     {
+        string token = string.Empty;
+
         try
         {
-            using var response = await Http.PostAsJsonAsync(Endpoint, solicitud);
+            RadarAgentConfig? config = RadarSettings.ConfiguracionAgente;
+            bool tieneCredencial = RadarAgentCredentialStore.TryLeerToken(config, out token, out string detalleCredencial);
+
+            if (config is not null && !tieneCredencial)
+            {
+                return "COINCIDENCIAS RSMAPS\n⚠ RADAR Agent está configurado pero no tiene una credencial de dispositivo válida."
+                    + $"\n{Recortar(detalleCredencial, 180)}";
+            }
+
+            string endpoint = tieneCredencial ? AgentEndpoint : LegacyEndpoint;
+            using var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
+            {
+                Content = JsonContent.Create(solicitud)
+            };
+
+            if (tieneCredencial)
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            using HttpResponseMessage response = await Http.SendAsync(request);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -81,6 +107,10 @@ public static class RsMapsMatchingClient
         catch (Exception ex)
         {
             return $"COINCIDENCIAS RSMAPS\n⚠ Error al comparar: {Recortar(ex.Message, 160)}";
+        }
+        finally
+        {
+            token = string.Empty;
         }
     }
 
