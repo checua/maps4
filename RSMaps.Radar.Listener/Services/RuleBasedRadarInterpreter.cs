@@ -49,9 +49,9 @@ public class RuleBasedRadarInterpreter : IRadarInterpreter
         }
 
         var primaryModel = Environment.GetEnvironmentVariable("RADAR_OPENAI_MODEL")
-            ?? "gpt-5.4-nano";
+            ?? "gpt-5.6-luna";
         var fallbackModel = Environment.GetEnvironmentVariable("RADAR_OPENAI_FALLBACK_MODEL")
-            ?? "gpt-5-mini";
+            ?? "gpt-5.6-terra";
 
         IRadarKnowledgeProvider? knowledgeProvider = null;
         var knowledgePath = Environment.GetEnvironmentVariable("RADAR_KNOWLEDGE_PATH");
