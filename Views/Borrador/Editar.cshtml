@@ -12,7 +12,11 @@
     .draft-top { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:18px; }
     .draft-top h1 { margin:0; font-size:30px; font-weight:760; }
     .draft-top p { margin:5px 0 0; color:#667085; }
+    .draft-top-actions { display:flex; gap:9px; flex-wrap:wrap; align-items:center; }
+    .draft-top-actions form { margin:0; }
     .back-link { text-decoration:none; border:1px solid #d8dde5; background:white; color:#27303f; padding:10px 14px; border-radius:12px; }
+    .discard-draft { border:1px solid #e3b7b1; background:#fff7f6; color:#9b2c23; padding:10px 14px; border-radius:12px; font-weight:700; cursor:pointer; }
+    .discard-draft:hover { background:#fff0ee; }
     .draft-layout { display:grid; grid-template-columns:minmax(280px,360px) minmax(0,1fr); gap:18px; align-items:start; }
     .panel { background:white; border:1px solid #e1e5ea; border-radius:18px; box-shadow:0 2px 8px rgba(16,24,40,.03); }
     .summary { padding:18px; position:sticky; top:18px; }
@@ -84,7 +88,15 @@
             <h1>Completar propiedad</h1>
             <p>Borrador #@Model.IdInmueble · puedes guardar ahora y continuar después.</p>
         </div>
-        <a class="back-link" asp-controller="Inventario" asp-action="Index" asp-route-borrador="@Model.IdInmueble">← Volver a Mi inventario</a>
+        <div class="draft-top-actions">
+            <form asp-controller="Borrador" asp-action="Descartar" method="post"
+                  onsubmit="return confirm('¿Descartar definitivamente este borrador? Se eliminarán sus datos y fotos y no podrá recuperarse.');">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="idInmueble" value="@Model.IdInmueble" />
+                <button type="submit" class="discard-draft">🗑 Descartar borrador</button>
+            </form>
+            <a class="back-link" asp-controller="Inventario" asp-action="Index" asp-route-borrador="@Model.IdInmueble">← Volver a Mi inventario</a>
+        </div>
     </div>
 
     @if (TempData["BorradorOk"] is string ok)
