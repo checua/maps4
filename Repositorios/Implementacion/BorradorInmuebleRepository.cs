@@ -183,6 +183,65 @@ namespace maps4.Repositorios.Implementacion
             }
         }
 
+        public async Task DescartarAsync(string correoAutenticado, int idInmueble)
+        {
+            if (idInmueble <= 0)
+                throw new ArgumentOutOfRangeException(nameof(idInmueble));
+
+            using SqlConnection conexion = new SqlConnection(_cadenaSQL);
+            await conexion.OpenAsync();
+            using SqlTransaction transaccion = conexion.BeginTransaction(IsolationLevel.Serializable);
+
+            try
+            {
+                using (SqlCommand cmdEstado = new SqlCommand(
+                    "SELECT EstadoCodigo FROM dbo.RSMAPS_Inmueble WITH (UPDLOCK, HOLDLOCK) WHERE idInmueble=@idInmueble;",
+                    conexion,
+                    transaccion))
+                {
+                    cmdEstado.Parameters.Add("@idInmueble", SqlDbType.Int).Value = idInmueble;
+                    object? estadoRaw = await cmdEstado.ExecuteScalarAsync();
+                    if (estadoRaw == null || estadoRaw == DBNull.Value)
+                        throw new InvalidOperationException("El borrador ya no existe.");
+
+                    string estado = Convert.ToString(estadoRaw) ?? string.Empty;
+                    if (!estado.Equals("BORRADOR", StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidOperationException("Solo pueden descartarse inmuebles que continúan en estado Borrador.");
+                }
+
+                using (SqlCommand cmdHijos = new SqlCommand(@"
+IF OBJECT_ID(N'dbo.RSMAPS_InmuebleAmenidad', N'U') IS NOT NULL
+    DELETE FROM dbo.RSMAPS_InmuebleAmenidad WHERE IdInmueble=@idInmueble;
+IF OBJECT_ID(N'dbo.RSMAPS_InmuebleZona', N'U') IS NOT NULL
+    DELETE FROM dbo.RSMAPS_InmuebleZona WHERE IdInmueble=@idInmueble;
+IF OBJECT_ID(N'dbo.RSMAPS_InmuebleImagen', N'U') IS NOT NULL
+    DELETE FROM dbo.RSMAPS_InmuebleImagen WHERE IdInmueble=@idInmueble;",
+                    conexion,
+                    transaccion))
+                {
+                    cmdHijos.Parameters.Add("@idInmueble", SqlDbType.Int).Value = idInmueble;
+                    await cmdHijos.ExecuteNonQueryAsync();
+                }
+
+                using (SqlCommand cmdEliminar = new SqlCommand("dbo.RSMAPS_sp_delete_inmueble_seguro", conexion, transaccion)
+                {
+                    CommandType = CommandType.StoredProcedure
+                })
+                {
+                    cmdEliminar.Parameters.Add("@idInmueble", SqlDbType.Int).Value = idInmueble;
+                    cmdEliminar.Parameters.Add("@correo", SqlDbType.VarChar, 200).Value = correoAutenticado;
+                    await cmdEliminar.ExecuteNonQueryAsync();
+                }
+
+                transaccion.Commit();
+            }
+            catch
+            {
+                try { transaccion.Rollback(); } catch (InvalidOperationException) { }
+                throw;
+            }
+        }
+
         private static void AgregarSmallInt(SqlCommand cmd, string nombre, int? valor)
         {
             SqlParameter p = cmd.Parameters.Add(nombre, SqlDbType.SmallInt);
