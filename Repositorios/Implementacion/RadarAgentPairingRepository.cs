@@ -252,6 +252,59 @@ WHERE IdPairing = @idPairing
         };
     }
 
+    public async Task<RadarAgentAuthenticationResult?> ValidarCredencialAsync(
+        string credencial,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(credencial))
+            return null;
+
+        string tokenHash = Hash(credencial.Trim());
+
+        const string sql = @"
+UPDATE d
+SET UltimoUsoUtc = SYSUTCDATETIME()
+OUTPUT
+    inserted.IdAgent,
+    inserted.NombreAgent,
+    inserted.EquipoNombre,
+    inserted.IdAsesor,
+    inserted.IdCuenta,
+    c.Nombre AS CuentaNombre,
+    cu.RolCodigo
+FROM dbo.RSMAPS_RadarAgentDevice d
+INNER JOIN dbo.RSMAPS_CuentaUsuario cu
+    ON cu.IdAsesor = d.IdAsesor
+   AND cu.IdCuenta = d.IdCuenta
+   AND cu.Activo = 1
+INNER JOIN dbo.RSMAPS_Cuenta c
+    ON c.IdCuenta = d.IdCuenta
+   AND c.Activo = 1
+WHERE d.TokenHash = @tokenHash
+  AND d.Activo = 1
+  AND d.RevocadoUtc IS NULL;";
+
+        await using SqlConnection conexion = new(_cadenaSQL);
+        await conexion.OpenAsync(cancellationToken);
+        await using SqlCommand cmd = new(sql, conexion);
+        cmd.Parameters.Add("@tokenHash", SqlDbType.Char, 64).Value = tokenHash;
+
+        await using SqlDataReader dr = await cmd.ExecuteReaderAsync(cancellationToken);
+        if (!await dr.ReadAsync(cancellationToken))
+            return null;
+
+        return new RadarAgentAuthenticationResult
+        {
+            IdAgent = (Guid)dr["IdAgent"],
+            NombreAgent = dr["NombreAgent"].ToString() ?? string.Empty,
+            EquipoNombre = dr["EquipoNombre"] == DBNull.Value ? null : dr["EquipoNombre"].ToString(),
+            IdAsesor = Convert.ToInt32(dr["IdAsesor"]),
+            IdCuenta = Convert.ToInt32(dr["IdCuenta"]),
+            CuentaNombre = dr["CuentaNombre"].ToString() ?? string.Empty,
+            RolCodigo = dr["RolCodigo"].ToString() ?? string.Empty
+        };
+    }
+
     private static string NormalizarNombreAgent(string nombreAgent)
     {
         string nombre = string.IsNullOrWhiteSpace(nombreAgent) ? "RADAR Agent" : nombreAgent.Trim();
