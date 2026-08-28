@@ -38,7 +38,7 @@ namespace maps4.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? inmuebleId = null)
         {
             string? correo = User.Identity?.Name;
             if (string.IsNullOrWhiteSpace(correo))
@@ -52,15 +52,28 @@ namespace maps4.Controllers
                 if (contexto == null)
                     return Forbid();
 
-                List<InventarioInmuebleViewModel> inmuebles =
+                List<InventarioInmuebleViewModel> inmueblesAutorizados =
                     await _inventarioRepository.ListarAutorizadosAsync(correo);
+
+                List<InventarioInmuebleViewModel> inmuebles = inmueblesAutorizados;
+                if (inmuebleId.HasValue && inmuebleId.Value > 0)
+                {
+                    InventarioInmuebleViewModel? objetivo =
+                        inmueblesAutorizados.FirstOrDefault(x => x.IdInmueble == inmuebleId.Value);
+
+                    if (objetivo == null)
+                        return NotFound();
+
+                    inmuebles = new List<InventarioInmuebleViewModel> { objetivo };
+                    ViewData["InventarioObjetivoId"] = inmuebleId.Value;
+                }
 
                 InventarioIndexViewModel modelo = new InventarioIndexViewModel
                 {
                     CuentaNombre = string.IsNullOrWhiteSpace(contexto.CuentaNombre) ? "Mi cuenta" : contexto.CuentaNombre,
                     Rol = NombreRolUi(contexto.RolCodigo),
                     IdAsesorActual = contexto.IdAsesor,
-                    EsVistaEquipo = inmuebles.Any(x => x.IdAsesor != contexto.IdAsesor),
+                    EsVistaEquipo = inmueblesAutorizados.Any(x => x.IdAsesor != contexto.IdAsesor),
                     PuedeCambiarEstadoCuenta = contexto.PuedeCambiarEstadoCuenta,
                     PuedeCerrarOperacionCuenta = contexto.PuedeCerrarOperacionCuenta,
                     Inmuebles = inmuebles
