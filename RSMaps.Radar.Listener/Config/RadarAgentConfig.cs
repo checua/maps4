@@ -1,3 +1,4 @@
+using RSMaps.Radar.Listener.Services;
 using System.Text.Json;
 
 namespace RSMaps.Radar.Listener.Config;
@@ -48,8 +49,9 @@ public static class RadarAgentConfigLoader
             Console.WriteLine();
             Console.WriteLine("RADAR Agent configurado:");
             Console.WriteLine($"  Usuario: {Mostrar(config.Usuario)}");
-            Console.WriteLine($"  Cuenta:  {Mostrar(config.Cuenta)}");
+            Console.WriteLine($"  Cuenta declarada localmente: {Mostrar(config.Cuenta)}");
             Console.WriteLine($"  Archivo: {path}");
+            RadarAgentBackendClient.MostrarEstado(config);
 
             return config;
         }
