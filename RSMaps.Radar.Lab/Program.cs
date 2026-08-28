@@ -155,8 +155,8 @@ if (totalTokens > 0)
 static IRadarInterpreter CrearRadarIntelligenceInterpreter()
 {
     var apiKey = ObtenerApiKey();
-    var model = Environment.GetEnvironmentVariable("RADAR_OPENAI_MODEL") ?? "gpt-5.4-nano";
-    var fallbackModel = Environment.GetEnvironmentVariable("RADAR_OPENAI_FALLBACK_MODEL") ?? "gpt-5-mini";
+    var model = Environment.GetEnvironmentVariable("RADAR_OPENAI_MODEL") ?? "gpt-5.6-luna";
+    var fallbackModel = Environment.GetEnvironmentVariable("RADAR_OPENAI_FALLBACK_MODEL") ?? "gpt-5.6-terra";
     var knowledgeProvider = CrearKnowledgeProvider();
 
     IRadarInterpreter primario = new OpenAiRadarInterpreter(apiKey, model);
@@ -176,7 +176,7 @@ static IRadarInterpreter CrearRadarIntelligenceInterpreter()
 static IRadarInterpreter CrearOpenAiRawInterpreter()
 {
     var apiKey = ObtenerApiKey();
-    var model = Environment.GetEnvironmentVariable("RADAR_OPENAI_MODEL") ?? "gpt-5.4-nano";
+    var model = Environment.GetEnvironmentVariable("RADAR_OPENAI_MODEL") ?? "gpt-5.6-luna";
     return new OpenAiRadarInterpreter(apiKey, model);
 }
 
