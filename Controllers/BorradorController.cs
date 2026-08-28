@@ -142,6 +142,63 @@ namespace maps4.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Descartar(int idInmueble, CancellationToken cancellationToken)
+        {
+            string? correo = User.Identity?.Name;
+            if (idInmueble <= 0 || string.IsNullOrWhiteSpace(correo))
+                return NotFound();
+
+            try
+            {
+                BorradorEdicionViewModel? borrador = await _borradorRepository.ObtenerParaEdicionAsync(correo, idInmueble);
+                if (borrador == null)
+                    return NotFound();
+
+                List<InmuebleFotoViewModel> fotos = await _fotoRepository.ListarAsync(correo, idInmueble);
+                await _borradorRepository.DescartarAsync(correo, idInmueble);
+
+                foreach (InmuebleFotoViewModel foto in fotos)
+                {
+                    try
+                    {
+                        await _fotoStorage.EliminarAsync(foto.ClaveAlmacenamiento, cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex,
+                            "El borrador {IdInmueble} fue descartado, pero quedó pendiente limpiar el archivo de la foto {IdImagen}.",
+                            idInmueble,
+                            foto.IdImagen);
+                    }
+                }
+
+                TempData["InventarioOk"] = $"Borrador #{idInmueble} descartado. Ya no forma parte del inventario ni de la cobertura de zonas.";
+                return RedirectToAction("Index", "Inventario");
+            }
+            catch (InvalidOperationException ex)
+            {
+                TempData["BorradorFotoError"] = ex.Message;
+                return RedirectToAction(nameof(Editar), new { id = idInmueble });
+            }
+            catch (SqlException ex) when (ex.Number is 51030 or 51031 or 51032 or 51034 or 51035 or 52920 or 52921 or 52922 or 52923 or 52925 or 52926 or 52927)
+            {
+                TempData["BorradorFotoError"] = ex.Number switch
+                {
+                    51035 or 52926 => "Solo el asesor responsable puede descartar este borrador.",
+                    52927 => "El inmueble ya no está en estado Borrador y no puede descartarse desde aquí.",
+                    _ => "No tienes permiso para descartar este borrador."
+                };
+                return RedirectToAction(nameof(Editar), new { id = idInmueble });
+            }
+            catch (SqlException ex) when (ex.Number is 51033 or 52924)
+            {
+                TempData["InventarioError"] = "El borrador ya no existe.";
+                return RedirectToAction("Index", "Inventario");
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         [RequestSizeLimit(15 * 1024 * 1024)]
         [RequestFormLimits(MultipartBodyLengthLimit = 15 * 1024 * 1024)]
         public async Task<IActionResult> SubirFoto(int idInmueble, IFormFile? foto, CancellationToken cancellationToken)
