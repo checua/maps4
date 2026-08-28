@@ -52,6 +52,14 @@ namespace maps4.Models
         public double Lng { get; set; }
     }
 
+    public class ZonaCoberturaActualViewModel
+    {
+        public double MinLat { get; set; }
+        public double MaxLat { get; set; }
+        public double MinLng { get; set; }
+        public double MaxLng { get; set; }
+    }
+
     public class ZonaInmueblePinViewModel
     {
         public int IdInmueble { get; set; }
@@ -61,5 +69,6 @@ namespace maps4.Models
         public string? Direccion { get; set; }
         public double? Precio { get; set; }
         public bool CoberturaPendiente { get; set; }
+        public bool FueraAreaActual { get; set; }
     }
 }
