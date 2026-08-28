@@ -144,13 +144,22 @@
             : (pin.fueraAreaActual === true
                 ? '<br><span style="color:#64748b">Fuera del área actual de zonas</span>'
                 : '');
+        const idInmueble = encodeURIComponent(pin.idInmueble);
+        const acciones = `
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:8px;border-top:1px solid #e5e7eb">
+                <a href="/?inmuebleId=${idInmueble}" target="_blank" rel="noopener"
+                   style="font-weight:600;text-decoration:none">Ver propiedad</a>
+                <a href="/Inventario" target="_blank" rel="noopener"
+                   style="color:#475569;text-decoration:none">Inventario</a>
+            </div>`;
 
         infoWindow.setPosition({ lat, lng });
         infoWindow.setContent(`
-            <div style="min-width:180px">
+            <div style="min-width:200px">
                 <strong>#${pin.idInmueble} ${escapeHtml(pin.tipo || 'Inmueble')}</strong><br>
                 <span>${escapeHtml(pin.direccion || 'Sin dirección')}</span><br>
                 <span>${escapeHtml(precio)}</span>${estado}
+                ${acciones}
             </div>`);
         infoWindow.open({ map });
     }
