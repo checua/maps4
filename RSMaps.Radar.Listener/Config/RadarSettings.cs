@@ -2,31 +2,19 @@ namespace RSMaps.Radar.Listener.Config;
 
 public static class RadarSettings
 {
-    public static bool ModoSeguroLab =>
-        string.Equals(
-            Environment.GetEnvironmentVariable("RADAR_SAFE_LAB"),
-            "1",
-            StringComparison.OrdinalIgnoreCase)
-        || string.Equals(
-            Environment.GetEnvironmentVariable("RADAR_SAFE_LAB"),
-            "true",
-            StringComparison.OrdinalIgnoreCase);
+    private static readonly Lazy<RadarAgentConfig?> Configuracion =
+        new(RadarAgentConfigLoader.CargarDesdeEntorno);
 
-    // En modo seguro sólo se observa el chat de pruebas del propio usuario.
-    public static string[] ChatsMonitoreados => ModoSeguroLab
-        ? ["José Juan (Tú)"]
-        :
-        [
-            "INVENTARIOS Y PROSPECTOS",
-            "Leones Inmobiliarios Dgo",
-            "Terrenos en venta Dgo",
-            "AISE tu socio en el éxito!",
-            "José Juan (Tú)"
-        ];
+    private static readonly string[] ChatsLegacy =
+    [
+        "INVENTARIOS Y PROSPECTOS",
+        "Leones Inmobiliarios Dgo",
+        "Terrenos en venta Dgo",
+        "AISE tu socio en el éxito!",
+        "José Juan (Tú)"
+    ];
 
-    // Términos alternativos para localizar chats cuando el título visible
-    // contiene sufijos, emojis o WhatsApp lo indexa de otra forma.
-    private static readonly Dictionary<string, string[]> TerminosBusqueda =
+    private static readonly Dictionary<string, string[]> TerminosBusquedaLegacy =
         new(StringComparer.OrdinalIgnoreCase)
         {
             ["José Juan (Tú)"] =
@@ -46,12 +34,43 @@ public static class RadarSettings
             ]
         };
 
+    internal static RadarAgentConfig? ConfiguracionAgente => Configuracion.Value;
+
+    public static bool ModoSeguroLab =>
+        string.Equals(
+            Environment.GetEnvironmentVariable("RADAR_SAFE_LAB"),
+            "1",
+            StringComparison.OrdinalIgnoreCase)
+        || string.Equals(
+            Environment.GetEnvironmentVariable("RADAR_SAFE_LAB"),
+            "true",
+            StringComparison.OrdinalIgnoreCase);
+
+    // SAFE LAB conserva el aislamiento total del prototipo. Fuera de SAFE LAB,
+    // un archivo por Agent puede sustituir la lista histórica sin recompilar.
+    public static string[] ChatsMonitoreados
+    {
+        get
+        {
+            if (ModoSeguroLab)
+                return ["José Juan (Tú)"];
+
+            var configurados = ConfiguracionAgente?.ChatsMonitoreados
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+            return configurados is { Length: > 0 }
+                ? configurados
+                : ChatsLegacy;
+        }
+    }
+
     public static IEnumerable<string> ObtenerTerminosBusqueda(string chat)
     {
         // Defensa adicional del modo seguro: el navegador sólo puede buscar
-        // chats que estén expresamente en la lista monitoreada. Así, aunque el
-        // flujo de alertas intente abrir el destino ficticio de SAFE LAB, nunca
-        // se escribe ese texto en la caja de búsqueda de WhatsApp.
+        // chats que estén expresamente en la lista monitoreada.
         if (ModoSeguroLab &&
             !ChatsMonitoreados.Contains(chat, StringComparer.OrdinalIgnoreCase))
         {
@@ -60,18 +79,40 @@ public static class RadarSettings
 
         yield return chat;
 
-        if (!TerminosBusqueda.TryGetValue(chat, out var alternativos))
+        var configurados = ConfiguracionAgente?.TerminosBusqueda;
+        if (configurados is not null && configurados.TryGetValue(chat, out var alternativosConfigurados))
+        {
+            foreach (var termino in alternativosConfigurados
+                         .Where(x => !string.IsNullOrWhiteSpace(x))
+                         .Select(x => x.Trim())
+                         .Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                yield return termino;
+            }
+
+            yield break;
+        }
+
+        if (!TerminosBusquedaLegacy.TryGetValue(chat, out var alternativosLegacy))
             yield break;
 
-        foreach (var termino in alternativos)
+        foreach (var termino in alternativosLegacy)
             yield return termino;
     }
 
-    // El modo seguro revisa rápido para pruebas E2E; producción conserva 20 minutos.
-    public static int IntervaloRevisionMs =>
-        ModoSeguroLab
-            ? 10_000
-            : 20 * 60_000;
+    public static int IntervaloRevisionMs
+    {
+        get
+        {
+            if (ModoSeguroLab)
+                return 10_000;
+
+            var configurado = ConfiguracionAgente?.IntervaloRevisionMs;
+            return configurado is > 0
+                ? configurado.Value
+                : 20 * 60_000;
+        }
+    }
 
     public const int EsperaBusquedaMs = 900;
 }
