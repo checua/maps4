@@ -46,7 +46,7 @@ Console.WriteLine(RadarSettings.ModoSeguroLab
 var idsConocidosPorChat = new Dictionary<string, HashSet<string>>(
     StringComparer.OrdinalIgnoreCase);
 
-IRadarInterpreter interpreter = new RuleBasedRadarInterpreter();
+IRadarInterpreter interpreter = RadarInterpreterFactory.Create();
 Console.WriteLine($"Intérprete Radar: {interpreter.GetType().Name}");
 
 Console.WriteLine();
