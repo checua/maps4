@@ -42,7 +42,7 @@ namespace maps4.Controllers
                 {
                     Zonas = zonas,
                     Inmuebles = inventario
-                        .Where(x => x.TieneUbicacion)
+                        .Where(x => x.TieneUbicacion && EsEstadoComercialParaCobertura(x.EstadoCodigo))
                         .Select(x =>
                         {
                             bool sinZona = !x.TieneZona;
@@ -160,6 +160,12 @@ namespace maps4.Controllers
                 _logger.LogError(ex, "No fue posible guardar la zona administrativa.");
                 return StatusCode(500, new { success = false, message = "No fue posible guardar la zona." });
             }
+        }
+
+        private static bool EsEstadoComercialParaCobertura(string? estadoCodigo)
+        {
+            return string.Equals(estadoCodigo, "PUBLICADO", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(estadoCodigo, "PAUSADO", StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool EstaDentroAreaActual(double lat, double lng, ZonaCoberturaActualViewModel cobertura)
