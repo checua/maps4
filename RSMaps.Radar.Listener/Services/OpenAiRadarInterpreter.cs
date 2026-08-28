@@ -86,14 +86,14 @@ Reglas:
 
     public OpenAiRadarInterpreter(
         string apiKey,
-        string model = "gpt-5.4-nano",
+        string model = "gpt-5.6-luna",
         HttpClient? httpClient = null)
     {
         if (string.IsNullOrWhiteSpace(apiKey))
             throw new ArgumentException("Se requiere una API key de OpenAI.", nameof(apiKey));
 
         _apiKey = apiKey;
-        _model = string.IsNullOrWhiteSpace(model) ? "gpt-5.4-nano" : model;
+        _model = string.IsNullOrWhiteSpace(model) ? "gpt-5.6-luna" : model;
         _httpClient = httpClient ?? new HttpClient
         {
             Timeout = TimeSpan.FromSeconds(60)
