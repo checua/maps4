@@ -7,5 +7,6 @@ namespace maps4.Repositorios.Contrato
         Task<int> CrearAsync(string correoAutenticado, decimal lat, decimal lng, int idTipo);
         Task<BorradorEdicionViewModel?> ObtenerParaEdicionAsync(string correoAutenticado, int idInmueble);
         Task GuardarAsync(string correoAutenticado, BorradorEdicionViewModel modelo);
+        Task DescartarAsync(string correoAutenticado, int idInmueble);
     }
 }
