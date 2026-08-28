@@ -95,6 +95,83 @@ namespace maps4.Repositorios.Implementacion
             return zona;
         }
 
+        public async Task<ZonaCoberturaActualViewModel?> ObtenerCoberturaActualAsync(string correo)
+        {
+            const string sql = @"
+;WITH CuentaActual AS
+(
+    SELECT TOP (1)
+        cu.IdCuenta
+    FROM dbo.RSMAPS_Usuario u
+    INNER JOIN dbo.RSMAPS_CuentaUsuario cu
+        ON cu.IdAsesor = u.idAsesor
+       AND cu.Activo = 1
+    INNER JOIN dbo.RSMAPS_Cuenta c
+        ON c.IdCuenta = cu.IdCuenta
+       AND c.Activo = 1
+    INNER JOIN dbo.RSMAPS_RolPermiso rp
+        ON rp.RolCodigo = cu.RolCodigo
+       AND rp.PermisoCodigo = 'ZONA_ADMINISTRAR'
+    INNER JOIN dbo.RSMAPS_Permiso p
+        ON p.Codigo = rp.PermisoCodigo
+       AND p.Activo = 1
+    WHERE u.correo = @correo
+    ORDER BY cu.EsPredeterminada DESC, cu.IdCuenta
+)
+SELECT zp.VerticesJson
+FROM CuentaActual ca
+INNER JOIN dbo.RSMAPS_Zona z
+    ON z.IdCuenta = ca.IdCuenta
+   AND z.Activa = 1
+INNER JOIN dbo.RSMAPS_ZonaPoligono zp
+    ON zp.IdZona = z.IdZona
+   AND zp.Activo = 1;";
+
+            using SqlConnection conexion = new(_cadenaSQL);
+            await conexion.OpenAsync();
+
+            using SqlCommand cmd = new(sql, conexion);
+            cmd.Parameters.Add("@correo", SqlDbType.VarChar, 200).Value = correo;
+
+            List<ZonaVerticeViewModel> vertices = new();
+            using SqlDataReader dr = await cmd.ExecuteReaderAsync();
+            while (await dr.ReadAsync())
+            {
+                if (dr["VerticesJson"] == DBNull.Value)
+                    continue;
+
+                try
+                {
+                    string json = dr["VerticesJson"].ToString() ?? "[]";
+                    List<ZonaVerticeViewModel>? puntos = JsonSerializer.Deserialize<List<ZonaVerticeViewModel>>(
+                        json,
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                    if (puntos != null)
+                    {
+                        vertices.AddRange(puntos.Where(v =>
+                            double.IsFinite(v.Lat) && double.IsFinite(v.Lng) &&
+                            v.Lat is >= -90 and <= 90 && v.Lng is >= -180 and <= 180));
+                    }
+                }
+                catch (JsonException)
+                {
+                    // Un poligono con JSON editable dañado no debe romper ZonaAdmin.
+                }
+            }
+
+            if (vertices.Count == 0)
+                return null;
+
+            return new ZonaCoberturaActualViewModel
+            {
+                MinLat = vertices.Min(v => v.Lat),
+                MaxLat = vertices.Max(v => v.Lat),
+                MinLng = vertices.Min(v => v.Lng),
+                MaxLng = vertices.Max(v => v.Lng)
+            };
+        }
+
         public async Task<int> GuardarAsync(string correo, ZonaGuardarRequest request)
         {
             if (request.Vertices == null || request.Vertices.Count < 3)
