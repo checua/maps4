@@ -5,6 +5,14 @@ public static class RadarSettings
     private static readonly Lazy<RadarAgentConfig?> Configuracion =
         new(RadarAgentConfigLoader.CargarDesdeEntorno);
 
+    static RadarSettings()
+    {
+        // Forzamos la carga de la identidad del Agent incluso en SAFE LAB.
+        // De otro modo, el retorno temprano de ChatsMonitoreados evitaba
+        // materializar la configuración y el banner no mostraba Usuario/Cuenta.
+        _ = Configuracion.Value;
+    }
+
     private static readonly string[] ChatsLegacy =
     [
         "INVENTARIOS Y PROSPECTOS",
