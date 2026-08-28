@@ -60,5 +60,6 @@ namespace maps4.Models
         public string? Tipo { get; set; }
         public string? Direccion { get; set; }
         public double? Precio { get; set; }
+        public bool CoberturaPendiente { get; set; }
     }
 }
