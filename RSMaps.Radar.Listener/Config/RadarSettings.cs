@@ -48,6 +48,16 @@ public static class RadarSettings
 
     public static IEnumerable<string> ObtenerTerminosBusqueda(string chat)
     {
+        // Defensa adicional del modo seguro: el navegador sólo puede buscar
+        // chats que estén expresamente en la lista monitoreada. Así, aunque el
+        // flujo de alertas intente abrir el destino ficticio de SAFE LAB, nunca
+        // se escribe ese texto en la caja de búsqueda de WhatsApp.
+        if (ModoSeguroLab &&
+            !ChatsMonitoreados.Contains(chat, StringComparer.OrdinalIgnoreCase))
+        {
+            yield break;
+        }
+
         yield return chat;
 
         if (!TerminosBusqueda.TryGetValue(chat, out var alternativos))
