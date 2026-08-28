@@ -1,4 +1,5 @@
 using maps4.Models;
+using maps4.Repositorios.Contrato;
 using maps4.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,13 +13,16 @@ namespace maps4.Controllers
     public class RadarMatchingController : ControllerBase
     {
         private readonly IRadarMatchingService _matchingService;
+        private readonly IRadarAgentPairingRepository _pairingRepository;
         private readonly IConfiguration _configuration;
 
         public RadarMatchingController(
             IRadarMatchingService matchingService,
+            IRadarAgentPairingRepository pairingRepository,
             IConfiguration configuration)
         {
             _matchingService = matchingService;
+            _pairingRepository = pairingRepository;
             _configuration = configuration;
         }
 
@@ -36,9 +40,34 @@ namespace maps4.Controllers
             return Ok(resultado);
         }
 
-        // Integración local con RSMaps.Radar.Listener.
-        // Se permite sin cookie únicamente desde loopback (localhost/127.0.0.1/::1).
-        // El correo del inventario se configura con user-secrets y nunca viaja desde WhatsApp.
+        // Ruta principal para RADAR Agent. La identidad, cuenta y alcance de inventario
+        // se resuelven únicamente desde la credencial de dispositivo registrada en RSMaps.
+        [AllowAnonymous]
+        [HttpPost("agent")]
+        public async Task<IActionResult> CompararAgent(
+            [FromBody] RadarMatchingRequest solicitud,
+            CancellationToken cancellationToken)
+        {
+            if (solicitud is null)
+                return BadRequest("La solicitud es obligatoria.");
+
+            string? credencial = ObtenerBearer();
+            if (string.IsNullOrWhiteSpace(credencial))
+                return Unauthorized(new { mensaje = "Se requiere la credencial del RADAR Agent." });
+
+            RadarAgentAuthenticationResult? agent = await _pairingRepository.ValidarCredencialAsync(
+                credencial,
+                cancellationToken);
+
+            if (agent is null || string.IsNullOrWhiteSpace(agent.Correo))
+                return Unauthorized(new { mensaje = "RADAR Agent no válido, revocado o sin cuenta activa." });
+
+            RadarMatchingResponse resultado = await _matchingService.CompararAsync(agent.Correo, solicitud);
+            return Ok(resultado);
+        }
+
+        // Compatibilidad temporal del prototipo anterior. Sólo loopback y correo fijo.
+        // Se conserva mientras terminamos la migración de todos los Agents vinculados.
         [AllowAnonymous]
         [HttpPost("local")]
         public async Task<IActionResult> CompararLocal([FromBody] RadarMatchingRequest solicitud)
@@ -66,10 +95,7 @@ namespace maps4.Controllers
             return Ok(resultado);
         }
 
-        // Endpoint temporal de prueba para validar el ranking desde el navegador
-        // mientras el Listener todavía no consume la API directamente.
-        // Ejemplo:
-        // /api/radar/matching/probar?operacion=Renta&tipo=Casa&zona=Domingo%20Arrieta|Tierra%20Blanca&precioMinimo=7000&precioMaximo=10000&recamaras=3&banos=2
+        // Endpoint temporal de prueba para validar el ranking desde el navegador.
         [HttpGet("probar")]
         public async Task<IActionResult> Probar(
             [FromQuery] string? operacion = null,
@@ -103,6 +129,21 @@ namespace maps4.Controllers
 
             RadarMatchingResponse resultado = await _matchingService.CompararAsync(correo, solicitud);
             return Ok(resultado);
+        }
+
+        private string? ObtenerBearer()
+        {
+            string authorization = Request.Headers["Authorization"].ToString();
+            const string bearer = "Bearer ";
+
+            if (string.IsNullOrWhiteSpace(authorization) ||
+                !authorization.StartsWith(bearer, StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            string valor = authorization[bearer.Length..].Trim();
+            return string.IsNullOrWhiteSpace(valor) ? null : valor;
         }
 
         private static List<string> Separar(string? valor)
