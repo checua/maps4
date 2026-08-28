@@ -43,4 +43,5 @@ public sealed class RadarAgentAuthenticationResult
     public int IdCuenta { get; set; }
     public string CuentaNombre { get; set; } = "";
     public string RolCodigo { get; set; } = "";
+    public string Correo { get; set; } = "";
 }
