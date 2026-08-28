@@ -47,7 +47,8 @@ namespace maps4.Controllers
                             Lng = x.Lng!.Value,
                             Tipo = x.TipoNombre,
                             Direccion = x.Direccion,
-                            Precio = x.Precio
+                            Precio = x.Precio,
+                            CoberturaPendiente = !x.TieneZona
                         })
                         .ToList()
                 };
