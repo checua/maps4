@@ -14,4 +14,8 @@ public interface IRadarAgentPairingRepository
         string nombreAgent,
         string? equipoNombre,
         CancellationToken cancellationToken = default);
+
+    Task<RadarAgentAuthenticationResult?> ValidarCredencialAsync(
+        string credencial,
+        CancellationToken cancellationToken = default);
 }
