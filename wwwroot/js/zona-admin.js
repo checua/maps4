@@ -149,7 +149,7 @@
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:8px;border-top:1px solid #e5e7eb">
                 <a href="/?inmuebleId=${idInmueble}" target="_blank" rel="noopener"
                    style="font-weight:600;text-decoration:none">Ver propiedad</a>
-                <a href="/Inventario" target="_blank" rel="noopener"
+                <a href="/Inventario?inmuebleId=${idInmueble}" target="_blank" rel="noopener"
                    style="color:#475569;text-decoration:none">Inventario</a>
             </div>`;
 
