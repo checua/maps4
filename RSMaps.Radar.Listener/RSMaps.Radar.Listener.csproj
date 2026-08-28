@@ -11,4 +11,31 @@
     <PackageReference Include="Microsoft.Playwright" Version="1.62.0" />
   </ItemGroup>
 
+  <!--
+    FASE 2 RADAR: el Agent conserva captura/navegación WhatsApp y transporte
+    hacia RSMaps. La interpretación se compila desde Radar.Intelligence.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\RSMaps.Radar.Intelligence\RSMaps.Radar.Intelligence.csproj" />
+  </ItemGroup>
+
+  <!--
+    Estos archivos siguen físicamente en Listener durante la transición, pero
+    ya no forman parte de este ensamblado: los compila Radar.Intelligence.
+  -->
+  <ItemGroup>
+    <Compile Remove="Models\**\*.cs" />
+    <Compile Remove="Services\ExtractorInmobiliario.cs" />
+    <Compile Remove="Services\IRadarInterpreter.cs" />
+    <Compile Remove="Services\IRadarKnowledgeProvider.cs" />
+    <Compile Remove="Services\JsonRadarKnowledgeProvider.cs" />
+    <Compile Remove="Services\OpenAiRadarInterpreter.cs" />
+    <Compile Remove="Services\RadarIntelligenceInterpreter.cs" />
+    <Compile Remove="Services\RadarInterpretationNormalizer.cs" />
+    <Compile Remove="Services\RadarInterpretationSemanticCleaner.cs" />
+    <Compile Remove="Services\RadarInterpretationValidator.cs" />
+    <Compile Remove="Services\RadarKnowledgeAwareInterpreter.cs" />
+    <Compile Remove="Services\RuleBasedRadarInterpreter.cs" />
+  </ItemGroup>
+
 </Project>
