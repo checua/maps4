@@ -39,7 +39,9 @@ Console.WriteLine();
 Console.WriteLine("Chats configurados para Radar:");
 foreach (var chat in RadarSettings.ChatsMonitoreados)
     Console.WriteLine($"  • {chat}");
-Console.WriteLine($"Chat de alertas: {AlertSettings.ChatDestino}");
+Console.WriteLine(RadarSettings.ModoSeguroLab
+    ? "Chat de alertas: (bloqueado por MODO SEGURO LAB)"
+    : $"Chat de alertas: {AlertSettings.ChatDestino}");
 
 var idsConocidosPorChat = new Dictionary<string, HashSet<string>>(
     StringComparer.OrdinalIgnoreCase);
@@ -82,8 +84,16 @@ Console.WriteLine();
 Console.WriteLine("==================================");
 Console.WriteLine("          RADAR ACTIVO");
 Console.WriteLine("==================================");
-Console.WriteLine("Las solicitudes nuevas se enviarán a Propiedades.");
-Console.WriteLine("Después del envío Radar volverá al chat origen e intentará marcar Propiedades como no leído.");
+if (RadarSettings.ModoSeguroLab)
+{
+    Console.WriteLine("🧪 MODO SEGURO LAB: detección y matching activos; envío de WhatsApp bloqueado.");
+    Console.WriteLine("Las coincidencias se mostrarán únicamente en consola.");
+}
+else
+{
+    Console.WriteLine($"Las solicitudes nuevas se enviarán a {AlertSettings.ChatDestino}.");
+    Console.WriteLine($"Después del envío Radar volverá al chat origen e intentará marcar {AlertSettings.ChatDestino} como no leído.");
+}
 Console.WriteLine("CTRL+C para terminar.");
 Console.WriteLine();
 
@@ -123,6 +133,12 @@ while (true)
                 solicitud.MatchingResumen = await RsMapsMatchingClient.ConstruirResumenAsync(solicitud);
                 Console.WriteLine(
                     $"  MATCH RSMAPS: {solicitud.MatchingResumen.Replace("\r", " ").Replace("\n", " | ")}");
+
+                if (RadarSettings.ModoSeguroLab)
+                {
+                    Console.WriteLine("  🧪 MODO SEGURO: coincidencia calculada; envío de WhatsApp bloqueado.");
+                    continue;
+                }
 
                 var envio = await EnviarAlerta(page, solicitud);
 
@@ -877,7 +893,6 @@ static string Normalizar(string texto) => texto
     .Replace("ú", "u")
     .Replace("ü", "u")
     .Replace("ñ", "n");
-
 static void MostrarSolicitud(SolicitudInmobiliaria s)
 {
     Console.WriteLine();
