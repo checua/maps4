@@ -271,7 +271,8 @@ OUTPUT
     inserted.IdAsesor,
     inserted.IdCuenta,
     c.Nombre AS CuentaNombre,
-    cu.RolCodigo
+    cu.RolCodigo,
+    u.correo AS Correo
 FROM dbo.RSMAPS_RadarAgentDevice d
 INNER JOIN dbo.RSMAPS_CuentaUsuario cu
     ON cu.IdAsesor = d.IdAsesor
@@ -280,6 +281,8 @@ INNER JOIN dbo.RSMAPS_CuentaUsuario cu
 INNER JOIN dbo.RSMAPS_Cuenta c
     ON c.IdCuenta = d.IdCuenta
    AND c.Activo = 1
+INNER JOIN dbo.RSMAPS_Usuario u
+    ON u.idAsesor = d.IdAsesor
 WHERE d.TokenHash = @tokenHash
   AND d.Activo = 1
   AND d.RevocadoUtc IS NULL;";
@@ -301,7 +304,8 @@ WHERE d.TokenHash = @tokenHash
             IdAsesor = Convert.ToInt32(dr["IdAsesor"]),
             IdCuenta = Convert.ToInt32(dr["IdCuenta"]),
             CuentaNombre = dr["CuentaNombre"].ToString() ?? string.Empty,
-            RolCodigo = dr["RolCodigo"].ToString() ?? string.Empty
+            RolCodigo = dr["RolCodigo"].ToString() ?? string.Empty,
+            Correo = dr["Correo"].ToString() ?? string.Empty
         };
     }
 
