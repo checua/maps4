@@ -6,6 +6,7 @@ namespace maps4.Repositorios.Contrato
     {
         Task<List<ZonaResumenViewModel>> ListarAsync(string correo);
         Task<ZonaEdicionViewModel?> ObtenerAsync(string correo, int idZona);
+        Task<ZonaCoberturaActualViewModel?> ObtenerCoberturaActualAsync(string correo);
         Task<int> GuardarAsync(string correo, ZonaGuardarRequest request);
     }
 }
