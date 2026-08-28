@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <!--
+    FASE 2 RADAR
+    La inteligencia se compila en un ensamblado independiente del Agent.
+    Durante esta transición reutilizamos los archivos fuente existentes para
+    evitar una mudanza masiva y reducir el riesgo de regresiones E2E.
+  -->
+  <ItemGroup>
+    <Compile Include="..\RSMaps.Radar.Listener\Models\**\*.cs"
+             Link="Models\%(RecursiveDir)%(Filename)%(Extension)" />
+
+    <Compile Include="..\RSMaps.Radar.Listener\Services\ExtractorInmobiliario.cs"
+             Link="Services\ExtractorInmobiliario.cs" />
+    <Compile Include="..\RSMaps.Radar.Listener\Services\IRadarInterpreter.cs"
+             Link="Services\IRadarInterpreter.cs" />
+    <Compile Include="..\RSMaps.Radar.Listener\Services\IRadarKnowledgeProvider.cs"
+             Link="Services\IRadarKnowledgeProvider.cs" />
+    <Compile Include="..\RSMaps.Radar.Listener\Services\JsonRadarKnowledgeProvider.cs"
+             Link="Services\JsonRadarKnowledgeProvider.cs" />
+    <Compile Include="..\RSMaps.Radar.Listener\Services\OpenAiRadarInterpreter.cs"
+             Link="Services\OpenAiRadarInterpreter.cs" />
+    <Compile Include="..\RSMaps.Radar.Listener\Services\RadarIntelligenceInterpreter.cs"
+             Link="Services\RadarIntelligenceInterpreter.cs" />
+    <Compile Include="..\RSMaps.Radar.Listener\Services\RadarInterpretationNormalizer.cs"
+             Link="Services\RadarInterpretationNormalizer.cs" />
+    <Compile Include="..\RSMaps.Radar.Listener\Services\RadarInterpretationSemanticCleaner.cs"
+             Link="Services\RadarInterpretationSemanticCleaner.cs" />
+    <Compile Include="..\RSMaps.Radar.Listener\Services\RadarInterpretationValidator.cs"
+             Link="Services\RadarInterpretationValidator.cs" />
+    <Compile Include="..\RSMaps.Radar.Listener\Services\RadarKnowledgeAwareInterpreter.cs"
+             Link="Services\RadarKnowledgeAwareInterpreter.cs" />
+    <Compile Include="..\RSMaps.Radar.Listener\Services\RuleBasedRadarInterpreter.cs"
+             Link="Services\RuleBasedRadarInterpreter.cs" />
+  </ItemGroup>
+
+</Project>
