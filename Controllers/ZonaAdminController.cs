@@ -9,6 +9,8 @@ namespace maps4.Controllers
     [Authorize]
     public class ZonaAdminController : Controller
     {
+        private const double MargenCoberturaKm = 12d;
+
         private readonly IZonaRepository _zonaRepository;
         private readonly IInventarioRepository _inventarioRepository;
         private readonly ILogger<ZonaAdminController> _logger;
@@ -33,6 +35,7 @@ namespace maps4.Controllers
             try
             {
                 List<ZonaResumenViewModel> zonas = await _zonaRepository.ListarAsync(correo);
+                ZonaCoberturaActualViewModel? coberturaActual = await _zonaRepository.ObtenerCoberturaActualAsync(correo);
                 List<InventarioInmuebleViewModel> inventario = await _inventarioRepository.ListarAutorizadosAsync(correo);
 
                 ZonaAdminIndexViewModel modelo = new()
@@ -40,15 +43,25 @@ namespace maps4.Controllers
                     Zonas = zonas,
                     Inmuebles = inventario
                         .Where(x => x.TieneUbicacion)
-                        .Select(x => new ZonaInmueblePinViewModel
+                        .Select(x =>
                         {
-                            IdInmueble = x.IdInmueble,
-                            Lat = x.Lat!.Value,
-                            Lng = x.Lng!.Value,
-                            Tipo = x.TipoNombre,
-                            Direccion = x.Direccion,
-                            Precio = x.Precio,
-                            CoberturaPendiente = !x.TieneZona
+                            bool sinZona = !x.TieneZona;
+                            bool dentroAreaActual = coberturaActual == null || EstaDentroAreaActual(
+                                (double)x.Lat!.Value,
+                                (double)x.Lng!.Value,
+                                coberturaActual);
+
+                            return new ZonaInmueblePinViewModel
+                            {
+                                IdInmueble = x.IdInmueble,
+                                Lat = x.Lat.Value,
+                                Lng = x.Lng.Value,
+                                Tipo = x.TipoNombre,
+                                Direccion = x.Direccion,
+                                Precio = x.Precio,
+                                CoberturaPendiente = sinZona && dentroAreaActual,
+                                FueraAreaActual = sinZona && !dentroAreaActual
+                            };
                         })
                         .ToList()
                 };
@@ -147,6 +160,21 @@ namespace maps4.Controllers
                 _logger.LogError(ex, "No fue posible guardar la zona administrativa.");
                 return StatusCode(500, new { success = false, message = "No fue posible guardar la zona." });
             }
+        }
+
+        private static bool EstaDentroAreaActual(double lat, double lng, ZonaCoberturaActualViewModel cobertura)
+        {
+            const double kmPorGradoLat = 111.32d;
+            double latCentro = (cobertura.MinLat + cobertura.MaxLat) / 2d;
+            double kmPorGradoLng = kmPorGradoLat * Math.Max(0.2d, Math.Cos(latCentro * Math.PI / 180d));
+
+            double margenLat = MargenCoberturaKm / kmPorGradoLat;
+            double margenLng = MargenCoberturaKm / kmPorGradoLng;
+
+            return lat >= cobertura.MinLat - margenLat
+                && lat <= cobertura.MaxLat + margenLat
+                && lng >= cobertura.MinLng - margenLng
+                && lng <= cobertura.MaxLng + margenLng;
         }
 
         private static string NormalizarCodigo(string valor)
