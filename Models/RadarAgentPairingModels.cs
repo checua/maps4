@@ -33,3 +33,14 @@ public sealed class RadarAgentPairingExchangeResult
     public string CuentaNombre { get; set; } = "";
     public string RolCodigo { get; set; } = "";
 }
+
+public sealed class RadarAgentAuthenticationResult
+{
+    public Guid IdAgent { get; set; }
+    public string NombreAgent { get; set; } = "";
+    public string? EquipoNombre { get; set; }
+    public int IdAsesor { get; set; }
+    public int IdCuenta { get; set; }
+    public string CuentaNombre { get; set; } = "";
+    public string RolCodigo { get; set; } = "";
+}
