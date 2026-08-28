@@ -1,0 +1,15 @@
+{
+  "usuario": "asesor@ejemplo.com",
+  "cuenta": "agencia-ejemplo",
+  "chatsMonitoreados": [
+    "Grupo inmobiliario 1",
+    "Grupo inmobiliario 2"
+  ],
+  "destinoAlertas": "Propiedades",
+  "intervaloRevisionMs": 1200000,
+  "terminosBusqueda": {
+    "Grupo inmobiliario 1": [
+      "Grupo inmobiliario"
+    ]
+  }
+}
