@@ -357,11 +357,13 @@ namespace maps4.Services
 
         private static double CoincidenciaZona(List<string> zonas, InventarioInmuebleViewModel inmueble)
         {
+            // Para un filtro geográfico duro, RADAR solo confía en la geografía
+            // estructurada que RSMaps ya conoce. Dirección y observaciones pueden
+            // contener palabras incidentales ("jardines", "sur", etc.) y no deben
+            // convertir por sí solas una propiedad en candidata de una zona.
             string estructuradas = Normalizar($"{inmueble.ZonaPrincipalNombre} {inmueble.ZonasCsv}");
-            string direccion = DireccionUtil(inmueble.Direccion) ? inmueble.Direccion! : string.Empty;
-            string respaldo = Normalizar($"{direccion} {inmueble.Observaciones}");
 
-            if (string.IsNullOrWhiteSpace(estructuradas) && string.IsNullOrWhiteSpace(respaldo))
+            if (string.IsNullOrWhiteSpace(estructuradas))
                 return 0;
 
             double mejor = 0;
@@ -372,35 +374,16 @@ namespace maps4.Services
                 if (string.IsNullOrWhiteSpace(z))
                     continue;
 
-                if (!string.IsNullOrWhiteSpace(estructuradas))
-                {
-                    if (estructuradas.Contains(z, StringComparison.OrdinalIgnoreCase))
-                        return 1;
+                if (estructuradas.Contains(z, StringComparison.OrdinalIgnoreCase))
+                    return 1;
 
-                    var tokensEstructurados = TokensZona(z).ToList();
-                    if (tokensEstructurados.Count > 0)
-                    {
-                        int encontrados = tokensEstructurados.Count(t =>
-                            estructuradas.Contains(t, StringComparison.OrdinalIgnoreCase));
-                        mejor = Math.Max(mejor, (double)encontrados / tokensEstructurados.Count);
-                    }
-                }
+                var tokens = TokensZona(z).ToList();
+                if (tokens.Count == 0)
+                    continue;
 
-                if (!string.IsNullOrWhiteSpace(respaldo))
-                {
-                    if (respaldo.Contains(z, StringComparison.OrdinalIgnoreCase))
-                        mejor = Math.Max(mejor, 0.85);
-
-                    var tokensRespaldo = TokensZona(z).ToList();
-                    if (tokensRespaldo.Count > 0)
-                    {
-                        int encontrados = tokensRespaldo.Count(t =>
-                            respaldo.Contains(t, StringComparison.OrdinalIgnoreCase));
-                        mejor = Math.Max(
-                            mejor,
-                            ((double)encontrados / tokensRespaldo.Count) * 0.75);
-                    }
-                }
+                int encontrados = tokens.Count(t =>
+                    estructuradas.Contains(t, StringComparison.OrdinalIgnoreCase));
+                mejor = Math.Max(mejor, (double)encontrados / tokens.Count);
             }
 
             return mejor;
@@ -426,12 +409,12 @@ namespace maps4.Services
             {
                 "ZONA", "FRACC", "FRACCIONAMIENTO", "COL", "COLONIA", "CERCA",
                 "ALREDEDORES", "ALREDEDOR", "DEL", "DE", "LA", "EL", "LOS", "LAS",
-                "POR", "BLVD", "BOULEVARD"
+                "POR", "BLVD", "BOULEVARD", "CIUDAD"
             };
 
             return texto
                 .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Where(x => x.Length >= 4 && !ignorar.Contains(x))
+                .Where(x => x.Length >= 3 && !ignorar.Contains(x))
                 .Distinct(StringComparer.OrdinalIgnoreCase);
         }
 
