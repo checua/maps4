@@ -41,7 +41,9 @@ public static class RadarAgentConfigLoader
                 throw new InvalidOperationException("El archivo de configuración del Agent está vacío.");
 
             config.ChatsMonitoreados ??= [];
-            config.TerminosBusqueda ??= new(StringComparer.OrdinalIgnoreCase);
+            config.TerminosBusqueda = new Dictionary<string, string[]>(
+                config.TerminosBusqueda ?? new Dictionary<string, string[]>(),
+                StringComparer.OrdinalIgnoreCase);
 
             return config;
         }
