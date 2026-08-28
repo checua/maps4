@@ -11,6 +11,7 @@
     let zonasOverview = [];
     let zonasOverviewVisibles = false;
     let zonasOverviewCargando = false;
+    const inmuebleCircles = new Map();
 
     const defaultCenter = { lat: 24.0277, lng: -104.6532 };
 
@@ -99,37 +100,75 @@
 
     function cargarPinsInventario() {
         const pins = Array.isArray(window.rsMapsZonaPins) ? window.rsMapsZonaPins : [];
+        inmuebleCircles.clear();
 
         pins.forEach(pin => {
             const lat = Number(pin.lat);
             const lng = Number(pin.lng);
             if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
+            const coberturaPendiente = pin.coberturaPendiente === true;
+            const fueraAreaActual = pin.fueraAreaActual === true;
+            const color = coberturaPendiente ? '#f59e0b' : (fueraAreaActual ? '#94a3b8' : '#2563eb');
+
             const circle = new google.maps.Circle({
                 map,
                 center: { lat, lng },
-                radius: 42,
-                strokeColor: '#2563eb',
-                strokeOpacity: 0.9,
-                strokeWeight: 1,
-                fillColor: '#2563eb',
-                fillOpacity: 0.75,
+                radius: coberturaPendiente ? 60 : 42,
+                strokeColor: color,
+                strokeOpacity: fueraAreaActual ? 0.45 : 0.9,
+                strokeWeight: coberturaPendiente ? 2 : 1,
+                fillColor: color,
+                fillOpacity: fueraAreaActual ? 0.25 : 0.75,
                 clickable: true,
-                zIndex: 20
+                zIndex: coberturaPendiente ? 30 : (fueraAreaActual ? 10 : 20)
             });
 
-            circle.addListener('click', () => {
-                const precio = pin.precio ? Number(pin.precio).toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 }) : 'Sin precio';
-                infoWindow.setPosition({ lat, lng });
-                infoWindow.setContent(`
-                    <div style="min-width:180px">
-                        <strong>#${pin.idInmueble} ${escapeHtml(pin.tipo || 'Inmueble')}</strong><br>
-                        <span>${escapeHtml(pin.direccion || 'Sin dirección')}</span><br>
-                        <span>${escapeHtml(precio)}</span>
-                    </div>`);
-                infoWindow.open({ map });
-            });
+            inmuebleCircles.set(Number(pin.idInmueble), { circle, pin });
+            circle.addListener('click', () => abrirInfoInmueble(pin));
         });
+    }
+
+    function abrirInfoInmueble(pin) {
+        if (!map || !infoWindow || !pin) return;
+
+        const lat = Number(pin.lat);
+        const lng = Number(pin.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+        const precio = pin.precio
+            ? Number(pin.precio).toLocaleString('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 })
+            : 'Sin precio';
+        const estado = pin.coberturaPendiente === true
+            ? '<br><strong style="color:#b45309">⚠ Cobertura pendiente</strong>'
+            : (pin.fueraAreaActual === true
+                ? '<br><span style="color:#64748b">Fuera del área actual de zonas</span>'
+                : '');
+
+        infoWindow.setPosition({ lat, lng });
+        infoWindow.setContent(`
+            <div style="min-width:180px">
+                <strong>#${pin.idInmueble} ${escapeHtml(pin.tipo || 'Inmueble')}</strong><br>
+                <span>${escapeHtml(pin.direccion || 'Sin dirección')}</span><br>
+                <span>${escapeHtml(precio)}</span>${estado}
+            </div>`);
+        infoWindow.open({ map });
+    }
+
+    function enfocarInmueble(idInmueble) {
+        if (!map) return;
+
+        const item = inmuebleCircles.get(Number(idInmueble));
+        if (!item) return;
+
+        const lat = Number(item.pin.lat);
+        const lng = Number(item.pin.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+        map.panTo({ lat, lng });
+        map.setZoom(Math.max(map.getZoom() || 12, 16));
+        abrirInfoInmueble(item.pin);
+        setStatus(`Inmueble #${item.pin.idInmueble}: revisa el hueco de cobertura y decide si amplías una zona o creas una nueva.`);
     }
 
     function iniciarDibujo() {
@@ -592,6 +631,10 @@
 
         document.querySelectorAll('[data-id-zona]').forEach(card => {
             card.addEventListener('click', () => editarZona(Number(card.dataset.idZona)));
+        });
+
+        document.querySelectorAll('.zona-coverage-item[data-id-inmueble]').forEach(item => {
+            item.addEventListener('click', () => enfocarInmueble(Number(item.dataset.idInmueble)));
         });
 
         renderAliases();
