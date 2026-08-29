@@ -47,7 +47,11 @@ public sealed class RadarAgentInstanceLock : IDisposable
                 FileShare.None);
 
             stream.SetLength(0);
-            using var writer = new StreamWriter(stream, Encoding.UTF8, leaveOpen: true);
+            using var writer = new StreamWriter(
+                stream,
+                Encoding.UTF8,
+                bufferSize: 1024,
+                leaveOpen: true);
             writer.WriteLine($"PID={Environment.ProcessId}");
             writer.WriteLine($"STARTED_UTC={DateTime.UtcNow:O}");
             writer.Flush();
