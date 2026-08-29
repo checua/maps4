@@ -30,4 +30,20 @@ public interface IRadarAgentPairingRepository
         int idCuenta,
         Guid idAgent,
         CancellationToken cancellationToken = default);
+
+    Task<RadarAgentConfiguration?> ObtenerConfiguracionAsync(
+        string correo,
+        int idCuenta,
+        Guid idAgent,
+        CancellationToken cancellationToken = default);
+
+    Task<RadarAgentConfiguration> ObtenerConfiguracionAgentAsync(
+        Guid idAgent,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> GuardarConfiguracionAsync(
+        string correo,
+        int idCuenta,
+        RadarAgentConfiguration configuracion,
+        CancellationToken cancellationToken = default);
 }
