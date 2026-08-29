@@ -18,6 +18,10 @@ public sealed class RadarAgentDeviceListItem
     public DateTime FechaAltaUtc { get; set; }
     public DateTime? UltimoUsoUtc { get; set; }
     public DateTime? RevocadoUtc { get; set; }
+    public bool Configurada { get; set; }
+    public int ChatsMonitoreadosCount { get; set; }
+    public string? DestinoAlertas { get; set; }
+    public int? IntervaloRevisionMs { get; set; }
 }
 
 public sealed class RadarAgentPairingCreateResult
