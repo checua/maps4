@@ -54,20 +54,7 @@ public sealed class RadarAgentPairingApiController : ControllerBase
     [HttpGet("me")]
     public async Task<IActionResult> Me(CancellationToken cancellationToken)
     {
-        string authorization = Request.Headers["Authorization"].ToString();
-        const string bearer = "Bearer ";
-
-        if (string.IsNullOrWhiteSpace(authorization) ||
-            !authorization.StartsWith(bearer, StringComparison.OrdinalIgnoreCase))
-        {
-            return Unauthorized(new { mensaje = "Se requiere la credencial del RADAR Agent." });
-        }
-
-        string credencial = authorization[bearer.Length..].Trim();
-        RadarAgentAuthenticationResult? resultado = await _pairingRepository.ValidarCredencialAsync(
-            credencial,
-            cancellationToken);
-
+        RadarAgentAuthenticationResult? resultado = await AutenticarAgentAsync(cancellationToken);
         if (resultado is null)
             return Unauthorized(new { mensaje = "RADAR Agent no válido, revocado o sin cuenta activa." });
 
@@ -81,5 +68,51 @@ public sealed class RadarAgentPairingApiController : ControllerBase
             cuenta = resultado.CuentaNombre,
             rol = resultado.RolCodigo
         });
+    }
+
+    [AllowAnonymous]
+    [HttpGet("config")]
+    public async Task<IActionResult> Config(CancellationToken cancellationToken)
+    {
+        RadarAgentAuthenticationResult? autenticacion = await AutenticarAgentAsync(cancellationToken);
+        if (autenticacion is null)
+            return Unauthorized(new { mensaje = "RADAR Agent no válido, revocado o sin cuenta activa." });
+
+        RadarAgentConfiguration configuracion =
+            await _pairingRepository.ObtenerConfiguracionAgentAsync(
+                autenticacion.IdAgent,
+                cancellationToken);
+
+        return Ok(new
+        {
+            idAgent = autenticacion.IdAgent,
+            configurada = configuracion.Configurada,
+            chatsMonitoreados = configuracion.ChatsMonitoreados,
+            destinoAlertas = configuracion.DestinoAlertas,
+            intervaloRevisionMs = configuracion.IntervaloRevisionMs,
+            terminosBusqueda = configuracion.TerminosBusqueda,
+            actualizadoUtc = configuracion.ActualizadoUtc
+        });
+    }
+
+    private async Task<RadarAgentAuthenticationResult?> AutenticarAgentAsync(
+        CancellationToken cancellationToken)
+    {
+        string authorization = Request.Headers["Authorization"].ToString();
+        const string bearer = "Bearer ";
+
+        if (string.IsNullOrWhiteSpace(authorization) ||
+            !authorization.StartsWith(bearer, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        string credencial = authorization[bearer.Length..].Trim();
+        if (string.IsNullOrWhiteSpace(credencial))
+            return null;
+
+        return await _pairingRepository.ValidarCredencialAsync(
+            credencial,
+            cancellationToken);
     }
 }
