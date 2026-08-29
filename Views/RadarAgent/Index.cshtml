@@ -3,6 +3,14 @@
 @{
     ViewData["Title"] = "RADAR Agents";
     string? mensaje = TempData["RadarAgentMensaje"] as string;
+    DateTime ahoraUtc = DateTime.UtcNow;
+    int activos = Model.Agents.Count(x => x.Activo && !x.RevocadoUtc.HasValue);
+    int revocados = Model.Agents.Count - activos;
+    int enLinea = Model.Agents.Count(x =>
+        x.Activo
+        && !x.RevocadoUtc.HasValue
+        && x.UltimoUsoUtc.HasValue
+        && Math.Abs((ahoraUtc - x.UltimoUsoUtc.Value).TotalMinutes) <= 3);
 }
 
 <div class="container py-4" style="max-width:980px;">
@@ -13,6 +21,9 @@
                 Cuenta: <strong>@(string.IsNullOrWhiteSpace(Model.CuentaNombre) ? "Cuenta actual" : Model.CuentaNombre)</strong>
             </div>
         </div>
+        <div>
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Actualizar estado</a>
+        </div>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(mensaje))
@@ -20,12 +31,40 @@
         <div class="alert alert-success" role="alert">@mensaje</div>
     }
 
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card shadow-sm h-100"><div class="card-body py-3">
+                <div class="text-muted small">Registrados</div>
+                <div class="fs-4 fw-bold">@Model.Agents.Count</div>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card shadow-sm h-100"><div class="card-body py-3">
+                <div class="text-muted small">En línea</div>
+                <div class="fs-4 fw-bold text-success">@enLinea</div>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card shadow-sm h-100"><div class="card-body py-3">
+                <div class="text-muted small">Acceso activo</div>
+                <div class="fs-4 fw-bold">@activos</div>
+            </div></div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card shadow-sm h-100"><div class="card-body py-3">
+                <div class="text-muted small">Revocados</div>
+                <div class="fs-4 fw-bold text-secondary">@revocados</div>
+            </div></div>
+        </div>
+    </div>
+
     <div class="card shadow-sm mb-4">
         <div class="card-body p-4">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div>
                     <h4 class="mb-1">Equipos vinculados</h4>
                     <div class="text-muted small">Cada Agent tiene una credencial independiente y puede revocarse sin afectar a los demás.</div>
+                    <div class="text-muted small">“En línea” indica actividad autenticada recibida por RSMaps durante los últimos 3 minutos.</div>
                 </div>
                 <span class="badge bg-secondary">@Model.Agents.Count</span>
             </div>
@@ -42,20 +81,27 @@
                     @foreach (var agent in Model.Agents)
                     {
                         bool activo = agent.Activo && !agent.RevocadoUtc.HasValue;
+                        bool conectado = activo
+                            && agent.UltimoUsoUtc.HasValue
+                            && Math.Abs((ahoraUtc - agent.UltimoUsoUtc.Value).TotalMinutes) <= 3;
 
                         <div class="col-12">
                             <div class="border rounded p-3">
                                 <div class="d-flex flex-column flex-md-row justify-content-between gap-3">
                                     <div>
-                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                        <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
                                             <strong>@agent.NombreAgent</strong>
-                                            @if (activo)
+                                            @if (!activo)
                                             {
-                                                <span class="badge bg-success">Activo</span>
+                                                <span class="badge bg-secondary">Revocado</span>
+                                            }
+                                            else if (conectado)
+                                            {
+                                                <span class="badge bg-success">En línea</span>
                                             }
                                             else
                                             {
-                                                <span class="badge bg-secondary">Revocado</span>
+                                                <span class="badge bg-warning text-dark">Sin conexión</span>
                                             }
                                         </div>
 
@@ -63,14 +109,22 @@
                                             Equipo: @(string.IsNullOrWhiteSpace(agent.EquipoNombre) ? "No registrado" : agent.EquipoNombre)
                                         </div>
                                         <div class="text-muted small">
+                                            Agent ID: <span class="font-monospace">@agent.IdAgent.ToString()[..8]</span>
+                                        </div>
+                                        <div class="text-muted small">
                                             Vinculado: @agent.FechaAltaUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
                                         </div>
                                         <div class="text-muted small">
-                                            Último uso:
+                                            Última actividad:
                                             @(agent.UltimoUsoUtc.HasValue
-                                                ? agent.UltimoUsoUtc.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                                ? agent.UltimoUsoUtc.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")
                                                 : "Todavía sin uso registrado")
                                         </div>
+
+                                        @if (activo)
+                                        {
+                                            <div class="text-muted small">Acceso: credencial activa</div>
+                                        }
 
                                         @if (agent.RevocadoUtc.HasValue)
                                         {
