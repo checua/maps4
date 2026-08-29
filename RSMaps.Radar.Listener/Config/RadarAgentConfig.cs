@@ -52,6 +52,22 @@ public static class RadarAgentConfigLoader
             Console.WriteLine($"  Cuenta declarada localmente: {Mostrar(config.Cuenta)}");
             Console.WriteLine($"  Archivo: {path}");
             RadarAgentBackendClient.MostrarEstado(config);
+
+            try
+            {
+                bool sincronizada = RadarAgentBackendClient
+                    .SincronizarConfiguracionAsync(config, mostrarEstado: true)
+                    .GetAwaiter()
+                    .GetResult();
+
+                if (!sincronizada)
+                    Console.WriteLine("  Configuración RSMaps: no disponible; usando fallback local.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"  Configuración RSMaps: no disponible ({ex.Message}); usando fallback local.");
+            }
+
             RadarAgentHeartbeat.Start(config);
 
             return config;
