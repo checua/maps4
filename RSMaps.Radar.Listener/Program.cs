@@ -35,6 +35,10 @@ Console.WriteLine("Esperando que cargue la lista de chats...");
 await page.Locator("[data-testid='chat-list']").WaitForAsync(
     new LocatorWaitForOptions { Timeout = 60_000 });
 
+await RadarWhatsAppChatDiscovery.DescubrirYReportarAsync(
+    page,
+    RadarSettings.ConfiguracionAgente);
+
 Console.WriteLine();
 Console.WriteLine("Chats configurados para Radar:");
 foreach (var chat in RadarSettings.ChatsMonitoreados)
@@ -256,7 +260,6 @@ static async Task<bool> ClickPorTituloVisible(IPage page, string nombreChat)
         }
     }
 
-    // Fallback para títulos con emojis/sufijos: se compara el texto real del título.
     var titulos = page.Locator("[data-testid='cell-frame-title']");
     var total = await titulos.CountAsync();
 
@@ -333,7 +336,6 @@ static bool EsMismoChat(string tituloActual, string esperado)
     if (string.Equals(actual, objetivo, StringComparison.OrdinalIgnoreCase))
         return true;
 
-    // Algunos grupos agregan emojis al final del nombre visible.
     return actual.StartsWith(objetivo, StringComparison.OrdinalIgnoreCase);
 }
 
@@ -476,8 +478,6 @@ static async Task<(bool Enviada, bool MarcadoNoLeido, string Detalle)> EnviarAle
         await page.Keyboard.PressAsync("Enter");
         await Task.Delay(700);
 
-        // Importante: salir primero de Propiedades para que WhatsApp no vuelva
-        // a marcarlo como leído inmediatamente.
         var regresoOrigen = await AbrirChat(page, s.ChatOrigen);
         if (!regresoOrigen)
             return (true, false, "enviado; no pude regresar al chat origen");
@@ -549,7 +549,6 @@ static async Task<bool> MarcarChatEnListaComoNoLeido(IPage page, string nombreCh
             }
         }
 
-        // Si no está visible, lo filtramos; no lo abrimos.
         if (tituloObjetivo is null)
         {
             var input = await ObtenerInputBusqueda(page);
@@ -894,6 +893,7 @@ static string Normalizar(string texto) => texto
     .Replace("ú", "u")
     .Replace("ü", "u")
     .Replace("ñ", "n");
+
 static void MostrarSolicitud(SolicitudInmobiliaria s)
 {
     Console.WriteLine();
