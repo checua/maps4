@@ -12,6 +12,8 @@ Console.WriteLine("      RSMaps Radar v0.8.0-matching");
 Console.WriteLine("==================================");
 Console.WriteLine();
 
+using var instanceLock = RadarAgentInstanceLock.Acquire();
+
 var userDataDir = Path.Combine(AppContext.BaseDirectory, "WhatsAppProfile");
 
 using var playwright = await Playwright.CreateAsync();
@@ -23,17 +25,10 @@ var context = await playwright.Chromium.LaunchPersistentContextAsync(
         ViewportSize = null
     });
 
-var page = context.Pages.FirstOrDefault() ?? await context.NewPageAsync();
-
-await page.GotoAsync(
-    "https://web.whatsapp.com",
-    new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-
 Console.WriteLine("WhatsApp Web abierto.");
 Console.WriteLine("Esperando que cargue la lista de chats...");
 
-await page.Locator("[data-testid='chat-list']").WaitForAsync(
-    new LocatorWaitForOptions { Timeout = 60_000 });
+var page = await RadarWhatsAppSession.ObtenerPaginaActivaAsync(context);
 
 await RadarWhatsAppChatDiscovery.DescubrirYReportarAsync(
     page,
@@ -105,6 +100,11 @@ while (true)
 {
     try
     {
+        page = await RadarWhatsAppSession.ObtenerPaginaActivaAsync(context, page);
+        await RadarWhatsAppChatDiscovery.ActualizarSiCorrespondeAsync(
+            page,
+            RadarSettings.ConfiguracionAgente);
+
         foreach (var chat in RadarSettings.ChatsMonitoreados)
         {
             if (!await AbrirChat(page, chat))
@@ -167,6 +167,18 @@ while (true)
     catch (PlaywrightException ex)
     {
         Console.WriteLine($"[PLAYWRIGHT] {ex.Message}");
+
+        try
+        {
+            page = await RadarWhatsAppSession.ObtenerPaginaActivaAsync(
+                context,
+                page,
+                mostrarRecuperacion: true);
+        }
+        catch (Exception recuperacionEx)
+        {
+            Console.WriteLine($"[RADAR] No pude recuperar WhatsApp Web: {recuperacionEx.Message}");
+        }
     }
     catch (Exception ex)
     {
