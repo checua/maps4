@@ -34,7 +34,7 @@ public sealed class RadarAgentController : Controller
         {
             NombreAgent = "RADAR Agent",
             CuentaNombre = User.FindFirst("CuentaNombre")?.Value,
-            Agents = await _pairingRepository.ListarAgentsAsync(correo, idCuenta, cancellationToken)
+            Agents = await CargarAgentsConConfiguracionAsync(correo, idCuenta, cancellationToken)
         };
 
         return View(model);
@@ -61,7 +61,7 @@ public sealed class RadarAgentController : Controller
         model.CuentaNombre = resultado.CuentaNombre;
         model.Codigo = resultado.Codigo;
         model.ExpiraUtc = resultado.ExpiraUtc;
-        model.Agents = await _pairingRepository.ListarAgentsAsync(correo, idCuenta, cancellationToken);
+        model.Agents = await CargarAgentsConConfiguracionAsync(correo, idCuenta, cancellationToken);
 
         return View("Index", model);
     }
@@ -199,6 +199,36 @@ public sealed class RadarAgentController : Controller
 
         TempData["RadarAgentMensaje"] = "El acceso del RADAR Agent fue revocado.";
         return RedirectToAction(nameof(Index));
+    }
+
+    private async Task<List<RadarAgentDeviceListItem>> CargarAgentsConConfiguracionAsync(
+        string correo,
+        int idCuenta,
+        CancellationToken cancellationToken)
+    {
+        List<RadarAgentDeviceListItem> agents = await _pairingRepository.ListarAgentsAsync(
+            correo,
+            idCuenta,
+            cancellationToken);
+
+        foreach (RadarAgentDeviceListItem agent in agents)
+        {
+            RadarAgentConfiguration? configuracion = await _pairingRepository.ObtenerConfiguracionAsync(
+                correo,
+                idCuenta,
+                agent.IdAgent,
+                cancellationToken);
+
+            if (configuracion is null)
+                continue;
+
+            agent.Configurada = configuracion.Configurada;
+            agent.ChatsMonitoreadosCount = configuracion.ChatsMonitoreados.Count;
+            agent.DestinoAlertas = configuracion.DestinoAlertas;
+            agent.IntervaloRevisionMs = configuracion.IntervaloRevisionMs;
+        }
+
+        return agents;
     }
 
     private bool TryGetContextoActual(out string correo, out int idCuenta)
