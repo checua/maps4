@@ -16,6 +16,14 @@ public class SolicitudInmobiliaria
     public List<string> Zonas { get; set; } = [];
     public string? TipoFraccionamiento { get; set; }
 
+    // Condición física/comercial del inmueble solicitado.
+    // Valores canónicos iniciales: Nueva | Usada | Remodelada.
+    public string? CondicionInmueble { get; set; }
+
+    // Etapa del proyecto o disponibilidad solicitada.
+    // Valores canónicos iniciales: Preventa | En construcción | Terminada.
+    public string? EtapaInmueble { get; set; }
+
     public decimal? PrecioMinimo { get; set; }
     public decimal? PrecioMaximo { get; set; }
 
