@@ -5,7 +5,8 @@
     string? mensaje = TempData["RadarAgentConfiguracionMensaje"] as string;
     var seleccionados = Model.ChatsSeleccionados.ToHashSet(StringComparer.OrdinalIgnoreCase);
     var chatsOrdenados = Model.ChatsDisponibles
-        .OrderBy(x => x.Nombre, StringComparer.CurrentCultureIgnoreCase)
+        .OrderByDescending(x => seleccionados.Contains(x.Nombre))
+        .ThenBy(x => x.Nombre, StringComparer.CurrentCultureIgnoreCase)
         .ToList();
 }
 
@@ -95,34 +96,31 @@
                                 </div>
                             </div>
 
-                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                                <div class="small fw-semibold">
-                                    Seleccionados: <span id="radarSelectedCount">@seleccionados.Count</span>
-                                </div>
-                                <div class="small text-muted">
-                                    Permanecen visibles mientras buscas otros chats.
-                                </div>
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2 small text-muted">
+                                <span>
+                                    Seleccionados: <strong id="radarSelectedCount">@seleccionados.Count</strong>
+                                </span>
+                                <span id="radarSelectedHint">Permanecen visibles mientras buscas otros chats.</span>
                             </div>
 
                             <div id="radarSelectedList" class="row g-2 mb-3"></div>
-                            <div id="radarNoSelected" class="alert alert-light border py-2 small mb-3 d-none">
-                                Todavía no has seleccionado chats para monitorear.
-                            </div>
 
-                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2 border-top pt-3">
-                                <div id="radarResultsTitle" class="small fw-semibold">Chats disponibles</div>
-                                <div class="small text-muted">
+                            <hr class="my-3" />
+
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2 small text-muted">
+                                <span class="fw-semibold">Resultados de búsqueda</span>
+                                <span>
                                     Mostrando <strong id="radarVisibleCount">0</strong> de <span id="radarAvailableCount">0</span> disponibles
-                                </div>
+                                </span>
                             </div>
 
-                            <div id="radarAvailableList" class="row g-2" style="max-height:440px; overflow-y:auto;"></div>
+                            <div id="radarAvailableList" class="row g-2" style="max-height:360px; overflow-y:auto;"></div>
 
                             <div id="radarNoChats" class="alert alert-light border py-2 small mt-3 mb-0 d-none">
                                 No hay chats que coincidan con el filtro.
                             </div>
 
-                            <div id="radarChatPool" class="d-none">
+                            <div id="radarChatSource" class="d-none">
                                 @{ int chatIndex = 0; }
                                 @foreach (var chat in chatsOrdenados)
                                 {
@@ -130,7 +128,7 @@
                                     string idCheckbox = $"chat-{chatIndex++}";
                                     <div class="col-12 col-md-6 radar-chat-item"
                                          data-chat-name="@chat.Nombre.ToLowerInvariant()"
-                                         data-chat-label="@chat.Nombre">
+                                         data-original-index="@(chatIndex - 1)">
                                         <div class="form-check border rounded px-3 py-2 h-100" style="padding-left:2.25rem !important;">
                                             <input class="form-check-input radar-chat-checkbox"
                                                    type="checkbox"
@@ -175,9 +173,23 @@
 
                 <div class="mb-4">
                     <label asp-for="DestinoAlertas" class="form-label fw-semibold">Destino de alertas</label>
-                    <input asp-for="DestinoAlertas" class="form-control" maxlength="200" />
+                    <input asp-for="DestinoAlertas"
+                           class="form-control"
+                           maxlength="200"
+                           list="radarDestinoChats"
+                           autocomplete="off"
+                           placeholder="Selecciona o escribe un chat de destino" />
+                    @if (Model.ChatsDisponibles.Count > 0)
+                    {
+                        <datalist id="radarDestinoChats">
+                            @foreach (var chat in Model.ChatsDisponibles.OrderBy(x => x.Nombre, StringComparer.CurrentCultureIgnoreCase))
+                            {
+                                <option value="@chat.Nombre"></option>
+                            }
+                        </datalist>
+                    }
                     <div class="form-text">
-                        Chat al que se enviarán las oportunidades cuando el modo seguro esté desactivado.
+                        Puedes elegir uno de los chats detectados en este equipo. También puedes escribir uno manualmente si todavía no aparece en el catálogo.
                     </div>
                 </div>
 
@@ -214,24 +226,19 @@
         (() => {
             const search = document.getElementById('radarChatSearch');
             const onlySelected = document.getElementById('radarOnlySelected');
-            const pool = document.getElementById('radarChatPool');
+            const source = document.getElementById('radarChatSource');
             const selectedList = document.getElementById('radarSelectedList');
             const availableList = document.getElementById('radarAvailableList');
-            const items = Array.from(pool.querySelectorAll('.radar-chat-item'));
-            const checkboxes = items.map(item => item.querySelector('.radar-chat-checkbox'));
+            const items = Array.from(source.querySelectorAll('.radar-chat-item'));
+            const checkboxes = Array.from(source.querySelectorAll('.radar-chat-checkbox'));
             const selectedCount = document.getElementById('radarSelectedCount');
             const visibleCount = document.getElementById('radarVisibleCount');
             const availableCount = document.getElementById('radarAvailableCount');
-            const resultsTitle = document.getElementById('radarResultsTitle');
-            const noSelected = document.getElementById('radarNoSelected');
             const noChats = document.getElementById('radarNoChats');
 
             const normalize = value => (value || '').toLocaleLowerCase('es-MX').trim();
-            const sortByName = (a, b) =>
-                (a.dataset.chatLabel || '').localeCompare(
-                    b.dataset.chatLabel || '',
-                    'es-MX',
-                    { sensitivity: 'base' });
+            const nameOf = item => item.querySelector('.radar-chat-checkbox')?.value || '';
+            const compareItems = (a, b) => nameOf(a).localeCompare(nameOf(b), 'es-MX', { sensitivity: 'base' });
 
             for (const checkbox of checkboxes) {
                 checkbox.checked = checkbox.dataset.serverSelected === 'true';
@@ -244,33 +251,28 @@
                 const selectedOnly = onlySelected.checked;
                 const selectedItems = items
                     .filter(item => item.querySelector('.radar-chat-checkbox')?.checked)
-                    .sort(sortByName);
+                    .sort(compareItems);
                 const availableItems = items
                     .filter(item => !item.querySelector('.radar-chat-checkbox')?.checked)
-                    .sort(sortByName);
+                    .sort(compareItems);
 
                 selectedList.replaceChildren(...selectedItems);
                 selectedCount.textContent = selectedItems.length.toString();
-                noSelected.classList.toggle('d-none', selectedItems.length > 0);
-
-                let visible = 0;
-                for (const item of availableItems) {
-                    const matchesText = !query || normalize(item.dataset.chatName).includes(query);
-                    const show = !selectedOnly && matchesText;
-                    item.classList.toggle('d-none', !show);
-                    availableList.appendChild(item);
-                    if (show) visible++;
-                }
-
-                for (const item of selectedItems) {
-                    item.classList.remove('d-none');
-                }
-
                 availableCount.textContent = availableItems.length.toString();
-                visibleCount.textContent = visible.toString();
-                resultsTitle.textContent = query ? 'Resultados de búsqueda' : 'Chats disponibles';
-                availableList.classList.toggle('d-none', selectedOnly);
-                noChats.classList.toggle('d-none', selectedOnly || visible > 0);
+
+                if (selectedOnly) {
+                    availableList.replaceChildren();
+                    visibleCount.textContent = '0';
+                    noChats.classList.add('d-none');
+                    return;
+                }
+
+                const matches = availableItems.filter(item =>
+                    !query || normalize(nameOf(item)).includes(query));
+
+                availableList.replaceChildren(...matches);
+                visibleCount.textContent = matches.length.toString();
+                noChats.classList.toggle('d-none', matches.length > 0);
             };
 
             search.addEventListener('input', render);
