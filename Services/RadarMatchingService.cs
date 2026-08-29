@@ -149,6 +149,18 @@ namespace maps4.Services
                     $"Tipo distinto o no confirmado: {inmueble.TipoNombre ?? "sin dato"}");
             }
 
+            if (solicitud.SubtiposPropiedad.Count > 0)
+            {
+                var evaluacionSubtipo = EvaluarCoincidenciaSubtipo(solicitud.SubtiposPropiedad, inmueble);
+                string subtiposSolicitados = string.Join(" | ", solicitud.SubtiposPropiedad);
+
+                Agregar(8, evaluacionSubtipo.Valor,
+                    evaluacionSubtipo.SubtipoCoincidente is null
+                        ? null
+                        : $"Subtipo compatible: {evaluacionSubtipo.SubtipoCoincidente}",
+                    $"Subtipo solicitado no confirmado: {subtiposSolicitados}");
+            }
+
             if (solicitud.Zonas.Count > 0)
             {
                 var evaluacionZona = EvaluarCoincidenciaZona(solicitud.Zonas, inmueble);
@@ -365,6 +377,42 @@ namespace maps4.Services
             if (ContieneAlguno(n, "OFICINA", "DESPACHO")) return "OFICINA";
             if (ContieneAlguno(n, "RANCHO", "QUINTA")) return "RANCHO";
             return string.Empty;
+        }
+
+        private static (double Valor, string? SubtipoCoincidente) EvaluarCoincidenciaSubtipo(
+            List<string> subtipos,
+            InventarioInmuebleViewModel inmueble)
+        {
+            if (subtipos.Count == 0)
+                return (1, null);
+
+            // RSMaps todavía no tiene un campo estructurado de subtipo en el inventario.
+            // Mientras se incorpora esa taxonomía, usamos únicamente texto autorizado del
+            // propio inmueble (tipo + observaciones) como evidencia blanda. La ausencia
+            // de evidencia penaliza el score, pero no descarta el candidato por sí sola.
+            string textoCandidato = Normalizar($"{inmueble.TipoNombre} {inmueble.Observaciones}");
+            if (string.IsNullOrWhiteSpace(textoCandidato))
+                return (0.10, null);
+
+            foreach (string subtipo in subtipos)
+            {
+                string normalizado = Normalizar(subtipo);
+                if (string.IsNullOrWhiteSpace(normalizado))
+                    continue;
+
+                if (ContieneFraseNormalizada(textoCandidato, normalizado))
+                    return (1, subtipo.Trim());
+            }
+
+            return (0.10, null);
+        }
+
+        private static bool ContieneFraseNormalizada(string texto, string frase)
+        {
+            if (string.IsNullOrWhiteSpace(texto) || string.IsNullOrWhiteSpace(frase))
+                return false;
+
+            return $" {texto} ".Contains($" {frase} ", StringComparison.OrdinalIgnoreCase);
         }
 
         private static double CoincidenciaZona(List<string> zonas, InventarioInmuebleViewModel inmueble) =>
