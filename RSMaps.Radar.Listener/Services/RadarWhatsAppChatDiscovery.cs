@@ -1,10 +1,19 @@
 using Microsoft.Playwright;
 using RSMaps.Radar.Listener.Config;
+using System.Text.RegularExpressions;
 
 namespace RSMaps.Radar.Listener.Services;
 
 public static class RadarWhatsAppChatDiscovery
 {
+    private static readonly Regex PrefijoNoLeidoEs = new(
+        @"^\s*\d+\s+mensajes?\s+no\s+le[ií]dos?\s+",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex PrefijoNoLeidoEn = new(
+        @"^\s*\d+\s+unread\s+messages?\s+",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
     public static async Task DescubrirYReportarAsync(
         IPage page,
         RadarAgentConfig? config,
@@ -68,7 +77,7 @@ public static class RadarWhatsAppChatDiscovery
                         if (!await titulo.IsVisibleAsync())
                             continue;
 
-                        string nombre = (await titulo.InnerTextAsync()).Trim();
+                        string nombre = LimpiarNombreChat((await titulo.InnerTextAsync()).Trim());
                         if (string.IsNullOrWhiteSpace(nombre))
                             continue;
 
@@ -104,5 +113,12 @@ public static class RadarWhatsAppChatDiscovery
         return nombres
             .OrderBy(x => x, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
+    }
+
+    private static string LimpiarNombreChat(string nombre)
+    {
+        string limpio = PrefijoNoLeidoEs.Replace(nombre, string.Empty);
+        limpio = PrefijoNoLeidoEn.Replace(limpio, string.Empty);
+        return Regex.Replace(limpio, @"\s+", " ").Trim();
     }
 }
