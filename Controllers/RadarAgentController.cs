@@ -94,10 +94,6 @@ public sealed class RadarAgentController : Controller
                 idAgent,
                 cancellationToken);
 
-        var nombresDisponibles = disponibles
-            .Select(x => x.Nombre)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
         var model = new RadarAgentConfigurationEditViewModel
         {
             IdAgent = configuracion.IdAgent,
@@ -105,12 +101,8 @@ public sealed class RadarAgentController : Controller
             EquipoNombre = configuracion.EquipoNombre,
             Activo = configuracion.Activo && !configuracion.RevocadoUtc.HasValue,
             Configurada = configuracion.Configurada,
-            ChatsSeleccionados = configuracion.ChatsMonitoreados
-                .Where(nombresDisponibles.Contains)
-                .ToList(),
-            ChatsTexto = string.Join(
-                Environment.NewLine,
-                configuracion.ChatsMonitoreados.Where(x => !nombresDisponibles.Contains(x))),
+            ChatsSeleccionados = configuracion.ChatsMonitoreados.ToList(),
+            ChatsTexto = string.Empty,
             ChatsDisponibles = disponibles,
             ChatsDetectadosUtc = disponibles.Count == 0
                 ? null
