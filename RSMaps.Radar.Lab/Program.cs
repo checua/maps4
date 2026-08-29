@@ -53,6 +53,18 @@ var casos = new (string Id, string Texto)[]
     (
         "knowledge-duplex",
         "Busco casa dúplex por Jardines, máximo $1,800,000, Infonavit."
+    ),
+    (
+        "condicion-nueva",
+        "Busco casa nueva en venta por Santa Rosa, máximo $4,950,000."
+    ),
+    (
+        "nueva-preventa",
+        "Busco departamento para estrenar en preventa, máximo $3,000,000."
+    ),
+    (
+        "condicion-remodelada",
+        "Busco casa remodelada en renta por Jardines, máximo $18,000."
     )
 };
 
@@ -118,6 +130,8 @@ foreach (var caso in casos)
             Console.WriteLine($"    Operación: {s.Operacion ?? "-"}");
             Console.WriteLine($"    Tipos: {Mostrar(s.TiposPropiedad)}");
             Console.WriteLine($"    Subtipos: {Mostrar(s.SubtiposPropiedad)}");
+            Console.WriteLine($"    Condición: {s.CondicionInmueble ?? "-"}");
+            Console.WriteLine($"    Etapa: {s.EtapaInmueble ?? "-"}");
             Console.WriteLine($"    Zonas: {Mostrar(s.Zonas)}");
             Console.WriteLine($"    Tipo fracc.: {s.TipoFraccionamiento ?? "-"}");
             Console.WriteLine($"    Precio mín.: {MostrarDinero(s.PrecioMinimo)}");
