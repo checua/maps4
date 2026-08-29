@@ -10,6 +10,9 @@ public sealed class RadarAgentRemoteConfig
     public Dictionary<string, string[]> TerminosBusqueda { get; set; } =
         new(StringComparer.OrdinalIgnoreCase);
     public DateTime? ActualizadoUtc { get; set; }
+    public DateTime? ExploracionChatsSolicitadaUtc { get; set; }
+    public DateTime? ExploracionChatsCompletadaUtc { get; set; }
+    public bool ExploracionChatsPendiente { get; set; }
 }
 
 public static class RadarAgentRemoteConfigCache
