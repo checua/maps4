@@ -54,10 +54,16 @@
 
                 <div class="mb-4">
                     <label asp-for="ChatsTexto" class="form-label fw-semibold">Chats monitoreados</label>
+                    @if (!Model.Configurada && string.IsNullOrWhiteSpace(Model.ChatsTexto))
+                    {
+                        <div class="alert alert-light border py-2 small mb-2">
+                            No hay chats configurados todavía. Agrega uno por línea.
+                        </div>
+                    }
                     <textarea asp-for="ChatsTexto"
                               class="form-control font-monospace"
                               rows="7"
-                              placeholder="Un chat por línea&#10;José Juan (Tú)&#10;INVENTARIOS Y PROSPECTOS"></textarea>
+                              placeholder="Agrega un chat o grupo por línea"></textarea>
                     <span asp-validation-for="ChatsTexto" class="text-danger small"></span>
                     <div class="form-text">
                         Escribe un chat o grupo por línea. El Agent sincroniza esta lista desde RSMaps.
