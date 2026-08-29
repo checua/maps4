@@ -4,9 +4,14 @@
     ViewData["Title"] = "Configurar RADAR Agent";
     string? mensaje = TempData["RadarAgentConfiguracionMensaje"] as string;
     var seleccionados = Model.ChatsSeleccionados.ToHashSet(StringComparer.OrdinalIgnoreCase);
-    var chatsOrdenados = Model.ChatsDisponibles
-        .OrderByDescending(x => seleccionados.Contains(x.Nombre))
-        .ThenBy(x => x.Nombre, StringComparer.CurrentCultureIgnoreCase)
+    var detectados = Model.ChatsDisponibles
+        .Select(x => x.Nombre)
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    var chatsOrdenados = detectados
+        .Concat(seleccionados)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderByDescending(x => seleccionados.Contains(x))
+        .ThenBy(x => x, StringComparer.CurrentCultureIgnoreCase)
         .ToList();
 }
 
@@ -60,14 +65,17 @@
                 <div class="mb-4">
                     <label class="form-label fw-semibold">Chats monitoreados</label>
 
-                    @if (Model.ChatsDisponibles.Count > 0)
+                    @if (chatsOrdenados.Count > 0)
                     {
                         <div class="border rounded p-3 mb-3">
                             <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
                                 <div>
-                                    <div class="fw-semibold">Chats detectados en este equipo</div>
+                                    <div class="fw-semibold">Chats disponibles para RADAR</div>
                                     <div class="text-muted small">
-                                        Selecciona cuáles debe monitorear RADAR. RSMaps guarda únicamente el nombre del chat, no mensajes ni participantes.
+                                        Selecciona cuáles debe monitorear RADAR. RSMaps guarda únicamente el título visible del chat; no guarda mensajes ni la lista de participantes. Los números sin nombre guardado se omiten del catálogo normal.
+                                    </div>
+                                    <div class="text-muted small mt-1">
+                                        Catálogo detectado: <strong>@Model.ChatsDisponibles.Count</strong> chat(s) elegible(s).
                                     </div>
                                 </div>
                                 @if (Model.ChatsDetectadosUtc.HasValue)
@@ -100,7 +108,7 @@
                                 <span>
                                     Seleccionados: <strong id="radarSelectedCount">@seleccionados.Count</strong>
                                 </span>
-                                <span id="radarSelectedHint">Permanecen visibles mientras buscas otros chats.</span>
+                                <span id="radarSelectedHint">Los configurados permanecen visibles aunque una exploración puntual no los vuelva a encontrar.</span>
                             </div>
 
                             <div id="radarSelectedList" class="row g-2 mb-3"></div>
@@ -122,23 +130,30 @@
 
                             <div id="radarChatSource" class="d-none">
                                 @{ int chatIndex = 0; }
-                                @foreach (var chat in chatsOrdenados)
+                                @foreach (string nombreChat in chatsOrdenados)
                                 {
-                                    bool seleccionado = seleccionados.Contains(chat.Nombre);
+                                    bool seleccionado = seleccionados.Contains(nombreChat);
+                                    bool detectado = detectados.Contains(nombreChat);
                                     string idCheckbox = $"chat-{chatIndex++}";
                                     <div class="col-12 col-md-6 radar-chat-item"
-                                         data-chat-name="@chat.Nombre.ToLowerInvariant()"
+                                         data-chat-name="@nombreChat.ToLowerInvariant()"
                                          data-original-index="@(chatIndex - 1)">
                                         <div class="form-check border rounded px-3 py-2 h-100" style="padding-left:2.25rem !important;">
                                             <input class="form-check-input radar-chat-checkbox"
                                                    type="checkbox"
                                                    name="ChatsSeleccionados"
-                                                   value="@chat.Nombre"
+                                                   value="@nombreChat"
                                                    id="@idCheckbox"
                                                    data-server-selected="@(seleccionado ? "true" : "false")"
                                                    autocomplete="off"
                                                    checked="@seleccionado" />
-                                            <label class="form-check-label w-100" for="@idCheckbox">@chat.Nombre</label>
+                                            <label class="form-check-label w-100" for="@idCheckbox">
+                                                @nombreChat
+                                                @if (seleccionado && !detectado)
+                                                {
+                                                    <span class="badge text-bg-light border ms-1">Configurado previamente</span>
+                                                }
+                                            </label>
                                         </div>
                                     </div>
                                 }
@@ -220,7 +235,7 @@
     </div>
 </div>
 
-@if (Model.ChatsDisponibles.Count > 0)
+@if (chatsOrdenados.Count > 0)
 {
     <script>
         (() => {
