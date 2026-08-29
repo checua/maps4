@@ -14,8 +14,9 @@ public static class RadarWhatsAppChatDiscovery
         @"^\s*\d+\s+unread\s+messages?\s+",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    private static int _actualizacionPeriodicaIniciada;
     private static string? _ultimaFirma;
+    private static DateTime _proximaActualizacionUtc = DateTime.MinValue;
+    private static TimeSpan? _intervalo;
 
     public static async Task DescubrirYReportarAsync(
         IPage page,
@@ -24,6 +25,9 @@ public static class RadarWhatsAppChatDiscovery
     {
         if (config is null)
             return;
+
+        TimeSpan intervalo = ObtenerIntervaloActualizacion();
+        _intervalo = intervalo;
 
         try
         {
@@ -43,66 +47,42 @@ public static class RadarWhatsAppChatDiscovery
         }
         finally
         {
-            IniciarActualizacionPeriodica(page.Context, config);
+            _proximaActualizacionUtc = DateTime.UtcNow.Add(intervalo);
+            Console.WriteLine(
+                $"  🔄 Catálogo de chats: actualización automática cada {intervalo.TotalMinutes:0} min " +
+                "usando la página principal de WhatsApp.");
         }
     }
 
-    private static void IniciarActualizacionPeriodica(
-        IBrowserContext context,
-        RadarAgentConfig config)
+    public static async Task ActualizarSiCorrespondeAsync(
+        IPage page,
+        RadarAgentConfig? config,
+        CancellationToken cancellationToken = default)
     {
-        if (Interlocked.Exchange(ref _actualizacionPeriodicaIniciada, 1) == 1)
+        if (config is null)
             return;
 
-        TimeSpan intervalo = ObtenerIntervaloActualizacion();
-        Console.WriteLine($"  🔄 Catálogo de chats: actualización automática cada {intervalo.TotalMinutes:0} min.");
-        _ = Task.Run(() => EjecutarActualizacionPeriodicaAsync(context, config, intervalo));
-    }
+        TimeSpan intervalo = _intervalo ?? ObtenerIntervaloActualizacion();
+        if (DateTime.UtcNow < _proximaActualizacionUtc)
+            return;
 
-    private static async Task EjecutarActualizacionPeriodicaAsync(
-        IBrowserContext context,
-        RadarAgentConfig config,
-        TimeSpan intervalo)
-    {
-        while (true)
+        _proximaActualizacionUtc = DateTime.UtcNow.Add(intervalo);
+
+        try
         {
-            try
-            {
-                await Task.Delay(intervalo);
-
-                IPage? page = null;
-                try
-                {
-                    page = await context.NewPageAsync();
-                    await page.GotoAsync(
-                        "https://web.whatsapp.com",
-                        new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
-
-                    await page.Locator("[data-testid='chat-list']").WaitForAsync(
-                        new LocatorWaitForOptions { Timeout = 60_000 });
-
-                    await DescubrirYReportarUnaVezAsync(
-                        page,
-                        config,
-                        mostrarEstado: false,
-                        CancellationToken.None);
-                }
-                finally
-                {
-                    if (page is not null && !page.IsClosed)
-                    {
-                        try { await page.CloseAsync(); } catch { }
-                    }
-                }
-            }
-            catch (PlaywrightException)
-            {
-                return;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"  ⚠ Actualización periódica de chats no disponible: {ex.Message}");
-            }
+            await DescubrirYReportarUnaVezAsync(
+                page,
+                config,
+                mostrarEstado: false,
+                cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"  ⚠ Actualización periódica de chats no disponible: {ex.Message}");
         }
     }
 
@@ -155,6 +135,9 @@ public static class RadarWhatsAppChatDiscovery
         CancellationToken cancellationToken)
     {
         var nombres = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        await LimpiarBusquedaAsync(page);
+
         ILocator lista = page.Locator("[data-testid='chat-list']").First;
         ILocator titulos = page.Locator("[data-testid='cell-frame-title']");
 
@@ -212,6 +195,30 @@ public static class RadarWhatsAppChatDiscovery
         return nombres
             .OrderBy(x => x, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
+    }
+
+    private static async Task LimpiarBusquedaAsync(IPage page)
+    {
+        try
+        {
+            ILocator contenedor = page.Locator("[data-testid='chat-list-search-container']");
+            if (await contenedor.CountAsync() > 0)
+            {
+                ILocator input = contenedor.Locator("[contenteditable='true']").First;
+                if (await input.CountAsync() == 0)
+                    input = contenedor.Locator("[role='textbox']").First;
+
+                if (await input.CountAsync() > 0 && await input.IsVisibleAsync())
+                    await input.FillAsync(string.Empty);
+            }
+
+            await page.Keyboard.PressAsync("Escape");
+            await Task.Delay(200);
+        }
+        catch
+        {
+            // La limpieza es preventiva; el descubrimiento puede continuar si WhatsApp cambia el selector.
+        }
     }
 
     private static TimeSpan ObtenerIntervaloActualizacion()
