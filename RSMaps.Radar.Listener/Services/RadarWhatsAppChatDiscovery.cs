@@ -14,6 +14,10 @@ public static class RadarWhatsAppChatDiscovery
         @"^\s*\d+\s+unread\s+messages?\s+",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+    private static readonly TimeSpan IntervaloActualizacion = TimeSpan.FromMinutes(15);
+    private static int _actualizacionPeriodicaIniciada;
+    private static string? _ultimaFirma;
+
     public static async Task DescubrirYReportarAsync(
         IPage page,
         RadarAgentConfig? config,
@@ -24,21 +28,11 @@ public static class RadarWhatsAppChatDiscovery
 
         try
         {
-            List<string> chats = await DescubrirAsync(page, cancellationToken);
-            if (chats.Count == 0)
-            {
-                Console.WriteLine("  ⚠ RADAR no encontró chats para reportar a RSMaps.");
-                return;
-            }
-
-            bool reportados = await RadarAgentBackendClient.ReportarChatsDisponiblesAsync(
+            await DescubrirYReportarUnaVezAsync(
+                page,
                 config,
-                chats,
+                mostrarEstado: true,
                 cancellationToken);
-
-            Console.WriteLine(reportados
-                ? $"  🔎 Chats WhatsApp detectados y reportados a RSMaps: {chats.Count}."
-                : $"  ⚠ Se detectaron {chats.Count} chat(s), pero no fue posible reportarlos a RSMaps.");
         }
         catch (OperationCanceledException)
         {
@@ -47,6 +41,107 @@ public static class RadarWhatsAppChatDiscovery
         catch (Exception ex)
         {
             Console.WriteLine($"  ⚠ Descubrimiento de chats no bloqueante: {ex.Message}");
+        }
+        finally
+        {
+            IniciarActualizacionPeriodica(page.Context, config);
+        }
+    }
+
+    private static void IniciarActualizacionPeriodica(
+        IBrowserContext context,
+        RadarAgentConfig config)
+    {
+        if (Interlocked.Exchange(ref _actualizacionPeriodicaIniciada, 1) == 1)
+            return;
+
+        _ = Task.Run(() => EjecutarActualizacionPeriodicaAsync(context, config));
+    }
+
+    private static async Task EjecutarActualizacionPeriodicaAsync(
+        IBrowserContext context,
+        RadarAgentConfig config)
+    {
+        while (true)
+        {
+            try
+            {
+                await Task.Delay(IntervaloActualizacion);
+
+                IPage? page = null;
+                try
+                {
+                    page = await context.NewPageAsync();
+                    await page.GotoAsync(
+                        "https://web.whatsapp.com",
+                        new PageGotoOptions { WaitUntil = WaitUntilState.DOMContentLoaded });
+
+                    await page.Locator("[data-testid='chat-list']").WaitForAsync(
+                        new LocatorWaitForOptions { Timeout = 60_000 });
+
+                    await DescubrirYReportarUnaVezAsync(
+                        page,
+                        config,
+                        mostrarEstado: false,
+                        CancellationToken.None);
+                }
+                finally
+                {
+                    if (page is not null && !page.IsClosed)
+                    {
+                        try { await page.CloseAsync(); } catch { }
+                    }
+                }
+            }
+            catch (PlaywrightException)
+            {
+                // Si el navegador/contexto ya cerró, el ciclo deja de ser útil.
+                return;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"  ⚠ Actualización periódica de chats no disponible: {ex.Message}");
+            }
+        }
+    }
+
+    private static async Task DescubrirYReportarUnaVezAsync(
+        IPage page,
+        RadarAgentConfig config,
+        bool mostrarEstado,
+        CancellationToken cancellationToken)
+    {
+        List<string> chats = await DescubrirAsync(page, cancellationToken);
+        if (chats.Count == 0)
+        {
+            if (mostrarEstado)
+                Console.WriteLine("  ⚠ RADAR no encontró chats para reportar a RSMaps.");
+            return;
+        }
+
+        string firma = string.Join('\u001F', chats);
+        bool cambio = !string.Equals(_ultimaFirma, firma, StringComparison.Ordinal);
+
+        bool reportados = await RadarAgentBackendClient.ReportarChatsDisponiblesAsync(
+            config,
+            chats,
+            cancellationToken);
+
+        if (!reportados)
+        {
+            Console.WriteLine($"  ⚠ Se detectaron {chats.Count} chat(s), pero no fue posible reportarlos a RSMaps.");
+            return;
+        }
+
+        _ultimaFirma = firma;
+
+        if (mostrarEstado)
+        {
+            Console.WriteLine($"  🔎 Chats WhatsApp detectados y reportados a RSMaps: {chats.Count}.");
+        }
+        else if (cambio)
+        {
+            Console.WriteLine($"  🔄 Catálogo WhatsApp actualizado en RSMaps: {chats.Count} chat(s).");
         }
     }
 
@@ -94,7 +189,6 @@ public static class RadarWhatsAppChatDiscovery
                 await Task.Delay(180, cancellationToken);
             }
 
-            // Intentamos regresar la lista al inicio para no alterar la navegación normal del Agent.
             try
             {
                 await lista.EvaluateAsync("el => { el.scrollTop = 0; }");
