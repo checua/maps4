@@ -110,6 +110,9 @@ namespace maps4.Services
             if (solicitud.UnaPlanta == true && inmueble.Niveles.HasValue && inmueble.Niveles.Value > 1)
                 return false;
 
+            // Condición y etapa son deliberadamente evidencia blanda en esta fase.
+            // Nunca descartamos por ausencia de esos datos porque el inventario aún
+            // no cuenta con una taxonomía estructurada completa para ambos criterios.
             return true;
         }
 
@@ -159,6 +162,42 @@ namespace maps4.Services
                         ? null
                         : $"Subtipo compatible: {evaluacionSubtipo.SubtipoCoincidente}",
                     $"Subtipo solicitado no confirmado: {subtiposSolicitados}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(solicitud.CondicionInmueble))
+            {
+                var evaluacionCondicion = EvaluarCoincidenciaCondicion(
+                    solicitud.CondicionInmueble,
+                    inmueble);
+
+                // Sólo entra al denominador cuando existe evidencia real del candidato.
+                // La falta de antigüedad/observaciones no debe bajar artificialmente el score.
+                if (evaluacionCondicion.TieneEvidencia)
+                {
+                    Agregar(5, evaluacionCondicion.Valor,
+                        evaluacionCondicion.Valor >= 0.8
+                            ? $"Condición compatible: {evaluacionCondicion.CondicionCandidata}"
+                            : null,
+                        $"Condición distinta: {evaluacionCondicion.CondicionCandidata ?? "sin confirmar"} " +
+                        $"(solicitada: {solicitud.CondicionInmueble})");
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(solicitud.EtapaInmueble))
+            {
+                var evaluacionEtapa = EvaluarCoincidenciaEtapa(
+                    solicitud.EtapaInmueble,
+                    inmueble);
+
+                if (evaluacionEtapa.TieneEvidencia)
+                {
+                    Agregar(4, evaluacionEtapa.Valor,
+                        evaluacionEtapa.Valor >= 0.8
+                            ? $"Etapa compatible: {evaluacionEtapa.EtapaCandidata}"
+                            : null,
+                        $"Etapa distinta: {evaluacionEtapa.EtapaCandidata ?? "sin confirmar"} " +
+                        $"(solicitada: {solicitud.EtapaInmueble})");
+                }
             }
 
             if (solicitud.Zonas.Count > 0)
@@ -406,6 +445,124 @@ namespace maps4.Services
 
             return (0.10, null);
         }
+
+        private static (bool TieneEvidencia, double Valor, string? CondicionCandidata) EvaluarCoincidenciaCondicion(
+            string condicionSolicitada,
+            InventarioInmuebleViewModel inmueble)
+        {
+            string solicitada = CondicionCanonica(condicionSolicitada);
+            if (string.IsNullOrWhiteSpace(solicitada))
+                return (false, 0, null);
+
+            string texto = Normalizar($"{inmueble.TipoNombre} {inmueble.Observaciones}");
+            string? explicita = null;
+
+            if (ContieneAlguno(texto,
+                    "REMODELADA", "REMODELADO", "RENOVADA", "RENOVADO",
+                    "REHABILITADA", "REHABILITADO"))
+            {
+                explicita = "REMODELADA";
+            }
+            else if (ContieneAlguno(texto,
+                    "PARA ESTRENAR", "A ESTRENAR", "SIN HABITAR", "SIN ESTRENAR",
+                    "NUEVA", "NUEVO"))
+            {
+                explicita = "NUEVA";
+            }
+            else if (ContieneAlguno(texto, "USADA", "USADO", "SEGUNDA MANO"))
+            {
+                explicita = "USADA";
+            }
+
+            if (!string.IsNullOrWhiteSpace(explicita))
+                return (true, string.Equals(solicitada, explicita, StringComparison.OrdinalIgnoreCase) ? 1 : 0, MostrarCondicion(explicita));
+
+            // Antigüedad es evidencia estructurada confiable para Nueva/Usada.
+            // No sirve para inferir Remodelada: una casa de varios años puede o no estar remodelada.
+            if (inmueble.AntiguedadAnos.HasValue && solicitada is "NUEVA" or "USADA")
+            {
+                string porAntiguedad = inmueble.AntiguedadAnos.Value <= 0 ? "NUEVA" : "USADA";
+                return (
+                    true,
+                    string.Equals(solicitada, porAntiguedad, StringComparison.OrdinalIgnoreCase) ? 1 : 0,
+                    MostrarCondicion(porAntiguedad));
+            }
+
+            return (false, 0, null);
+        }
+
+        private static (bool TieneEvidencia, double Valor, string? EtapaCandidata) EvaluarCoincidenciaEtapa(
+            string etapaSolicitada,
+            InventarioInmuebleViewModel inmueble)
+        {
+            string solicitada = EtapaCanonica(etapaSolicitada);
+            if (string.IsNullOrWhiteSpace(solicitada))
+                return (false, 0, null);
+
+            string texto = Normalizar($"{inmueble.TipoNombre} {inmueble.Observaciones}");
+            string? candidata = null;
+
+            if (ContieneAlguno(texto, "PREVENTA", "PRE VENTA"))
+            {
+                candidata = "PREVENTA";
+            }
+            else if (ContieneAlguno(texto, "EN CONSTRUCCION", "EN OBRA", "OBRA EN PROCESO"))
+            {
+                candidata = "EN CONSTRUCCION";
+            }
+            else if (ContieneAlguno(texto,
+                    "TERMINADA", "TERMINADO", "LISTA PARA ENTREGA", "LISTO PARA ENTREGA",
+                    "ENTREGA INMEDIATA"))
+            {
+                candidata = "TERMINADA";
+            }
+
+            if (string.IsNullOrWhiteSpace(candidata))
+                return (false, 0, null);
+
+            return (
+                true,
+                string.Equals(solicitada, candidata, StringComparison.OrdinalIgnoreCase) ? 1 : 0,
+                MostrarEtapa(candidata));
+        }
+
+        private static string CondicionCanonica(string? valor)
+        {
+            string n = Normalizar(valor);
+            if (ContieneAlguno(n, "REMODELADA", "REMODELADO", "RENOVADA", "RENOVADO", "REHABILITADA", "REHABILITADO"))
+                return "REMODELADA";
+            if (ContieneAlguno(n, "USADA", "USADO", "SEGUNDA MANO"))
+                return "USADA";
+            if (ContieneAlguno(n, "NUEVA", "NUEVO", "PARA ESTRENAR", "A ESTRENAR", "SIN HABITAR", "SIN ESTRENAR"))
+                return "NUEVA";
+            return string.Empty;
+        }
+
+        private static string EtapaCanonica(string? valor)
+        {
+            string n = Normalizar(valor);
+            if (ContieneAlguno(n, "PREVENTA", "PRE VENTA")) return "PREVENTA";
+            if (ContieneAlguno(n, "EN CONSTRUCCION", "EN OBRA")) return "EN CONSTRUCCION";
+            if (ContieneAlguno(n, "TERMINADA", "TERMINADO", "LISTA PARA ENTREGA", "LISTO PARA ENTREGA", "ENTREGA INMEDIATA"))
+                return "TERMINADA";
+            return string.Empty;
+        }
+
+        private static string MostrarCondicion(string valor) => valor switch
+        {
+            "NUEVA" => "Nueva",
+            "USADA" => "Usada",
+            "REMODELADA" => "Remodelada",
+            _ => valor
+        };
+
+        private static string MostrarEtapa(string valor) => valor switch
+        {
+            "PREVENTA" => "Preventa",
+            "EN CONSTRUCCION" => "En construcción",
+            "TERMINADA" => "Terminada",
+            _ => valor
+        };
 
         private static bool ContieneFraseNormalizada(string texto, string frase)
         {
