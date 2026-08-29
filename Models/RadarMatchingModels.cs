@@ -4,6 +4,7 @@ namespace maps4.Models
     {
         public string? Operacion { get; set; }
         public List<string> TiposPropiedad { get; set; } = new();
+        public List<string> SubtiposPropiedad { get; set; } = new();
         public List<string> Zonas { get; set; } = new();
 
         public decimal? PrecioMinimo { get; set; }
