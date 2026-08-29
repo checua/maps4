@@ -3,6 +3,7 @@
 @{
     ViewData["Title"] = "Configurar RADAR Agent";
     string? mensaje = TempData["RadarAgentConfiguracionMensaje"] as string;
+    var seleccionados = Model.ChatsSeleccionados.ToHashSet(StringComparer.OrdinalIgnoreCase);
 }
 
 <div class="container py-4" style="max-width:820px;">
@@ -53,21 +54,70 @@
                 <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
                 <div class="mb-4">
-                    <label asp-for="ChatsTexto" class="form-label fw-semibold">Chats monitoreados</label>
-                    @if (!Model.Configurada && string.IsNullOrWhiteSpace(Model.ChatsTexto))
+                    <label class="form-label fw-semibold">Chats monitoreados</label>
+
+                    @if (Model.ChatsDisponibles.Count > 0)
                     {
-                        <div class="alert alert-light border py-2 small mb-2">
-                            No hay chats configurados todavía. Agrega uno por línea.
+                        <div class="border rounded p-3 mb-3">
+                            <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-3">
+                                <div>
+                                    <div class="fw-semibold">Chats detectados en este equipo</div>
+                                    <div class="text-muted small">
+                                        Selecciona cuáles debe monitorear RADAR. RSMaps guarda únicamente el nombre del chat, no mensajes ni participantes.
+                                    </div>
+                                </div>
+                                @if (Model.ChatsDetectadosUtc.HasValue)
+                                {
+                                    <div class="text-muted small text-md-end">
+                                        Detectados: @Model.ChatsDetectadosUtc.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")
+                                    </div>
+                                }
+                            </div>
+
+                            <div class="row g-2">
+                                @foreach (var chat in Model.ChatsDisponibles)
+                                {
+                                    bool seleccionado = seleccionados.Contains(chat.Nombre);
+                                    string idCheckbox = $"chat-{Math.Abs(chat.Nombre.GetHashCode())}";
+                                    <div class="col-12 col-md-6">
+                                        <div class="form-check border rounded px-3 py-2 h-100" style="padding-left:2.25rem !important;">
+                                            <input class="form-check-input"
+                                                   type="checkbox"
+                                                   name="ChatsSeleccionados"
+                                                   value="@chat.Nombre"
+                                                   id="@idCheckbox"
+                                                   checked="@seleccionado" />
+                                            <label class="form-check-label w-100" for="@idCheckbox">@chat.Nombre</label>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <label asp-for="ChatsTexto" class="form-label">Chats adicionales</label>
+                        <textarea asp-for="ChatsTexto"
+                                  class="form-control font-monospace"
+                                  rows="3"
+                                  placeholder="Opcional: agrega manualmente un chat por línea"></textarea>
+                        <span asp-validation-for="ChatsTexto" class="text-danger small"></span>
+                        <div class="form-text">
+                            Usa este campo solo si un chat todavía no aparece entre los detectados.
                         </div>
                     }
-                    <textarea asp-for="ChatsTexto"
-                              class="form-control font-monospace"
-                              rows="7"
-                              placeholder="Agrega un chat o grupo por línea"></textarea>
-                    <span asp-validation-for="ChatsTexto" class="text-danger small"></span>
-                    <div class="form-text">
-                        Escribe un chat o grupo por línea. El Agent sincroniza esta lista desde RSMaps.
-                    </div>
+                    else
+                    {
+                        <div class="alert alert-light border py-2 small mb-2">
+                            Este Agent todavía no ha reportado chats disponibles. Puedes agregarlos manualmente por ahora.
+                        </div>
+                        <textarea asp-for="ChatsTexto"
+                                  class="form-control font-monospace"
+                                  rows="7"
+                                  placeholder="Agrega un chat o grupo por línea"></textarea>
+                        <span asp-validation-for="ChatsTexto" class="text-danger small"></span>
+                        <div class="form-text">
+                            Cuando el Agent reporte sus chats, aquí aparecerán como opciones seleccionables.
+                        </div>
+                    }
                 </div>
 
                 <div class="mb-4">
