@@ -74,15 +74,21 @@ public static class RadarAgentBackendClient
         if (remota is null)
             return false;
 
+        RadarAgentRemoteConfig? anterior = RadarAgentRemoteConfigCache.Actual;
+        bool cambio = anterior is null
+            || anterior.Configurada != remota.Configurada
+            || anterior.ActualizadoUtc != remota.ActualizadoUtc;
+
         RadarAgentRemoteConfigCache.Aplicar(remota);
 
-        if (mostrarEstado)
+        if (mostrarEstado || cambio)
         {
             if (remota.Configurada)
             {
                 Console.WriteLine(
-                    $"  Configuración RSMaps: central activa · {remota.ChatsMonitoreados.Length} chat(s) · " +
-                    $"intervalo {remota.IntervaloRevisionMs / 1000}s.");
+                    $"  ⚙ Configuración RSMaps: central activa · {remota.ChatsMonitoreados.Length} chat(s) · " +
+                    $"intervalo {remota.IntervaloRevisionMs / 1000}s · destino " +
+                    $"{(string.IsNullOrWhiteSpace(remota.DestinoAlertas) ? "Propiedades" : remota.DestinoAlertas)}.");
             }
             else
             {
