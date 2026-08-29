@@ -51,7 +51,7 @@
                 }
             </div>
 
-            <form asp-action="GuardarConfiguracion" method="post">
+            <form asp-action="GuardarConfiguracion" method="post" autocomplete="off">
                 @Html.AntiForgeryToken()
                 <input asp-for="IdAgent" type="hidden" />
 
@@ -88,7 +88,7 @@
                                 </div>
                                 <div class="col-12 col-md-5">
                                     <div class="form-check">
-                                        <input id="radarOnlySelected" class="form-check-input" type="checkbox" />
+                                        <input id="radarOnlySelected" class="form-check-input" type="checkbox" autocomplete="off" />
                                         <label class="form-check-label" for="radarOnlySelected">
                                             Mostrar solo seleccionados
                                         </label>
@@ -112,14 +112,15 @@
                                     bool seleccionado = seleccionados.Contains(chat.Nombre);
                                     string idCheckbox = $"chat-{chatIndex++}";
                                     <div class="col-12 col-md-6 radar-chat-item"
-                                         data-chat-name="@chat.Nombre.ToLowerInvariant()"
-                                         data-selected="@(seleccionado ? "true" : "false")">
+                                         data-chat-name="@chat.Nombre.ToLowerInvariant()">
                                         <div class="form-check border rounded px-3 py-2 h-100" style="padding-left:2.25rem !important;">
                                             <input class="form-check-input radar-chat-checkbox"
                                                    type="checkbox"
                                                    name="ChatsSeleccionados"
                                                    value="@chat.Nombre"
                                                    id="@idCheckbox"
+                                                   data-server-selected="@(seleccionado ? "true" : "false")"
+                                                   autocomplete="off"
                                                    checked="@seleccionado" />
                                             <label class="form-check-label w-100" for="@idCheckbox">@chat.Nombre</label>
                                         </div>
@@ -200,15 +201,23 @@
             const search = document.getElementById('radarChatSearch');
             const onlySelected = document.getElementById('radarOnlySelected');
             const items = Array.from(document.querySelectorAll('.radar-chat-item'));
+            const checkboxes = Array.from(document.querySelectorAll('.radar-chat-checkbox'));
             const selectedCount = document.getElementById('radarSelectedCount');
             const visibleCount = document.getElementById('radarVisibleCount');
             const noChats = document.getElementById('radarNoChats');
 
             const normalize = value => (value || '').toLocaleLowerCase('es-MX').trim();
 
+            // Algunos navegadores restauran el estado anterior de checkboxes al recargar.
+            // La configuración de RSMaps debe ser siempre la fuente de verdad al abrir esta pantalla.
+            for (const checkbox of checkboxes) {
+                checkbox.checked = checkbox.dataset.serverSelected === 'true';
+            }
+            onlySelected.checked = false;
+            search.value = '';
+
             const refreshCounts = () => {
-                const selected = items.filter(item =>
-                    item.querySelector('.radar-chat-checkbox')?.checked).length;
+                const selected = checkboxes.filter(checkbox => checkbox.checked).length;
                 selectedCount.textContent = selected.toString();
             };
 
@@ -233,7 +242,7 @@
 
             search.addEventListener('input', applyFilter);
             onlySelected.addEventListener('change', applyFilter);
-            for (const checkbox of document.querySelectorAll('.radar-chat-checkbox')) {
+            for (const checkbox of checkboxes) {
                 checkbox.addEventListener('change', applyFilter);
             }
 
