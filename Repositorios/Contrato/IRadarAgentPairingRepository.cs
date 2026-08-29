@@ -46,15 +46,4 @@ public interface IRadarAgentPairingRepository
         int idCuenta,
         RadarAgentConfiguration configuracion,
         CancellationToken cancellationToken = default);
-
-    Task<DateTime?> SolicitarExploracionChatsAsync(
-        string correo,
-        int idCuenta,
-        Guid idAgent,
-        CancellationToken cancellationToken = default);
-
-    Task<bool> CompletarExploracionChatsAsync(
-        Guid idAgent,
-        DateTime solicitudUtc,
-        CancellationToken cancellationToken = default);
 }
