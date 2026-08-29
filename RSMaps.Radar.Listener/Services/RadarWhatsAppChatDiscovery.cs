@@ -13,21 +13,32 @@ public static class RadarWhatsAppChatDiscovery
         if (config is null)
             return;
 
-        List<string> chats = await DescubrirAsync(page, cancellationToken);
-        if (chats.Count == 0)
+        try
         {
-            Console.WriteLine("  ⚠ RADAR no encontró chats para reportar a RSMaps.");
-            return;
+            List<string> chats = await DescubrirAsync(page, cancellationToken);
+            if (chats.Count == 0)
+            {
+                Console.WriteLine("  ⚠ RADAR no encontró chats para reportar a RSMaps.");
+                return;
+            }
+
+            bool reportados = await RadarAgentBackendClient.ReportarChatsDisponiblesAsync(
+                config,
+                chats,
+                cancellationToken);
+
+            Console.WriteLine(reportados
+                ? $"  🔎 Chats WhatsApp detectados y reportados a RSMaps: {chats.Count}."
+                : $"  ⚠ Se detectaron {chats.Count} chat(s), pero no fue posible reportarlos a RSMaps.");
         }
-
-        bool reportados = await RadarAgentBackendClient.ReportarChatsDisponiblesAsync(
-            config,
-            chats,
-            cancellationToken);
-
-        Console.WriteLine(reportados
-            ? $"  🔎 Chats WhatsApp detectados y reportados a RSMaps: {chats.Count}."
-            : $"  ⚠ Se detectaron {chats.Count} chat(s), pero no fue posible reportarlos a RSMaps.");
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"  ⚠ Descubrimiento de chats no bloqueante: {ex.Message}");
+        }
     }
 
     private static async Task<List<string>> DescubrirAsync(
