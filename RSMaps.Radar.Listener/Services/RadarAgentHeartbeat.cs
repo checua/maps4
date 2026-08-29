@@ -24,13 +24,12 @@ public static class RadarAgentHeartbeat
             {
                 await Task.Delay(TimeSpan.FromSeconds(60));
 
-                RadarAgentRemoteContext? remoto = await RadarAgentBackendClient.ValidarAsync(config);
-                bool autenticado = remoto is not null;
+                bool autenticado = await RadarAgentBackendClient.SincronizarConfiguracionAsync(config);
 
                 if (ultimoEstado != autenticado)
                 {
                     Console.WriteLine(autenticado
-                        ? "  ♥ RADAR Agent volvió a confirmar conexión con RSMaps."
+                        ? "  ♥ RADAR Agent volvió a confirmar conexión y configuración con RSMaps."
                         : "  ⚠ RADAR Agent no pudo confirmar su conexión con RSMaps.");
                 }
 
