@@ -1,0 +1,100 @@
+@model RadarAgentConfigurationEditViewModel
+
+@{
+    ViewData["Title"] = "Configurar RADAR Agent";
+    string? mensaje = TempData["RadarAgentConfiguracionMensaje"] as string;
+}
+
+<div class="container py-4" style="max-width:820px;">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-4">
+        <div>
+            <h2 class="mb-1">Configurar RADAR Agent</h2>
+            <div class="text-muted">
+                <strong>@Model.NombreAgent</strong>
+                · @(string.IsNullOrWhiteSpace(Model.EquipoNombre) ? "Equipo no registrado" : Model.EquipoNombre)
+            </div>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">← Volver a Agents</a>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(mensaje))
+    {
+        <div class="alert alert-success" role="alert">@mensaje</div>
+    }
+
+    @if (!Model.Activo)
+    {
+        <div class="alert alert-warning">
+            Este Agent está revocado. La configuración se conserva para auditoría, pero ya no puede sincronizarla.
+        </div>
+    }
+
+    <div class="card shadow-sm">
+        <div class="card-body p-4">
+            <div class="mb-4">
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                    <span class="badge @(Model.Configurada ? "bg-success" : "bg-secondary")">
+                        @(Model.Configurada ? "Configuración central activa" : "Todavía usa configuración local")
+                    </span>
+                    <span class="text-muted small font-monospace">@Model.IdAgent</span>
+                </div>
+                @if (Model.ActualizadoUtc.HasValue)
+                {
+                    <div class="text-muted small mt-2">
+                        Última actualización: @Model.ActualizadoUtc.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")
+                    </div>
+                }
+            </div>
+
+            <form asp-action="GuardarConfiguracion" method="post">
+                @Html.AntiForgeryToken()
+                <input asp-for="IdAgent" type="hidden" />
+
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="mb-4">
+                    <label asp-for="ChatsTexto" class="form-label fw-semibold">Chats monitoreados</label>
+                    <textarea asp-for="ChatsTexto"
+                              class="form-control font-monospace"
+                              rows="7"
+                              placeholder="Un chat por línea&#10;José Juan (Tú)&#10;INVENTARIOS Y PROSPECTOS"></textarea>
+                    <span asp-validation-for="ChatsTexto" class="text-danger small"></span>
+                    <div class="form-text">
+                        Escribe un chat o grupo por línea. El Agent sincroniza esta lista desde RSMaps.
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="DestinoAlertas" class="form-label fw-semibold">Destino de alertas</label>
+                    <input asp-for="DestinoAlertas" class="form-control" maxlength="200" />
+                    <div class="form-text">
+                        Chat al que se enviarán las oportunidades cuando el modo seguro esté desactivado.
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="IntervaloRevisionMs" class="form-label fw-semibold">Intervalo de revisión</label>
+                    <select asp-for="IntervaloRevisionMs" class="form-select">
+                        <option value="10000">10 segundos</option>
+                        <option value="30000">30 segundos</option>
+                        <option value="60000">1 minuto</option>
+                        <option value="300000">5 minutos</option>
+                        <option value="1200000">20 minutos</option>
+                    </select>
+                    <span asp-validation-for="IntervaloRevisionMs" class="text-danger small"></span>
+                </div>
+
+                <div class="alert alert-light border small">
+                    Durante la transición, si este Agent todavía no tiene configuración central guardada,
+                    seguirá usando su JSON local. En cuanto guardes aquí, RSMaps se vuelve la fuente preferida
+                    para chats, destino e intervalo. El modo SAFE LAB continúa imponiendo sus restricciones de seguridad.
+                </div>
+
+                @if (Model.Activo)
+                {
+                    <button type="submit" class="btn btn-primary">Guardar configuración</button>
+                }
+            </form>
+        </div>
+    </div>
+</div>
