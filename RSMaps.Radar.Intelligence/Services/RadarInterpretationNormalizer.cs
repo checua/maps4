@@ -97,6 +97,12 @@ public static class RadarInterpretationNormalizer
             {
                 solicitud.Operacion = "Venta";
             }
+            else if (Regex.IsMatch(texto, @"\bpre\s*venta\b", RegexOptions.IgnoreCase))
+            {
+                // Preventa es una etapa comercial propia de una operación de venta.
+                // Sólo se aplica cuando la operación no fue expresada explícitamente.
+                solicitud.Operacion = "Venta";
+            }
             else if (TieneCreditoDeCompra(texto))
             {
                 // Infonavit/Fovissste/Banjercito/hipotecario son señales fuertes de compra.
