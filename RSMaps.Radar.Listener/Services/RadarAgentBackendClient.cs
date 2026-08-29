@@ -68,6 +68,7 @@ public static class RadarAgentBackendClient
     public static async Task<bool> ReportarChatsDisponiblesAsync(
         RadarAgentConfig? config,
         IReadOnlyCollection<string> chats,
+        DateTime? solicitudExploracionUtc = null,
         CancellationToken cancellationToken = default)
     {
         if (chats.Count == 0 || !RadarAgentCredentialStore.TryLeerToken(config, out string token, out _))
@@ -79,7 +80,11 @@ public static class RadarAgentBackendClient
                 HttpMethod.Post,
                 $"{BaseUrl}/api/radar/agent/chats/discovered");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            request.Content = JsonContent.Create(new { chats });
+            request.Content = JsonContent.Create(new
+            {
+                chats,
+                solicitudExploracionUtc
+            });
 
             using HttpResponseMessage response = await Http.SendAsync(request, cancellationToken);
             return response.IsSuccessStatusCode;
@@ -102,7 +107,9 @@ public static class RadarAgentBackendClient
         RadarAgentRemoteConfig? anterior = RadarAgentRemoteConfigCache.Actual;
         bool cambio = anterior is null
             || anterior.Configurada != remota.Configurada
-            || anterior.ActualizadoUtc != remota.ActualizadoUtc;
+            || anterior.ActualizadoUtc != remota.ActualizadoUtc
+            || anterior.ExploracionChatsSolicitadaUtc != remota.ExploracionChatsSolicitadaUtc
+            || anterior.ExploracionChatsCompletadaUtc != remota.ExploracionChatsCompletadaUtc;
 
         RadarAgentRemoteConfigCache.Aplicar(remota);
 
@@ -118,6 +125,13 @@ public static class RadarAgentBackendClient
             else
             {
                 Console.WriteLine("  Configuración RSMaps: todavía no guardada; usando fallback local.");
+            }
+
+            if (remota.ExploracionChatsPendiente && remota.ExploracionChatsSolicitadaUtc.HasValue)
+            {
+                Console.WriteLine(
+                    $"  🔎 RSMaps solicitó actualizar el catálogo de WhatsApp " +
+                    $"({remota.ExploracionChatsSolicitadaUtc.Value.ToLocalTime():dd/MM/yyyy HH:mm:ss}).");
             }
         }
 
