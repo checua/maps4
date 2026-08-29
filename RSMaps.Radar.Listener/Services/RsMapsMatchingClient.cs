@@ -88,9 +88,12 @@ public static class RsMapsMatchingClient
                 if (!string.IsNullOrWhiteSpace(item.Direccion))
                     sb.AppendLine(item.Direccion.Trim());
 
-                var motivo = item.Coincidencias.FirstOrDefault();
-                if (!string.IsNullOrWhiteSpace(motivo))
+                foreach (var motivo in item.Coincidencias
+                             .Where(x => !string.IsNullOrWhiteSpace(x))
+                             .Take(3))
+                {
                     sb.AppendLine($"✓ {motivo}");
+                }
             }
 
             sb.Append($"Candidatos: {resultado.TotalCandidatos} de {resultado.TotalInventarioEvaluado} evaluados.");
