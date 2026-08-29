@@ -27,9 +27,10 @@ public sealed class RadarAgentChatDiscoveryRepository : IRadarAgentChatDiscovery
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .Select(x => x.Trim())
             .Where(x => x.Length > 0)
+            .Where(x => !EsNumeroSinGuardar(x))
             .Select(x => x[..Math.Min(x.Length, 300)])
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Take(500)
+            .Take(2_000)
             .ToList();
 
         if (normalizados.Count == 0)
@@ -118,13 +119,38 @@ ORDER BY dc.NombreChat;";
         await using SqlDataReader dr = await cmd.ExecuteReaderAsync(cancellationToken);
         while (await dr.ReadAsync(cancellationToken))
         {
+            string nombre = dr["NombreChat"].ToString() ?? string.Empty;
+            if (EsNumeroSinGuardar(nombre))
+                continue;
+
             resultado.Add(new RadarAgentDiscoveredChatItem
             {
-                Nombre = dr["NombreChat"].ToString() ?? string.Empty,
+                Nombre = nombre,
                 UltimoVistoUtc = Convert.ToDateTime(dr["UltimoVistoUtc"])
             });
         }
 
         return resultado;
+    }
+
+    private static bool EsNumeroSinGuardar(string nombre)
+    {
+        int digitos = 0;
+
+        foreach (char c in nombre)
+        {
+            if (char.IsDigit(c))
+            {
+                digitos++;
+                continue;
+            }
+
+            if (char.IsWhiteSpace(c) || c is '+' or '-' or '(' or ')' or '.' or '\u00A0')
+                continue;
+
+            return false;
+        }
+
+        return digitos >= 7;
     }
 }
