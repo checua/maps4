@@ -8,8 +8,8 @@ public static class RadarSettings
     static RadarSettings()
     {
         // Forzamos la carga de la identidad del Agent incluso en SAFE LAB.
-        // De otro modo, el retorno temprano de ChatsMonitoreados evitaba
-        // materializar la configuración y el banner no mostraba Usuario/Cuenta.
+        // De otro modo, el retorno temprano de ChatsMonitoreados evitaría
+        // materializar la configuración y el banner no mostraría Usuario/Cuenta.
         _ = Configuracion.Value;
     }
 
@@ -43,6 +43,7 @@ public static class RadarSettings
         };
 
     internal static RadarAgentConfig? ConfiguracionAgente => Configuracion.Value;
+    internal static RadarAgentRemoteConfig? ConfiguracionRemota => RadarAgentRemoteConfigCache.Actual;
 
     public static bool ModoSeguroLab =>
         string.Equals(
@@ -55,13 +56,23 @@ public static class RadarSettings
             StringComparison.OrdinalIgnoreCase);
 
     // SAFE LAB conserva el aislamiento total del prototipo. Fuera de SAFE LAB,
-    // un archivo por Agent puede sustituir la lista histórica sin recompilar.
+    // la configuración central de RSMaps tiene prioridad sobre el JSON local.
     public static string[] ChatsMonitoreados
     {
         get
         {
             if (ModoSeguroLab)
                 return ["José Juan (Tú)"];
+
+            var remota = ConfiguracionRemota;
+            if (remota?.Configurada == true)
+            {
+                return remota.ChatsMonitoreados
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Select(x => x.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+            }
 
             var configurados = ConfiguracionAgente?.ChatsMonitoreados
                 .Where(x => !string.IsNullOrWhiteSpace(x))
@@ -86,6 +97,21 @@ public static class RadarSettings
         }
 
         yield return chat;
+
+        var remotos = ConfiguracionRemota;
+        if (remotos?.Configurada == true
+            && remotos.TerminosBusqueda.TryGetValue(chat, out var alternativosRemotos))
+        {
+            foreach (var termino in alternativosRemotos
+                         .Where(x => !string.IsNullOrWhiteSpace(x))
+                         .Select(x => x.Trim())
+                         .Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                yield return termino;
+            }
+
+            yield break;
+        }
 
         var configurados = ConfiguracionAgente?.TerminosBusqueda;
         if (configurados is not null && configurados.TryGetValue(chat, out var alternativosConfigurados))
@@ -114,6 +140,10 @@ public static class RadarSettings
         {
             if (ModoSeguroLab)
                 return 10_000;
+
+            var remoto = ConfiguracionRemota;
+            if (remoto?.Configurada == true && remoto.IntervaloRevisionMs > 0)
+                return remoto.IntervaloRevisionMs;
 
             var configurado = ConfiguracionAgente?.IntervaloRevisionMs;
             return configurado is > 0
