@@ -33,6 +33,7 @@ public sealed class RadarIntelligenceInterpreter : IRadarInterpreter
                 validacionPrimaria);
 
             primario.Motor = $"RADAR:{primario.Motor}";
+            MostrarDiagnostico(primario);
             return primario;
         }
 
@@ -63,6 +64,7 @@ public sealed class RadarIntelligenceInterpreter : IRadarInterpreter
             ? $"RADAR:{primario.Motor}->FALLBACK:{secundario.Motor}"
             : $"RADAR:{primario.Motor}[fallback descartado:{secundario.Motor}]";
 
+        MostrarDiagnostico(elegido);
         return elegido;
     }
 
@@ -76,5 +78,36 @@ public sealed class RadarIntelligenceInterpreter : IRadarInterpreter
         resultado.UsoFallback = usoFallback;
         resultado.ProblemasValidacion = [.. validacion.Problemas];
         resultado.AdvertenciasValidacion = [.. validacion.Advertencias];
+    }
+
+    private static void MostrarDiagnostico(RadarInterpretationResult resultado)
+    {
+        string confianza = resultado.ConfianzaInterpretacion.HasValue
+            ? $"{resultado.ConfianzaInterpretacion.Value:P0}"
+            : "-";
+
+        string tokens = resultado.TotalTokens.HasValue
+            ? $"entrada {resultado.InputTokens ?? 0}, salida {resultado.OutputTokens ?? 0}, total {resultado.TotalTokens.Value}"
+            : "-";
+
+        Console.WriteLine($"     IA Motor: {resultado.Motor}");
+        Console.WriteLine($"     IA Confianza: {confianza} | Fallback: {(resultado.UsoFallback ? "Sí" : "No")}");
+        Console.WriteLine($"     IA Tokens: {tokens}");
+
+        for (var i = 0; i < resultado.Solicitudes.Count; i++)
+        {
+            var solicitud = resultado.Solicitudes[i];
+            string subtipos = solicitud.SubtiposPropiedad.Count == 0
+                ? "-"
+                : string.Join(" | ", solicitud.SubtiposPropiedad);
+
+            Console.WriteLine($"     IA Solicitud #{i + 1} · Subtipos: {subtipos}");
+        }
+
+        foreach (var problema in resultado.ProblemasValidacion)
+            Console.WriteLine($"     IA VALIDACIÓN: {problema}");
+
+        foreach (var advertencia in resultado.AdvertenciasValidacion)
+            Console.WriteLine($"     IA AVISO: {advertencia}");
     }
 }
