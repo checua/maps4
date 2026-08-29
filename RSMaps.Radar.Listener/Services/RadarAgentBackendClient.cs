@@ -65,6 +65,31 @@ public static class RadarAgentBackendClient
         }
     }
 
+    public static async Task<bool> ReportarChatsDisponiblesAsync(
+        RadarAgentConfig? config,
+        IReadOnlyCollection<string> chats,
+        CancellationToken cancellationToken = default)
+    {
+        if (chats.Count == 0 || !RadarAgentCredentialStore.TryLeerToken(config, out string token, out _))
+            return false;
+
+        try
+        {
+            using var request = new HttpRequestMessage(
+                HttpMethod.Post,
+                $"{BaseUrl}/api/radar/agent/chats/discovered");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            request.Content = JsonContent.Create(new { chats });
+
+            using HttpResponseMessage response = await Http.SendAsync(request, cancellationToken);
+            return response.IsSuccessStatusCode;
+        }
+        finally
+        {
+            token = string.Empty;
+        }
+    }
+
     public static async Task<bool> SincronizarConfiguracionAsync(
         RadarAgentConfig config,
         bool mostrarEstado = false,
