@@ -694,6 +694,7 @@ static string ConstruirAlerta(SolicitudInmobiliaria s)
     sb.AppendLine("SOLICITUD");
     sb.AppendLine($"Operación: {s.Operacion ?? "No determinada"}");
     sb.AppendLine($"Tipo: {MostrarLista(s.TiposPropiedad)}");
+    sb.AppendLine($"Subtipo: {MostrarLista(s.SubtiposPropiedad)}");
     sb.AppendLine($"Zona: {MostrarLista(s.Zonas)}");
 
     if (s.PrecioMinimo.HasValue)
@@ -904,6 +905,7 @@ static void MostrarSolicitud(SolicitudInmobiliaria s)
     Console.WriteLine($"Teléfono:      {s.Telefono ?? "-"}");
     Console.WriteLine($"Operación:     {s.Operacion ?? "No determinada"}");
     Console.WriteLine($"Tipos:         {MostrarLista(s.TiposPropiedad)}");
+    Console.WriteLine($"Subtipos:      {MostrarLista(s.SubtiposPropiedad)}");
     Console.WriteLine($"Zonas:         {MostrarLista(s.Zonas)}");
     Console.WriteLine($"Precio mín.:   {MostrarDinero(s.PrecioMinimo)}");
     Console.WriteLine($"Precio máx.:   {MostrarDinero(s.PrecioMaximo)}");
