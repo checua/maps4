@@ -7,9 +7,8 @@ public static class RadarSettings
 
     static RadarSettings()
     {
-        // Forzamos la carga de la identidad del Agent incluso en SAFE LAB.
-        // De otro modo, el retorno temprano de ChatsMonitoreados evitaría
-        // materializar la configuración y el banner no mostraría Usuario/Cuenta.
+        // Forzamos la carga de la identidad del Agent también en SAFE LAB para
+        // conservar el mismo contexto de cuenta/configuración que se usa en operación real.
         _ = Configuracion.Value;
     }
 
@@ -55,15 +54,14 @@ public static class RadarSettings
             "true",
             StringComparison.OrdinalIgnoreCase);
 
-    // SAFE LAB conserva el aislamiento total del prototipo. Fuera de SAFE LAB,
-    // la configuración central de RSMaps tiene prioridad sobre el JSON local.
+    // SAFE LAB replica la configuración real de monitoreo para poder validar
+    // navegación, detección, interpretación y matching. La seguridad se aplica
+    // a los efectos salientes: Program.cs bloquea EnviarAlerta() y AlertSettings
+    // devuelve un destino imposible mientras el modo seguro está activo.
     public static string[] ChatsMonitoreados
     {
         get
         {
-            if (ModoSeguroLab)
-                return ["José Juan (Tú)"];
-
             var remota = ConfiguracionRemota;
             if (remota?.Configurada == true)
             {
@@ -88,13 +86,10 @@ public static class RadarSettings
 
     public static IEnumerable<string> ObtenerTerminosBusqueda(string chat)
     {
-        // Defensa adicional del modo seguro: el navegador sólo puede buscar
-        // chats que estén expresamente en la lista monitoreada.
-        if (ModoSeguroLab &&
-            !ChatsMonitoreados.Contains(chat, StringComparer.OrdinalIgnoreCase))
-        {
+        // Defensa adicional: nunca navegamos a un chat que no pertenezca a la
+        // configuración efectiva del Agent, también cuando SAFE LAB está activo.
+        if (!ChatsMonitoreados.Contains(chat, StringComparer.OrdinalIgnoreCase))
             yield break;
-        }
 
         yield return chat;
 
@@ -138,9 +133,6 @@ public static class RadarSettings
     {
         get
         {
-            if (ModoSeguroLab)
-                return 10_000;
-
             var remoto = ConfiguracionRemota;
             if (remoto?.Configurada == true && remoto.IntervaloRevisionMs > 0)
                 return remoto.IntervaloRevisionMs;
