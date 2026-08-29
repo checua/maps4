@@ -113,7 +113,7 @@ public sealed class RadarAgentPairingApiController : ControllerBase
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .Select(x => x.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Take(500)
+            .Take(2_000)
             .ToList();
 
         if (chats.Count == 0)
