@@ -16,6 +16,33 @@ public static class RadarWhatsAppChatDiscovery
 
     private static DateTime? _ultimaSolicitudProcesadaUtc;
 
+    // Compatibilidad con el flujo actual de Program.cs. El arranque ya no hace un
+    // recorrido completo del catálogo: sólo deja constancia de que el descubrimiento
+    // se ejecuta bajo demanda desde RSMaps.
+    public static Task DescubrirYReportarAsync(
+        IPage page,
+        RadarAgentConfig? config,
+        CancellationToken cancellationToken = default)
+    {
+        if (config is not null)
+        {
+            Console.WriteLine(
+                "  🔎 Catálogo WhatsApp: exploración bajo demanda desde Configuración de RSMaps; " +
+                "el arranque no hará barrido completo.");
+        }
+
+        return Task.CompletedTask;
+    }
+
+    // Compatibilidad con el ciclo actual: ya no existe temporizador de 15 minutos.
+    // La comprobación es barata y sólo dispara el recorrido cuando RSMaps mantiene
+    // una solicitud de exploración pendiente para este Agent.
+    public static Task ActualizarSiCorrespondeAsync(
+        IPage page,
+        RadarAgentConfig? config,
+        CancellationToken cancellationToken = default) =>
+        ProcesarSolicitudPendienteAsync(page, config, cancellationToken);
+
     public static async Task ProcesarSolicitudPendienteAsync(
         IPage page,
         RadarAgentConfig? config,
