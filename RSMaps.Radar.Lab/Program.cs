@@ -68,11 +68,27 @@ var casos = new (string Id, string Texto)[]
     )
 };
 
+var filtroCaso = Environment.GetEnvironmentVariable("RADAR_LAB_CASE")?.Trim();
+var casosEjecutar = string.IsNullOrWhiteSpace(filtroCaso)
+    ? casos
+    : casos
+        .Where(x => string.Equals(x.Id, filtroCaso, StringComparison.OrdinalIgnoreCase))
+        .ToArray();
+
+if (!string.IsNullOrWhiteSpace(filtroCaso) && casosEjecutar.Length == 0)
+{
+    throw new InvalidOperationException(
+        $"RADAR_LAB_CASE='{filtroCaso}' no existe. Casos disponibles: " +
+        string.Join(", ", casos.Select(x => x.Id)));
+}
+
 Console.WriteLine("==============================================");
 Console.WriteLine("          RADAR INTERPRETER LAB");
 Console.WriteLine("==============================================");
 Console.WriteLine($"Pipeline: {interpreter.GetType().Name}");
-Console.WriteLine($"Casos: {casos.Length}");
+Console.WriteLine($"Casos: {casosEjecutar.Length}");
+if (!string.IsNullOrWhiteSpace(filtroCaso))
+    Console.WriteLine($"Filtro: {filtroCaso}");
 Console.WriteLine();
 
 var totalInputTokens = 0;
@@ -80,7 +96,7 @@ var totalOutputTokens = 0;
 var totalTokens = 0;
 var totalFallbacks = 0;
 
-foreach (var caso in casos)
+foreach (var caso in casosEjecutar)
 {
     var mensaje = new RadarMessage
     {
