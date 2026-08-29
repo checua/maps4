@@ -109,7 +109,7 @@
                                             Equipo: @(string.IsNullOrWhiteSpace(agent.EquipoNombre) ? "No registrado" : agent.EquipoNombre)
                                         </div>
                                         <div class="text-muted small">
-                                            Agent ID: <span class="font-monospace">@agent.IdAgent.ToString()[..8]</span>
+                                            Agent ID: <span class="font-monospace">@(agent.IdAgent.ToString()[..8])</span>
                                         </div>
                                         <div class="text-muted small">
                                             Vinculado: @agent.FechaAltaUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
