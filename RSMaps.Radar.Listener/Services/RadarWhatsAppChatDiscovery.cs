@@ -14,7 +14,6 @@ public static class RadarWhatsAppChatDiscovery
         @"^\s*\d+\s+unread\s+messages?\s+",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    private static readonly TimeSpan IntervaloActualizacion = TimeSpan.FromMinutes(15);
     private static int _actualizacionPeriodicaIniciada;
     private static string? _ultimaFirma;
 
@@ -55,18 +54,21 @@ public static class RadarWhatsAppChatDiscovery
         if (Interlocked.Exchange(ref _actualizacionPeriodicaIniciada, 1) == 1)
             return;
 
-        _ = Task.Run(() => EjecutarActualizacionPeriodicaAsync(context, config));
+        TimeSpan intervalo = ObtenerIntervaloActualizacion();
+        Console.WriteLine($"  🔄 Catálogo de chats: actualización automática cada {intervalo.TotalMinutes:0} min.");
+        _ = Task.Run(() => EjecutarActualizacionPeriodicaAsync(context, config, intervalo));
     }
 
     private static async Task EjecutarActualizacionPeriodicaAsync(
         IBrowserContext context,
-        RadarAgentConfig config)
+        RadarAgentConfig config,
+        TimeSpan intervalo)
     {
         while (true)
         {
             try
             {
-                await Task.Delay(IntervaloActualizacion);
+                await Task.Delay(intervalo);
 
                 IPage? page = null;
                 try
@@ -95,7 +97,6 @@ public static class RadarWhatsAppChatDiscovery
             }
             catch (PlaywrightException)
             {
-                // Si el navegador/contexto ya cerró, el ciclo deja de ser útil.
                 return;
             }
             catch (Exception ex)
@@ -207,6 +208,15 @@ public static class RadarWhatsAppChatDiscovery
         return nombres
             .OrderBy(x => x, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
+    }
+
+    private static TimeSpan ObtenerIntervaloActualizacion()
+    {
+        string? raw = Environment.GetEnvironmentVariable("RADAR_CHAT_DISCOVERY_MINUTES");
+        if (int.TryParse(raw, out int minutos))
+            return TimeSpan.FromMinutes(Math.Clamp(minutos, 1, 24 * 60));
+
+        return TimeSpan.FromMinutes(15);
     }
 
     private static string LimpiarNombreChat(string nombre)
