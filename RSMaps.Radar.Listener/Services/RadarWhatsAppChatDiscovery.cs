@@ -14,7 +14,9 @@ public static class RadarWhatsAppChatDiscovery
         @"^\s*\d+\s+unread\s+messages?\s+",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    private static string? _ultimaFirma;
+    private static readonly HashSet<string> ConocidosSesion =
+        new(StringComparer.OrdinalIgnoreCase);
+
     private static DateTime _proximaActualizacionUtc = DateTime.MinValue;
     private static TimeSpan? _intervalo;
 
@@ -34,7 +36,7 @@ public static class RadarWhatsAppChatDiscovery
             await DescubrirYReportarUnaVezAsync(
                 page,
                 config,
-                mostrarEstado: true,
+                mostrarEstadoInicial: true,
                 cancellationToken);
         }
         catch (OperationCanceledException)
@@ -73,7 +75,7 @@ public static class RadarWhatsAppChatDiscovery
             await DescubrirYReportarUnaVezAsync(
                 page,
                 config,
-                mostrarEstado: false,
+                mostrarEstadoInicial: false,
                 cancellationToken);
         }
         catch (OperationCanceledException)
@@ -89,19 +91,16 @@ public static class RadarWhatsAppChatDiscovery
     private static async Task DescubrirYReportarUnaVezAsync(
         IPage page,
         RadarAgentConfig config,
-        bool mostrarEstado,
+        bool mostrarEstadoInicial,
         CancellationToken cancellationToken)
     {
         List<string> chats = await DescubrirAsync(page, cancellationToken);
         if (chats.Count == 0)
         {
-            if (mostrarEstado)
+            if (mostrarEstadoInicial)
                 Console.WriteLine("  ⚠ RADAR no encontró chats para reportar a RSMaps.");
             return;
         }
-
-        string firma = string.Join('\u001F', chats);
-        bool cambio = !string.Equals(_ultimaFirma, firma, StringComparison.Ordinal);
 
         bool reportados = await RadarAgentBackendClient.ReportarChatsDisponiblesAsync(
             config,
@@ -114,19 +113,30 @@ public static class RadarWhatsAppChatDiscovery
             return;
         }
 
-        _ultimaFirma = firma;
+        int nuevos = 0;
+        foreach (string chat in chats)
+        {
+            if (ConocidosSesion.Add(chat))
+                nuevos++;
+        }
 
-        if (mostrarEstado)
+        if (mostrarEstadoInicial)
         {
             Console.WriteLine($"  🔎 Chats WhatsApp detectados y reportados a RSMaps: {chats.Count}.");
+            return;
         }
-        else if (cambio)
+
+        if (nuevos > 0)
         {
-            Console.WriteLine($"  🔄 Catálogo WhatsApp actualizado en RSMaps: {chats.Count} chat(s).");
+            Console.WriteLine(
+                $"  🔄 Exploración WhatsApp: {chats.Count} visible(s) en este recorrido · " +
+                $"{nuevos} nuevo(s) agregado(s) · catálogo de sesión {ConocidosSesion.Count}.");
         }
         else
         {
-            Console.WriteLine($"  ↻ Catálogo WhatsApp verificado: {chats.Count} chat(s), sin cambios.");
+            Console.WriteLine(
+                $"  ↻ Exploración WhatsApp: {chats.Count} visible(s) en este recorrido · " +
+                $"0 nuevos · catálogo de sesión {ConocidosSesion.Count}.");
         }
     }
 
@@ -144,6 +154,17 @@ public static class RadarWhatsAppChatDiscovery
         try
         {
             await lista.HoverAsync();
+
+            try
+            {
+                await lista.EvaluateAsync("el => { el.scrollTop = 0; }");
+                await Task.Delay(350, cancellationToken);
+            }
+            catch
+            {
+                // Si WhatsApp cambia el contenedor scrollable, el recorrido todavía puede continuar.
+            }
+
             int rondasSinNuevos = 0;
 
             for (int ronda = 0; ronda < 40 && rondasSinNuevos < 5; ronda++)
