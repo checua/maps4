@@ -18,10 +18,14 @@ public sealed class RadarAgentController : Controller
     ];
 
     private readonly IRadarAgentPairingRepository _pairingRepository;
+    private readonly IRadarAgentChatDiscoveryRepository _chatDiscoveryRepository;
 
-    public RadarAgentController(IRadarAgentPairingRepository pairingRepository)
+    public RadarAgentController(
+        IRadarAgentPairingRepository pairingRepository,
+        IRadarAgentChatDiscoveryRepository chatDiscoveryRepository)
     {
         _pairingRepository = pairingRepository;
+        _chatDiscoveryRepository = chatDiscoveryRepository;
     }
 
     [HttpGet]
@@ -83,6 +87,17 @@ public sealed class RadarAgentController : Controller
         if (configuracion is null)
             return NotFound();
 
+        List<RadarAgentDiscoveredChatItem> disponibles =
+            await _chatDiscoveryRepository.ListarChatsAsync(
+                correo,
+                idCuenta,
+                idAgent,
+                cancellationToken);
+
+        var nombresDisponibles = disponibles
+            .Select(x => x.Nombre)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
         var model = new RadarAgentConfigurationEditViewModel
         {
             IdAgent = configuracion.IdAgent,
@@ -90,7 +105,16 @@ public sealed class RadarAgentController : Controller
             EquipoNombre = configuracion.EquipoNombre,
             Activo = configuracion.Activo && !configuracion.RevocadoUtc.HasValue,
             Configurada = configuracion.Configurada,
-            ChatsTexto = string.Join(Environment.NewLine, configuracion.ChatsMonitoreados),
+            ChatsSeleccionados = configuracion.ChatsMonitoreados
+                .Where(nombresDisponibles.Contains)
+                .ToList(),
+            ChatsTexto = string.Join(
+                Environment.NewLine,
+                configuracion.ChatsMonitoreados.Where(x => !nombresDisponibles.Contains(x))),
+            ChatsDisponibles = disponibles,
+            ChatsDetectadosUtc = disponibles.Count == 0
+                ? null
+                : disponibles.Max(x => x.UltimoVistoUtc),
             DestinoAlertas = string.IsNullOrWhiteSpace(configuracion.DestinoAlertas)
                 ? "Propiedades"
                 : configuracion.DestinoAlertas,
@@ -116,15 +140,19 @@ public sealed class RadarAgentController : Controller
         if (!IntervalosPermitidos.Contains(model.IntervaloRevisionMs))
             ModelState.AddModelError(nameof(model.IntervaloRevisionMs), "Selecciona un intervalo permitido.");
 
-        var chats = (model.ChatsTexto ?? string.Empty)
-            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        var chatsManuales = (model.ChatsTexto ?? string.Empty)
+            .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        var chats = (model.ChatsSeleccionados ?? [])
+            .Concat(chatsManuales)
             .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .Take(50)
             .ToList();
 
         if (chats.Count == 0)
-            ModelState.AddModelError(nameof(model.ChatsTexto), "Agrega al menos un chat para monitorear.");
+            ModelState.AddModelError(nameof(model.ChatsTexto), "Selecciona o agrega al menos un chat para monitorear.");
 
         if (!ModelState.IsValid)
         {
@@ -141,6 +169,7 @@ public sealed class RadarAgentController : Controller
             model.Activo = actual.Activo && !actual.RevocadoUtc.HasValue;
             model.Configurada = actual.Configurada;
             model.ActualizadoUtc = actual.ActualizadoUtc;
+            await CargarChatsDisponiblesAsync(model, correo, idCuenta, cancellationToken);
             return View("Configurar", model);
         }
 
@@ -199,6 +228,22 @@ public sealed class RadarAgentController : Controller
 
         TempData["RadarAgentMensaje"] = "El acceso del RADAR Agent fue revocado.";
         return RedirectToAction(nameof(Index));
+    }
+
+    private async Task CargarChatsDisponiblesAsync(
+        RadarAgentConfigurationEditViewModel model,
+        string correo,
+        int idCuenta,
+        CancellationToken cancellationToken)
+    {
+        model.ChatsDisponibles = await _chatDiscoveryRepository.ListarChatsAsync(
+            correo,
+            idCuenta,
+            model.IdAgent,
+            cancellationToken);
+        model.ChatsDetectadosUtc = model.ChatsDisponibles.Count == 0
+            ? null
+            : model.ChatsDisponibles.Max(x => x.UltimoVistoUtc);
     }
 
     private async Task<List<RadarAgentDeviceListItem>> CargarAgentsConConfiguracionAsync(
