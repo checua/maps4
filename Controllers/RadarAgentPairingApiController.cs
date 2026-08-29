@@ -10,10 +10,14 @@ namespace maps4.Controllers;
 public sealed class RadarAgentPairingApiController : ControllerBase
 {
     private readonly IRadarAgentPairingRepository _pairingRepository;
+    private readonly IRadarAgentChatDiscoveryRepository _chatDiscoveryRepository;
 
-    public RadarAgentPairingApiController(IRadarAgentPairingRepository pairingRepository)
+    public RadarAgentPairingApiController(
+        IRadarAgentPairingRepository pairingRepository,
+        IRadarAgentChatDiscoveryRepository chatDiscoveryRepository)
     {
         _pairingRepository = pairingRepository;
+        _chatDiscoveryRepository = chatDiscoveryRepository;
     }
 
     [AllowAnonymous]
@@ -92,6 +96,41 @@ public sealed class RadarAgentPairingApiController : ControllerBase
             intervaloRevisionMs = configuracion.IntervaloRevisionMs,
             terminosBusqueda = configuracion.TerminosBusqueda,
             actualizadoUtc = configuracion.ActualizadoUtc
+        });
+    }
+
+    [AllowAnonymous]
+    [HttpPost("chats/discovered")]
+    public async Task<IActionResult> ReportarChats(
+        [FromBody] RadarAgentChatDiscoveryRequest request,
+        CancellationToken cancellationToken)
+    {
+        RadarAgentAuthenticationResult? autenticacion = await AutenticarAgentAsync(cancellationToken);
+        if (autenticacion is null)
+            return Unauthorized(new { mensaje = "RADAR Agent no válido, revocado o sin cuenta activa." });
+
+        var chats = (request.Chats ?? [])
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(500)
+            .ToList();
+
+        if (chats.Count == 0)
+            return BadRequest(new { mensaje = "No se recibieron chats para registrar." });
+
+        bool guardados = await _chatDiscoveryRepository.ReemplazarChatsAsync(
+            autenticacion.IdAgent,
+            chats,
+            cancellationToken);
+
+        if (!guardados)
+            return Unauthorized(new { mensaje = "No fue posible registrar los chats del RADAR Agent." });
+
+        return Ok(new
+        {
+            idAgent = autenticacion.IdAgent,
+            chatsDetectados = chats.Count
         });
     }
 
