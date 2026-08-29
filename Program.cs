@@ -25,6 +25,7 @@ builder.Services.AddScoped<IInventarioRepository, InventarioRepository>();
 builder.Services.AddScoped<IRadarMatchingService, RadarMatchingService>();
 builder.Services.AddScoped<IRadarAgentPairingRepository, RadarAgentPairingRepository>();
 builder.Services.AddScoped<IRadarAgentChatDiscoveryRepository, RadarAgentChatDiscoveryRepository>();
+builder.Services.AddScoped<IRadarAgentChatDiscoveryCommandRepository, RadarAgentChatDiscoveryCommandRepository>();
 builder.Services.AddScoped<IBorradorInmuebleRepository, BorradorInmuebleRepository>();
 builder.Services.AddScoped<IPublicacionBorradorRepository, PublicacionBorradorRepository>();
 builder.Services.AddScoped<IInmuebleFotoRepository, InmuebleFotoRepository>();
