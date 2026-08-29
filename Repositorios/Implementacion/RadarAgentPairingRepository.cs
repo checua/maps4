@@ -4,6 +4,7 @@ using Microsoft.Data.SqlClient;
 using System.Data;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 
 namespace maps4.Repositorios.Implementacion;
 
@@ -408,6 +409,273 @@ WHERE d.IdAgent = @idAgent
         cmd.Parameters.Add("@correo", SqlDbType.VarChar, 200).Value = correo.Trim();
 
         return await cmd.ExecuteNonQueryAsync(cancellationToken) == 1;
+    }
+
+    public async Task<RadarAgentConfiguration?> ObtenerConfiguracionAsync(
+        string correo,
+        int idCuenta,
+        Guid idAgent,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(correo) || idCuenta <= 0 || idAgent == Guid.Empty)
+            return null;
+
+        const string sql = @"
+SELECT
+    d.IdAgent,
+    d.NombreAgent,
+    d.EquipoNombre,
+    d.Activo,
+    d.RevocadoUtc,
+    cfg.IdAgent AS ConfigIdAgent,
+    cfg.ChatsMonitoreadosJson,
+    cfg.DestinoAlertas,
+    cfg.IntervaloRevisionMs,
+    cfg.TerminosBusquedaJson,
+    cfg.ActualizadoUtc
+FROM dbo.RSMAPS_RadarAgentDevice d
+INNER JOIN dbo.RSMAPS_Usuario u
+    ON u.idAsesor = d.IdAsesor
+INNER JOIN dbo.RSMAPS_CuentaUsuario cu
+    ON cu.IdAsesor = d.IdAsesor
+   AND cu.IdCuenta = d.IdCuenta
+   AND cu.Activo = 1
+INNER JOIN dbo.RSMAPS_Cuenta c
+    ON c.IdCuenta = d.IdCuenta
+   AND c.Activo = 1
+LEFT JOIN dbo.RSMAPS_RadarAgentConfig cfg
+    ON cfg.IdAgent = d.IdAgent
+WHERE d.IdAgent = @idAgent
+  AND d.IdCuenta = @idCuenta
+  AND u.correo = @correo;";
+
+        await using SqlConnection conexion = new(_cadenaSQL);
+        await conexion.OpenAsync(cancellationToken);
+        await using SqlCommand cmd = new(sql, conexion);
+        cmd.Parameters.Add("@idAgent", SqlDbType.UniqueIdentifier).Value = idAgent;
+        cmd.Parameters.Add("@idCuenta", SqlDbType.Int).Value = idCuenta;
+        cmd.Parameters.Add("@correo", SqlDbType.VarChar, 200).Value = correo.Trim();
+
+        await using SqlDataReader dr = await cmd.ExecuteReaderAsync(cancellationToken);
+        if (!await dr.ReadAsync(cancellationToken))
+            return null;
+
+        return MapearConfiguracion(dr, incluirIdentidad: true);
+    }
+
+    public async Task<RadarAgentConfiguration> ObtenerConfiguracionAgentAsync(
+        Guid idAgent,
+        CancellationToken cancellationToken = default)
+    {
+        var resultado = new RadarAgentConfiguration
+        {
+            IdAgent = idAgent,
+            Configurada = false,
+            DestinoAlertas = "Propiedades",
+            IntervaloRevisionMs = 60_000
+        };
+
+        if (idAgent == Guid.Empty)
+            return resultado;
+
+        const string sql = @"
+SELECT
+    IdAgent,
+    ChatsMonitoreadosJson,
+    DestinoAlertas,
+    IntervaloRevisionMs,
+    TerminosBusquedaJson,
+    ActualizadoUtc
+FROM dbo.RSMAPS_RadarAgentConfig
+WHERE IdAgent = @idAgent;";
+
+        await using SqlConnection conexion = new(_cadenaSQL);
+        await conexion.OpenAsync(cancellationToken);
+        await using SqlCommand cmd = new(sql, conexion);
+        cmd.Parameters.Add("@idAgent", SqlDbType.UniqueIdentifier).Value = idAgent;
+
+        await using SqlDataReader dr = await cmd.ExecuteReaderAsync(cancellationToken);
+        if (!await dr.ReadAsync(cancellationToken))
+            return resultado;
+
+        resultado.Configurada = true;
+        resultado.ChatsMonitoreados = DeserializarLista(dr["ChatsMonitoreadosJson"]?.ToString());
+        resultado.DestinoAlertas = dr["DestinoAlertas"] == DBNull.Value
+            ? "Propiedades"
+            : dr["DestinoAlertas"].ToString();
+        resultado.IntervaloRevisionMs = Convert.ToInt32(dr["IntervaloRevisionMs"]);
+        resultado.TerminosBusqueda = DeserializarTerminos(dr["TerminosBusquedaJson"]?.ToString());
+        resultado.ActualizadoUtc = dr["ActualizadoUtc"] == DBNull.Value
+            ? null
+            : Convert.ToDateTime(dr["ActualizadoUtc"]);
+        return resultado;
+    }
+
+    public async Task<bool> GuardarConfiguracionAsync(
+        string correo,
+        int idCuenta,
+        RadarAgentConfiguration configuracion,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(correo) || idCuenta <= 0 || configuracion.IdAgent == Guid.Empty)
+            return false;
+
+        var chats = configuracion.ChatsMonitoreados
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(50)
+            .ToList();
+
+        string destino = string.IsNullOrWhiteSpace(configuracion.DestinoAlertas)
+            ? "Propiedades"
+            : configuracion.DestinoAlertas.Trim();
+        destino = destino[..Math.Min(destino.Length, 200)];
+
+        int intervalo = Math.Clamp(configuracion.IntervaloRevisionMs, 10_000, 1_200_000);
+        string chatsJson = JsonSerializer.Serialize(chats);
+        string terminosJson = JsonSerializer.Serialize(
+            configuracion.TerminosBusqueda ?? new Dictionary<string, string[]>());
+
+        const string sql = @"
+IF NOT EXISTS
+(
+    SELECT 1
+    FROM dbo.RSMAPS_RadarAgentDevice d
+    INNER JOIN dbo.RSMAPS_Usuario u
+        ON u.idAsesor = d.IdAsesor
+    INNER JOIN dbo.RSMAPS_CuentaUsuario cu
+        ON cu.IdAsesor = d.IdAsesor
+       AND cu.IdCuenta = d.IdCuenta
+       AND cu.Activo = 1
+    INNER JOIN dbo.RSMAPS_Cuenta c
+        ON c.IdCuenta = d.IdCuenta
+       AND c.Activo = 1
+    WHERE d.IdAgent = @idAgent
+      AND d.IdCuenta = @idCuenta
+      AND u.correo = @correo
+      AND d.Activo = 1
+      AND d.RevocadoUtc IS NULL
+)
+BEGIN
+    SELECT CAST(0 AS bit);
+    RETURN;
+END;
+
+IF EXISTS (SELECT 1 FROM dbo.RSMAPS_RadarAgentConfig WHERE IdAgent = @idAgent)
+BEGIN
+    UPDATE dbo.RSMAPS_RadarAgentConfig
+    SET ChatsMonitoreadosJson = @chatsJson,
+        DestinoAlertas = @destinoAlertas,
+        IntervaloRevisionMs = @intervaloRevisionMs,
+        TerminosBusquedaJson = @terminosJson,
+        ActualizadoUtc = SYSUTCDATETIME()
+    WHERE IdAgent = @idAgent;
+END
+ELSE
+BEGIN
+    INSERT dbo.RSMAPS_RadarAgentConfig
+    (
+        IdAgent,
+        ChatsMonitoreadosJson,
+        DestinoAlertas,
+        IntervaloRevisionMs,
+        TerminosBusquedaJson,
+        ActualizadoUtc
+    )
+    VALUES
+    (
+        @idAgent,
+        @chatsJson,
+        @destinoAlertas,
+        @intervaloRevisionMs,
+        @terminosJson,
+        SYSUTCDATETIME()
+    );
+END;
+
+SELECT CAST(1 AS bit);";
+
+        await using SqlConnection conexion = new(_cadenaSQL);
+        await conexion.OpenAsync(cancellationToken);
+        await using SqlCommand cmd = new(sql, conexion);
+        cmd.Parameters.Add("@idAgent", SqlDbType.UniqueIdentifier).Value = configuracion.IdAgent;
+        cmd.Parameters.Add("@idCuenta", SqlDbType.Int).Value = idCuenta;
+        cmd.Parameters.Add("@correo", SqlDbType.VarChar, 200).Value = correo.Trim();
+        cmd.Parameters.Add("@chatsJson", SqlDbType.NVarChar, -1).Value = chatsJson;
+        cmd.Parameters.Add("@destinoAlertas", SqlDbType.NVarChar, 200).Value = destino;
+        cmd.Parameters.Add("@intervaloRevisionMs", SqlDbType.Int).Value = intervalo;
+        cmd.Parameters.Add("@terminosJson", SqlDbType.NVarChar, -1).Value = terminosJson;
+
+        object? valor = await cmd.ExecuteScalarAsync(cancellationToken);
+        return valor != null && valor != DBNull.Value && Convert.ToBoolean(valor);
+    }
+
+    private static RadarAgentConfiguration MapearConfiguracion(SqlDataReader dr, bool incluirIdentidad)
+    {
+        bool configurada = dr["ConfigIdAgent"] != DBNull.Value;
+        var resultado = new RadarAgentConfiguration
+        {
+            IdAgent = (Guid)dr["IdAgent"],
+            Configurada = configurada,
+            DestinoAlertas = "Propiedades",
+            IntervaloRevisionMs = 60_000
+        };
+
+        if (incluirIdentidad)
+        {
+            resultado.NombreAgent = dr["NombreAgent"].ToString() ?? string.Empty;
+            resultado.EquipoNombre = dr["EquipoNombre"] == DBNull.Value ? null : dr["EquipoNombre"].ToString();
+            resultado.Activo = Convert.ToBoolean(dr["Activo"]);
+            resultado.RevocadoUtc = dr["RevocadoUtc"] == DBNull.Value ? null : Convert.ToDateTime(dr["RevocadoUtc"]);
+        }
+
+        if (!configurada)
+            return resultado;
+
+        resultado.ChatsMonitoreados = DeserializarLista(dr["ChatsMonitoreadosJson"]?.ToString());
+        resultado.DestinoAlertas = dr["DestinoAlertas"] == DBNull.Value
+            ? "Propiedades"
+            : dr["DestinoAlertas"].ToString();
+        resultado.IntervaloRevisionMs = Convert.ToInt32(dr["IntervaloRevisionMs"]);
+        resultado.TerminosBusqueda = DeserializarTerminos(dr["TerminosBusquedaJson"]?.ToString());
+        resultado.ActualizadoUtc = dr["ActualizadoUtc"] == DBNull.Value
+            ? null
+            : Convert.ToDateTime(dr["ActualizadoUtc"]);
+
+        return resultado;
+    }
+
+    private static List<string> DeserializarLista(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return [];
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(json) ?? [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
+
+    private static Dictionary<string, string[]> DeserializarTerminos(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return new(StringComparer.OrdinalIgnoreCase);
+
+        try
+        {
+            var datos = JsonSerializer.Deserialize<Dictionary<string, string[]>>(json)
+                ?? new Dictionary<string, string[]>();
+            return new Dictionary<string, string[]>(datos, StringComparer.OrdinalIgnoreCase);
+        }
+        catch (JsonException)
+        {
+            return new(StringComparer.OrdinalIgnoreCase);
+        }
     }
 
     private static string NormalizarNombreAgent(string nombreAgent)
