@@ -5,11 +5,13 @@ namespace RSMaps.Radar.Listener.Services;
 
 public sealed class RadarAgentInstanceLock : IDisposable
 {
-    private readonly FileStream _stream;
+    private readonly Mutex _mutex;
+    private bool _ownsMutex;
 
-    private RadarAgentInstanceLock(FileStream stream)
+    private RadarAgentInstanceLock(Mutex mutex)
     {
-        _stream = stream;
+        _mutex = mutex;
+        _ownsMutex = true;
     }
 
     public static RadarAgentInstanceLock Acquire()
@@ -29,47 +31,36 @@ public sealed class RadarAgentInstanceLock : IDisposable
         string hash = Convert.ToHexString(
             SHA256.HashData(Encoding.UTF8.GetBytes(identity.ToUpperInvariant())))[..24];
 
-        string directory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "RSMaps",
-            "RadarAgent",
-            "locks");
+        string mutexName = $"Local\\RSMaps.RadarAgent.{hash}";
+        var mutex = new Mutex(initiallyOwned: true, mutexName, out bool createdNew);
 
-        Directory.CreateDirectory(directory);
-        string path = Path.Combine(directory, $"{hash}.lock");
-
-        try
+        if (!createdNew)
         {
-            var stream = new FileStream(
-                path,
-                FileMode.OpenOrCreate,
-                FileAccess.ReadWrite,
-                FileShare.None);
-
-            stream.SetLength(0);
-            using var writer = new StreamWriter(
-                stream,
-                Encoding.UTF8,
-                bufferSize: 1024,
-                leaveOpen: true);
-            writer.WriteLine($"PID={Environment.ProcessId}");
-            writer.WriteLine($"STARTED_UTC={DateTime.UtcNow:O}");
-            writer.Flush();
-            stream.Position = 0;
-
-            return new RadarAgentInstanceLock(stream);
-        }
-        catch (IOException ex)
-        {
+            mutex.Dispose();
             throw new InvalidOperationException(
                 "Ya hay una instancia de este RADAR Agent en ejecución. " +
-                "Cierra la ventana anterior antes de iniciar otra.",
-                ex);
+                "Cierra la ventana anterior antes de iniciar otra.");
         }
+
+        return new RadarAgentInstanceLock(mutex);
     }
 
     public void Dispose()
     {
-        _stream.Dispose();
+        if (_ownsMutex)
+        {
+            try
+            {
+                _mutex.ReleaseMutex();
+            }
+            catch (ApplicationException)
+            {
+                // Si el runtime ya liberó el mutex, sólo debemos cerrar el handle.
+            }
+
+            _ownsMutex = false;
+        }
+
+        _mutex.Dispose();
     }
 }
