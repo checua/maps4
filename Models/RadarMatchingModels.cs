@@ -6,6 +6,8 @@ namespace maps4.Models
         public List<string> TiposPropiedad { get; set; } = new();
         public List<string> SubtiposPropiedad { get; set; } = new();
         public List<string> Zonas { get; set; } = new();
+        public string? CondicionInmueble { get; set; }
+        public string? EtapaInmueble { get; set; }
 
         public decimal? PrecioMinimo { get; set; }
         public decimal? PrecioMaximo { get; set; }
