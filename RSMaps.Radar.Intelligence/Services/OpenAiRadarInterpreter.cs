@@ -22,6 +22,9 @@ Reglas:
 - "fraccionamiento privado" describe el tipo de fraccionamiento y debe representarse como tipoFraccionamiento="Privado". No es una zona y no implica por sí mismo caseta de vigilancia.
 - Conserva como zonas los nombres o referencias geográficas útiles, por ejemplo colonias, fraccionamientos con nombre propio, sectores, rumbos, zona sur, CIMA o libramiento cuando funcionen como referencia de ubicación.
 - "zonas cercanas", "cerca" o "ese rumbo" son flexibilidad geográfica, no nombres de zona.
+- condicionInmueble representa la condición solicitada y usa sólo: Nueva, Usada o Remodelada. "para estrenar", "a estrenar", "sin habitar" o "sin estrenar" equivalen a Nueva. No deduzcas Nueva únicamente porque diga preventa o en construcción.
+- etapaInmueble representa una etapa expresamente solicitada y usa sólo: Preventa, En construcción o Terminada. "lista/listo para entrega" o "entrega inmediata" pueden representarse como Terminada. La etapa es independiente de condicionInmueble.
+- Si no se menciona condición o etapa, usa null. No supongas que una vivienda es usada, nueva, terminada o en preventa por contexto implícito.
 - Normaliza importes: "2.3 millones" significa 2300000; "20 mil" significa 20000.
 - Si hay un rango de precio, usa precioMinimo y precioMaximo. Si sólo hay un monto o presupuesto sin rango explícito, trátalo como precio máximo y deja precioMinimo en null.
 - Si el mensaje contiene una respuesta, oferta o texto citado posterior a la solicitud original, no mezcles los datos de esa oferta con los criterios buscados. Frases como "si aún busca", "tengo opciones" o "cuento con" suelen iniciar una respuesta/oferta.
@@ -49,6 +52,8 @@ Reglas:
           "subtiposPropiedad": { "type": "array", "items": { "type": "string" } },
           "zonas": { "type": "array", "items": { "type": "string" } },
           "tipoFraccionamiento": { "type": ["string", "null"], "enum": ["Privado", null] },
+          "condicionInmueble": { "type": ["string", "null"], "enum": ["Nueva", "Usada", "Remodelada", null] },
+          "etapaInmueble": { "type": ["string", "null"], "enum": ["Preventa", "En construcción", "Terminada", null] },
           "precioMinimo": { "type": ["number", "null"] },
           "precioMaximo": { "type": ["number", "null"] },
           "recamarasMin": { "type": ["integer", "null"] },
@@ -67,9 +72,9 @@ Reglas:
         },
         "required": [
           "operacion", "tiposPropiedad", "subtiposPropiedad", "zonas", "tipoFraccionamiento",
-          "precioMinimo", "precioMaximo", "recamarasMin", "recamarasMax", "banosMin", "banosMax",
-          "terrenoMinM2", "construccionMinM2", "aceptaMascotas", "amueblado", "unaPlanta",
-          "casetaVigilancia", "cocheraMinAutos", "modalidadesPago", "requisitosAdicionales"
+          "condicionInmueble", "etapaInmueble", "precioMinimo", "precioMaximo", "recamarasMin", "recamarasMax",
+          "banosMin", "banosMax", "terrenoMinM2", "construccionMinM2", "aceptaMascotas", "amueblado",
+          "unaPlanta", "casetaVigilancia", "cocheraMinAutos", "modalidadesPago", "requisitosAdicionales"
         ],
         "additionalProperties": false
       }
@@ -186,6 +191,8 @@ Reglas:
                 SubtiposPropiedad = item.SubtiposPropiedad ?? [],
                 Zonas = item.Zonas ?? [],
                 TipoFraccionamiento = item.TipoFraccionamiento,
+                CondicionInmueble = item.CondicionInmueble,
+                EtapaInmueble = item.EtapaInmueble,
                 PrecioMinimo = item.PrecioMinimo,
                 PrecioMaximo = item.PrecioMaximo,
                 RecamarasMin = item.RecamarasMin,
@@ -273,6 +280,8 @@ Reglas:
         public List<string>? SubtiposPropiedad { get; set; }
         public List<string>? Zonas { get; set; }
         public string? TipoFraccionamiento { get; set; }
+        public string? CondicionInmueble { get; set; }
+        public string? EtapaInmueble { get; set; }
         public decimal? PrecioMinimo { get; set; }
         public decimal? PrecioMaximo { get; set; }
         public int? RecamarasMin { get; set; }
