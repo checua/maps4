@@ -21,6 +21,7 @@ public sealed class RadarIntelligenceInterpreter : IRadarInterpreter
     {
         var primario = await _primario.InterpretarAsync(mensaje, cancellationToken);
         RadarInterpretationNormalizer.Normalizar(primario, mensaje);
+        RadarPropertyLifecycleNormalizer.Aplicar(primario, mensaje);
         RadarInterpretationSemanticCleaner.Limpiar(primario);
         var validacionPrimaria = RadarInterpretationValidator.Validar(primario, mensaje);
 
@@ -39,6 +40,7 @@ public sealed class RadarIntelligenceInterpreter : IRadarInterpreter
 
         var secundario = await _fallback.InterpretarAsync(mensaje, cancellationToken);
         RadarInterpretationNormalizer.Normalizar(secundario, mensaje);
+        RadarPropertyLifecycleNormalizer.Aplicar(secundario, mensaje);
         RadarInterpretationSemanticCleaner.Limpiar(secundario);
         var validacionSecundaria = RadarInterpretationValidator.Validar(secundario, mensaje);
 
@@ -100,8 +102,16 @@ public sealed class RadarIntelligenceInterpreter : IRadarInterpreter
             string subtipos = solicitud.SubtiposPropiedad.Count == 0
                 ? "-"
                 : string.Join(" | ", solicitud.SubtiposPropiedad);
+            string condicion = string.IsNullOrWhiteSpace(solicitud.CondicionInmueble)
+                ? "-"
+                : solicitud.CondicionInmueble;
+            string etapa = string.IsNullOrWhiteSpace(solicitud.EtapaInmueble)
+                ? "-"
+                : solicitud.EtapaInmueble;
 
-            Console.WriteLine($"     IA Solicitud #{i + 1} · Subtipos: {subtipos}");
+            Console.WriteLine(
+                $"     IA Solicitud #{i + 1} · Subtipos: {subtipos} · " +
+                $"Condición: {condicion} · Etapa: {etapa}");
         }
 
         foreach (var problema in resultado.ProblemasValidacion)
