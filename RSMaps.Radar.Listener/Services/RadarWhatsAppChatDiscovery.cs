@@ -144,6 +144,10 @@ public static class RadarWhatsAppChatDiscovery
         {
             Console.WriteLine($"  🔄 Catálogo WhatsApp actualizado en RSMaps: {chats.Count} chat(s).");
         }
+        else
+        {
+            Console.WriteLine($"  ↻ Catálogo WhatsApp verificado: {chats.Count} chat(s), sin cambios.");
+        }
     }
 
     private static async Task<List<string>> DescubrirAsync(
