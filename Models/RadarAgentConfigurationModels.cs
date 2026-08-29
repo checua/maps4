@@ -23,7 +23,7 @@ public sealed class RadarAgentConfigurationEditViewModel
     public string? EquipoNombre { get; set; }
     public bool Activo { get; set; }
     public bool Configurada { get; set; }
-    public string ChatsTexto { get; set; } = string.Empty;
+    public string? ChatsTexto { get; set; }
     public List<string> ChatsSeleccionados { get; set; } = [];
     public List<RadarAgentDiscoveredChatItem> ChatsDisponibles { get; set; } = [];
     public DateTime? ChatsDetectadosUtc { get; set; }
