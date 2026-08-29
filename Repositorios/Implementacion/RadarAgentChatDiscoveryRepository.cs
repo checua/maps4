@@ -51,21 +51,22 @@ BEGIN
     RETURN;
 END;
 
-DELETE FROM dbo.RSMAPS_RadarAgentChatDiscovery
-WHERE IdAgent = @idAgent;
+DECLARE @Chats TABLE (NombreChat nvarchar(300) NOT NULL PRIMARY KEY);
 
-INSERT dbo.RSMAPS_RadarAgentChatDiscovery
-(
-    IdAgent,
-    NombreChat,
-    UltimoVistoUtc
-)
-SELECT
-    @idAgent,
-    LEFT(LTRIM(RTRIM(CONVERT(nvarchar(300), j.[value]))), 300),
-    SYSUTCDATETIME()
+INSERT @Chats (NombreChat)
+SELECT DISTINCT LEFT(LTRIM(RTRIM(CONVERT(nvarchar(300), j.[value]))), 300)
 FROM OPENJSON(@chatsJson) j
 WHERE NULLIF(LTRIM(RTRIM(CONVERT(nvarchar(300), j.[value]))), N'') IS NOT NULL;
+
+MERGE dbo.RSMAPS_RadarAgentChatDiscovery AS destino
+USING @Chats AS origen
+ON destino.IdAgent = @idAgent
+AND destino.NombreChat = origen.NombreChat
+WHEN MATCHED THEN
+    UPDATE SET UltimoVistoUtc = SYSUTCDATETIME()
+WHEN NOT MATCHED BY TARGET THEN
+    INSERT (IdAgent, NombreChat, UltimoVistoUtc)
+    VALUES (@idAgent, origen.NombreChat, SYSUTCDATETIME());
 
 SELECT CAST(1 AS bit);";
 
@@ -89,14 +90,10 @@ SELECT CAST(1 AS bit);";
             return [];
 
         const string sql = @"
-SELECT
-    dc.NombreChat,
-    dc.UltimoVistoUtc
+SELECT dc.NombreChat, dc.UltimoVistoUtc
 FROM dbo.RSMAPS_RadarAgentChatDiscovery dc
-INNER JOIN dbo.RSMAPS_RadarAgentDevice d
-    ON d.IdAgent = dc.IdAgent
-INNER JOIN dbo.RSMAPS_Usuario u
-    ON u.idAsesor = d.IdAsesor
+INNER JOIN dbo.RSMAPS_RadarAgentDevice d ON d.IdAgent = dc.IdAgent
+INNER JOIN dbo.RSMAPS_Usuario u ON u.idAsesor = d.IdAsesor
 INNER JOIN dbo.RSMAPS_CuentaUsuario cu
     ON cu.IdAsesor = d.IdAsesor
    AND cu.IdCuenta = d.IdCuenta
