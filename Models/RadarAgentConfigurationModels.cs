@@ -24,6 +24,9 @@ public sealed class RadarAgentConfigurationEditViewModel
     public bool Activo { get; set; }
     public bool Configurada { get; set; }
     public string ChatsTexto { get; set; } = string.Empty;
+    public List<string> ChatsSeleccionados { get; set; } = [];
+    public List<RadarAgentDiscoveredChatItem> ChatsDisponibles { get; set; } = [];
+    public DateTime? ChatsDetectadosUtc { get; set; }
     public string DestinoAlertas { get; set; } = "Propiedades";
     public int IntervaloRevisionMs { get; set; } = 60_000;
     public DateTime? ActualizadoUtc { get; set; }
