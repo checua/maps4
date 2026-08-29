@@ -52,6 +52,7 @@ public static class RadarAgentConfigLoader
             Console.WriteLine($"  Cuenta declarada localmente: {Mostrar(config.Cuenta)}");
             Console.WriteLine($"  Archivo: {path}");
             RadarAgentBackendClient.MostrarEstado(config);
+            RadarAgentHeartbeat.Start(config);
 
             return config;
         }
