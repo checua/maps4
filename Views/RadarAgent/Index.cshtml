@@ -84,6 +84,11 @@
                         bool conectado = activo
                             && agent.UltimoUsoUtc.HasValue
                             && Math.Abs((ahoraUtc - agent.UltimoUsoUtc.Value).TotalMinutes) <= 3;
+                        string intervaloTexto = agent.IntervaloRevisionMs.HasValue
+                            ? agent.IntervaloRevisionMs.Value < 60_000
+                                ? $"{agent.IntervaloRevisionMs.Value / 1000}s"
+                                : $"{agent.IntervaloRevisionMs.Value / 60_000} min"
+                            : "-";
 
                         <div class="col-12">
                             <div class="border rounded p-3">
@@ -103,6 +108,11 @@
                                             {
                                                 <span class="badge bg-warning text-dark">Sin conexión</span>
                                             }
+
+                                            @if (agent.Configurada)
+                                            {
+                                                <span class="badge bg-primary">Config central</span>
+                                            }
                                         </div>
 
                                         <div class="text-muted small">
@@ -120,6 +130,22 @@
                                                 ? agent.UltimoUsoUtc.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")
                                                 : "Todavía sin uso registrado")
                                         </div>
+
+                                        @if (agent.Configurada)
+                                        {
+                                            <div class="small mt-2">
+                                                <span class="text-muted">Configuración:</span>
+                                                <strong>@agent.ChatsMonitoreadosCount chat(s)</strong>
+                                                · @intervaloTexto
+                                                · @(string.IsNullOrWhiteSpace(agent.DestinoAlertas) ? "Sin destino" : agent.DestinoAlertas)
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="text-muted small mt-2">
+                                                Configuración: local / pendiente de centralizar
+                                            </div>
+                                        }
 
                                         @if (activo)
                                         {
