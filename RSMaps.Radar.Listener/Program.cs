@@ -34,9 +34,11 @@ await RadarWhatsAppChatDiscovery.DescubrirYReportarAsync(
     page,
     RadarSettings.ConfiguracionAgente);
 
+var chatsIniciales = RadarSettings.ChatsMonitoreados;
+
 Console.WriteLine();
 Console.WriteLine("Chats configurados para Radar:");
-foreach (var chat in RadarSettings.ChatsMonitoreados)
+foreach (var chat in chatsIniciales)
     Console.WriteLine($"  • {chat}");
 Console.WriteLine(RadarSettings.ModoSeguroLab
     ? "Chat de alertas: (bloqueado por MODO SEGURO LAB)"
@@ -51,7 +53,7 @@ Console.WriteLine($"Intérprete Radar: {interpreter.GetType().Name}");
 Console.WriteLine();
 Console.WriteLine("Inicializando chats...");
 
-foreach (var chat in RadarSettings.ChatsMonitoreados)
+foreach (var chat in chatsIniciales)
 {
     if (!await AbrirChat(page, chat))
     {
@@ -105,8 +107,22 @@ while (true)
             page,
             RadarSettings.ConfiguracionAgente);
 
-        foreach (var chat in RadarSettings.ChatsMonitoreados)
+        // Tomamos una fotografía estable de la configuración para este barrido.
+        // Si el heartbeat cambia la configuración mientras recorremos los chats,
+        // el siguiente ciclo aplicará el nuevo conjunto completo sin mezclar estados.
+        var chatsCiclo = RadarSettings.ChatsMonitoreados;
+        var inicializadosAhora = await ReconciliarEstadoChatsAsync(
+            page,
+            chatsCiclo,
+            idsConocidosPorChat);
+
+        foreach (var chat in chatsCiclo)
         {
+            // Un chat recién agregado primero absorbe su historial visible como línea base.
+            // Se empieza a detectar demanda nueva a partir del siguiente barrido.
+            if (inicializadosAhora.Contains(chat))
+                continue;
+
             if (!await AbrirChat(page, chat))
             {
                 Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] ⚠ No pude abrir {chat}.");
@@ -116,8 +132,11 @@ while (true)
             if (!idsConocidosPorChat.TryGetValue(chat, out var idsConocidos))
             {
                 idsConocidos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                idsConocidosPorChat[chat] = idsConocidos;
                 await EstabilizarMensajesChat(page, idsConocidos);
+                idsConocidosPorChat[chat] = idsConocidos;
+                Console.WriteLine(
+                    $"  ⚙ Fuente inicializada de forma defensiva: {chat} · " +
+                    $"{idsConocidos.Count} mensaje(s) usados como historial base.");
                 continue;
             }
 
@@ -186,6 +205,62 @@ while (true)
     }
 
     await Task.Delay(RadarSettings.IntervaloRevisionMs);
+}
+
+static async Task<HashSet<string>> ReconciliarEstadoChatsAsync(
+    IPage page,
+    IReadOnlyCollection<string> chatsConfigurados,
+    Dictionary<string, HashSet<string>> idsConocidosPorChat)
+{
+    var configurados = chatsConfigurados
+        .Where(x => !string.IsNullOrWhiteSpace(x))
+        .Select(x => x.Trim())
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    var eliminados = idsConocidosPorChat.Keys
+        .Where(chat => !configurados.Contains(chat))
+        .ToList();
+
+    foreach (var chat in eliminados)
+    {
+        idsConocidosPorChat.Remove(chat);
+        Console.WriteLine($"  ⚙ Fuente retirada: {chat} · estado local eliminado.");
+    }
+
+    var nuevos = chatsConfigurados
+        .Where(chat => !idsConocidosPorChat.ContainsKey(chat))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    var inicializadosAhora = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+    foreach (var chat in nuevos)
+    {
+        if (!await AbrirChat(page, chat))
+        {
+            Console.WriteLine(
+                $"  ⚠ Fuente nueva pendiente de inicializar: {chat}. " +
+                "RADAR volverá a intentarlo en el siguiente barrido.");
+            continue;
+        }
+
+        var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        await EstabilizarMensajesChat(page, ids);
+        idsConocidosPorChat[chat] = ids;
+        inicializadosAhora.Add(chat);
+
+        Console.WriteLine(
+            $"  ⚙ Fuente agregada: {chat} · historial base {ids.Count} mensaje(s); " +
+            "solo se procesarán mensajes posteriores.");
+    }
+
+    if (eliminados.Count > 0 || nuevos.Count > 0)
+    {
+        Console.WriteLine(
+            $"  ⚙ Estado RADAR reconciliado: {idsConocidosPorChat.Count} fuente(s) activas.");
+    }
+
+    return inicializadosAhora;
 }
 
 static async Task<bool> AbrirChat(IPage page, string nombreChat)
