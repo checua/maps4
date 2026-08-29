@@ -11,13 +11,16 @@ public sealed class RadarAgentPairingApiController : ControllerBase
 {
     private readonly IRadarAgentPairingRepository _pairingRepository;
     private readonly IRadarAgentChatDiscoveryRepository _chatDiscoveryRepository;
+    private readonly IRadarAgentChatDiscoveryCommandRepository _discoveryCommandRepository;
 
     public RadarAgentPairingApiController(
         IRadarAgentPairingRepository pairingRepository,
-        IRadarAgentChatDiscoveryRepository chatDiscoveryRepository)
+        IRadarAgentChatDiscoveryRepository chatDiscoveryRepository,
+        IRadarAgentChatDiscoveryCommandRepository discoveryCommandRepository)
     {
         _pairingRepository = pairingRepository;
         _chatDiscoveryRepository = chatDiscoveryRepository;
+        _discoveryCommandRepository = discoveryCommandRepository;
     }
 
     [AllowAnonymous]
@@ -87,6 +90,11 @@ public sealed class RadarAgentPairingApiController : ControllerBase
                 autenticacion.IdAgent,
                 cancellationToken);
 
+        RadarAgentChatDiscoveryCommandState? exploracion =
+            await _discoveryCommandRepository.ObtenerEstadoAgentAsync(
+                autenticacion.IdAgent,
+                cancellationToken);
+
         return Ok(new
         {
             idAgent = autenticacion.IdAgent,
@@ -95,7 +103,10 @@ public sealed class RadarAgentPairingApiController : ControllerBase
             destinoAlertas = configuracion.DestinoAlertas,
             intervaloRevisionMs = configuracion.IntervaloRevisionMs,
             terminosBusqueda = configuracion.TerminosBusqueda,
-            actualizadoUtc = configuracion.ActualizadoUtc
+            actualizadoUtc = configuracion.ActualizadoUtc,
+            exploracionChatsSolicitadaUtc = exploracion?.SolicitadaUtc,
+            exploracionChatsCompletadaUtc = exploracion?.CompletadaUtc,
+            exploracionChatsPendiente = exploracion?.Pendiente == true
         });
     }
 
@@ -127,10 +138,20 @@ public sealed class RadarAgentPairingApiController : ControllerBase
         if (!guardados)
             return Unauthorized(new { mensaje = "No fue posible registrar los chats del RADAR Agent." });
 
+        bool exploracionCompletada = false;
+        if (request.SolicitudExploracionUtc.HasValue)
+        {
+            exploracionCompletada = await _discoveryCommandRepository.CompletarAsync(
+                autenticacion.IdAgent,
+                request.SolicitudExploracionUtc.Value,
+                cancellationToken);
+        }
+
         return Ok(new
         {
             idAgent = autenticacion.IdAgent,
-            chatsDetectados = chats.Count
+            chatsDetectados = chats.Count,
+            exploracionCompletada
         });
     }
 
