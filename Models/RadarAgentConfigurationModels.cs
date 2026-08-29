@@ -14,6 +14,13 @@ public sealed class RadarAgentConfiguration
     public Dictionary<string, string[]> TerminosBusqueda { get; set; } =
         new(StringComparer.OrdinalIgnoreCase);
     public DateTime? ActualizadoUtc { get; set; }
+    public DateTime? ExploracionChatsSolicitadaUtc { get; set; }
+    public DateTime? ExploracionChatsCompletadaUtc { get; set; }
+
+    public bool ExploracionChatsPendiente =>
+        ExploracionChatsSolicitadaUtc.HasValue &&
+        (!ExploracionChatsCompletadaUtc.HasValue ||
+         ExploracionChatsCompletadaUtc.Value < ExploracionChatsSolicitadaUtc.Value);
 }
 
 public sealed class RadarAgentConfigurationEditViewModel
@@ -30,4 +37,11 @@ public sealed class RadarAgentConfigurationEditViewModel
     public string DestinoAlertas { get; set; } = "Propiedades";
     public int IntervaloRevisionMs { get; set; } = 60_000;
     public DateTime? ActualizadoUtc { get; set; }
+    public DateTime? ExploracionChatsSolicitadaUtc { get; set; }
+    public DateTime? ExploracionChatsCompletadaUtc { get; set; }
+
+    public bool ExploracionChatsPendiente =>
+        ExploracionChatsSolicitadaUtc.HasValue &&
+        (!ExploracionChatsCompletadaUtc.HasValue ||
+         ExploracionChatsCompletadaUtc.Value < ExploracionChatsSolicitadaUtc.Value);
 }
