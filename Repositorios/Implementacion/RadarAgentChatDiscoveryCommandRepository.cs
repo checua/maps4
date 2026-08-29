@@ -116,7 +116,7 @@ WHERE d.IdAgent = @idAgent
         cmd.Parameters.Add("@correo", SqlDbType.VarChar, 200).Value = correo.Trim();
 
         object? valor = await cmd.ExecuteScalarAsync(cancellationToken);
-        return valor is null or DBNull ? null : Convert.ToDateTime(valor);
+        return valor == null || valor == DBNull.Value ? null : Convert.ToDateTime(valor);
     }
 
     public async Task<bool> CompletarAsync(
@@ -157,7 +157,9 @@ SELECT CAST(CASE WHEN @@ROWCOUNT = 1 THEN 1 ELSE 0 END AS bit);";
         await conexion.OpenAsync(cancellationToken);
         await using SqlCommand cmd = new(sql, conexion);
         cmd.Parameters.Add("@idAgent", SqlDbType.UniqueIdentifier).Value = idAgent;
-        cmd.Parameters.Add("@solicitudUtc", SqlDbType.DateTime2).Value = solicitudUtc;
+        SqlParameter solicitudParam = cmd.Parameters.Add("@solicitudUtc", SqlDbType.DateTime2);
+        solicitudParam.Scale = 3;
+        solicitudParam.Value = solicitudUtc;
 
         object? valor = await cmd.ExecuteScalarAsync(cancellationToken);
         return valor != null && valor != DBNull.Value && Convert.ToBoolean(valor);
