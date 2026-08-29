@@ -40,6 +40,59 @@ public static class RadarAgentBackendClient
         }
     }
 
+    public static async Task<RadarAgentRemoteConfig?> ObtenerConfiguracionAsync(
+        RadarAgentConfig? config,
+        CancellationToken cancellationToken = default)
+    {
+        if (!RadarAgentCredentialStore.TryLeerToken(config, out string token, out _))
+            return null;
+
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/api/radar/agent/config");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            using HttpResponseMessage response = await Http.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+                return null;
+
+            return await response.Content.ReadFromJsonAsync<RadarAgentRemoteConfig>(
+                cancellationToken: cancellationToken);
+        }
+        finally
+        {
+            token = string.Empty;
+        }
+    }
+
+    public static async Task<bool> SincronizarConfiguracionAsync(
+        RadarAgentConfig config,
+        bool mostrarEstado = false,
+        CancellationToken cancellationToken = default)
+    {
+        RadarAgentRemoteConfig? remota = await ObtenerConfiguracionAsync(config, cancellationToken);
+        if (remota is null)
+            return false;
+
+        RadarAgentRemoteConfigCache.Aplicar(remota);
+
+        if (mostrarEstado)
+        {
+            if (remota.Configurada)
+            {
+                Console.WriteLine(
+                    $"  Configuración RSMaps: central activa · {remota.ChatsMonitoreados.Length} chat(s) · " +
+                    $"intervalo {remota.IntervaloRevisionMs / 1000}s.");
+            }
+            else
+            {
+                Console.WriteLine("  Configuración RSMaps: todavía no guardada; usando fallback local.");
+            }
+        }
+
+        return true;
+    }
+
     public static void MostrarEstado(RadarAgentConfig config)
     {
         string ruta = RadarAgentCredentialStore.ObtenerRuta(config);
