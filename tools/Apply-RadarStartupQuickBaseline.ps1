@@ -12,14 +12,12 @@ $old = @'
     var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     await EstabilizarMensajesChat(page, ids);
     idsConocidosPorChat[chat] = ids;
-    Console.WriteLine($"✓ {chat}: {ids.Count} mensajes actuales registrados.");
 '@
 
 $new = @'
     var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     await AbsorberMensajesActuales(page, ids);
     idsConocidosPorChat[chat] = ids;
-    Console.WriteLine($"✓ {chat}: {ids.Count} mensajes actuales registrados (baseline rápida).");
 '@
 
 $resolvedPath = (Resolve-Path -LiteralPath $ProgramPath).Path
@@ -29,18 +27,24 @@ if ($content.Contains("const int minimoIntentos = 6;")) {
     throw "The failed per-chat settling-window experiment is still applied. Run: git restore RSMaps.Radar.Listener/Program.cs"
 }
 
-if ($content.Contains($new)) {
+# PowerShell 5.1 and Git may expose different line endings. Normalize only for matching,
+# then write the resulting source back as UTF-8 without BOM.
+$contentNormalized = $content.Replace("`r`n", "`n")
+$oldNormalized = $old.Replace("`r`n", "`n")
+$newNormalized = $new.Replace("`r`n", "`n")
+
+if ($contentNormalized.Contains($newNormalized)) {
     Write-Host "Quick startup baseline patch is already applied."
     exit 0
 }
 
-if (-not $content.Contains($old)) {
+if (-not $contentNormalized.Contains($oldNormalized)) {
     throw "Expected startup initialization block was not found. Program.cs was not modified."
 }
 
-$updated = $content.Replace($old, $new)
+$updated = $contentNormalized.Replace($oldNormalized, $newNormalized)
 
-if ($updated -eq $content) {
+if ($updated -eq $contentNormalized) {
     throw "Replacement produced no change. Program.cs was not modified."
 }
 
