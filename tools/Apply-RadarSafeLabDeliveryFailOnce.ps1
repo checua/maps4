@@ -9,78 +9,78 @@ $content = [System.IO.File]::ReadAllText($resolvedProgramPath)
 $nl = if ($content.Contains("`r`n")) { "`r`n" } else { "`n" }
 
 $stateAnchor = @(
-    "var enviosConfirmadosPorSolicitud = new HashSet<string>(StringComparer.OrdinalIgnoreCase);",
-    "",
-    "IRadarInterpreter interpreter = RadarInterpreterFactory.Create();"
+    'var enviosConfirmadosPorSolicitud = new HashSet<string>(StringComparer.OrdinalIgnoreCase);',
+    '',
+    'IRadarInterpreter interpreter = RadarInterpreterFactory.Create();'
 ) -join $nl
 
 $stateReplacement = @(
-    "var enviosConfirmadosPorSolicitud = new HashSet<string>(StringComparer.OrdinalIgnoreCase);",
-    "",
-    "// LAB-only state used to simulate one failed delivery followed by recovery.",
-    "var entregasLabFalladasUnaVez = new HashSet<string>(StringComparer.OrdinalIgnoreCase);",
-    "",
-    "IRadarInterpreter interpreter = RadarInterpreterFactory.Create();"
+    'var enviosConfirmadosPorSolicitud = new HashSet<string>(StringComparer.OrdinalIgnoreCase);',
+    '',
+    '// LAB-only state used to simulate one failed delivery followed by recovery.',
+    'var entregasLabFalladasUnaVez = new HashSet<string>(StringComparer.OrdinalIgnoreCase);',
+    '',
+    'IRadarInterpreter interpreter = RadarInterpreterFactory.Create();'
 ) -join $nl
 
 $oldSafeBlock = @(
-    "                    if (RadarSettings.ModoSeguroLab)",
-    "                    {",
-    "                        Console.WriteLine(\"  [SAFE LAB] Useful match confirmed; WhatsApp delivery blocked by safe mode.\");",
-    "                        continue;",
-    "                    }",
-    "",
-    "                    var claveEntrega = ClaveEntrega(messageId, indice, solicitud);",
-    "                    if (enviosConfirmadosPorSolicitud.Contains(claveEntrega))",
-    "                    {",
-    "                        Console.WriteLine(\"  [DEDUP] This alert was already delivered during a previous retry; skipping duplicate.\");",
-    "                        continue;",
-    "                    }",
-    "",
-    "                    var envio = await EnviarAlerta(page, solicitud);"
+    '                    if (RadarSettings.ModoSeguroLab)',
+    '                    {',
+    '                        Console.WriteLine("  [SAFE LAB] Useful match confirmed; WhatsApp delivery blocked by safe mode.");',
+    '                        continue;',
+    '                    }',
+    '',
+    '                    var claveEntrega = ClaveEntrega(messageId, indice, solicitud);',
+    '                    if (enviosConfirmadosPorSolicitud.Contains(claveEntrega))',
+    '                    {',
+    '                        Console.WriteLine("  [DEDUP] This alert was already delivered during a previous retry; skipping duplicate.");',
+    '                        continue;',
+    '                    }',
+    '',
+    '                    var envio = await EnviarAlerta(page, solicitud);'
 ) -join $nl
 
 $newSafeBlock = @(
-    "                    var claveEntrega = ClaveEntrega(messageId, indice, solicitud);",
-    "                    var pruebaEntregaLab = Environment.GetEnvironmentVariable(\"RADAR_SAFE_LAB_DELIVERY_TEST\")?.Trim();",
-    "                    var simularFailOnce = RadarSettings.ModoSeguroLab",
-    "                        && string.Equals(pruebaEntregaLab, \"fail-once\", StringComparison.OrdinalIgnoreCase);",
-    "",
-    "                    if (RadarSettings.ModoSeguroLab && !simularFailOnce)",
-    "                    {",
-    "                        Console.WriteLine(\"  [SAFE LAB] Useful match confirmed; WhatsApp delivery blocked by safe mode.\");",
-    "                        continue;",
-    "                    }",
-    "",
-    "                    if (enviosConfirmadosPorSolicitud.Contains(claveEntrega))",
-    "                    {",
-    "                        Console.WriteLine(\"  [DEDUP] This alert was already delivered during a previous retry; skipping duplicate.\");",
-    "                        continue;",
-    "                    }",
-    "",
-    "                    (bool Enviada, bool MarcadoNoLeido, string Detalle) envio;",
-    "",
-    "                    if (simularFailOnce)",
-    "                    {",
-    "                        if (entregasLabFalladasUnaVez.Add(claveEntrega))",
-    "                        {",
-    "                            envio = (false, false, \"SAFE LAB simulated first delivery failure\");",
-    "                            Console.WriteLine(\"  [SAFE LAB TEST] First delivery attempt intentionally failed; no WhatsApp message was sent.\");",
-    "                        }",
-    "                        else",
-    "                        {",
-    "                            envio = (true, true, \"SAFE LAB simulated delivery recovery\");",
-    "                            Console.WriteLine(\"  [SAFE LAB TEST] Retry delivery intentionally succeeded; no WhatsApp message was sent.\");",
-    "                        }",
-    "                    }",
-    "                    else",
-    "                    {",
-    "                        envio = await EnviarAlerta(page, solicitud);",
-    "                    }"
+    '                    var claveEntrega = ClaveEntrega(messageId, indice, solicitud);',
+    '                    var pruebaEntregaLab = Environment.GetEnvironmentVariable("RADAR_SAFE_LAB_DELIVERY_TEST")?.Trim();',
+    '                    var simularFailOnce = RadarSettings.ModoSeguroLab',
+    '                        && string.Equals(pruebaEntregaLab, "fail-once", StringComparison.OrdinalIgnoreCase);',
+    '',
+    '                    if (RadarSettings.ModoSeguroLab && !simularFailOnce)',
+    '                    {',
+    '                        Console.WriteLine("  [SAFE LAB] Useful match confirmed; WhatsApp delivery blocked by safe mode.");',
+    '                        continue;',
+    '                    }',
+    '',
+    '                    if (enviosConfirmadosPorSolicitud.Contains(claveEntrega))',
+    '                    {',
+    '                        Console.WriteLine("  [DEDUP] This alert was already delivered during a previous retry; skipping duplicate.");',
+    '                        continue;',
+    '                    }',
+    '',
+    '                    (bool Enviada, bool MarcadoNoLeido, string Detalle) envio;',
+    '',
+    '                    if (simularFailOnce)',
+    '                    {',
+    '                        if (entregasLabFalladasUnaVez.Add(claveEntrega))',
+    '                        {',
+    '                            envio = (false, false, "SAFE LAB simulated first delivery failure");',
+    '                            Console.WriteLine("  [SAFE LAB TEST] First delivery attempt intentionally failed; no WhatsApp message was sent.");',
+    '                        }',
+    '                        else',
+    '                        {',
+    '                            envio = (true, true, "SAFE LAB simulated delivery recovery");',
+    '                            Console.WriteLine("  [SAFE LAB TEST] Retry delivery intentionally succeeded; no WhatsApp message was sent.");',
+    '                        }',
+    '                    }',
+    '                    else',
+    '                    {',
+    '                        envio = await EnviarAlerta(page, solicitud);',
+    '                    }'
 ) -join $nl
 
-$alreadyApplied = $content.Contains("RADAR_SAFE_LAB_DELIVERY_TEST") -and
-    $content.Contains("entregasLabFalladasUnaVez")
+$alreadyApplied = $content.Contains('RADAR_SAFE_LAB_DELIVERY_TEST') -and
+    $content.Contains('entregasLabFalladasUnaVez')
 
 if ($alreadyApplied)
 {
