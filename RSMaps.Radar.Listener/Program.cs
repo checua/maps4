@@ -218,8 +218,60 @@ while (true)
                         continue;
                     }
 
+                    RadarDeliveryPrepareClientResult? entregaDurable = null;
+                    if (RadarDeliveryClient.Habilitada)
+                    {
+                        entregaDurable = await RadarDeliveryClient.PrepararAsync(
+                            solicitud.ChatOrigen,
+                            messageId,
+                            indice,
+                            claveEntrega,
+                            solicitud.IdInmuebleCoincidente,
+                            solicitud.MejorCoincidencia,
+                            solicitud.MensajeOriginal + Environment.NewLine + Environment.NewLine + solicitud.MatchingResumen);
+
+                        if (!entregaDurable.Ok)
+                        {
+                            mensajeCompletado = false;
+                            Console.WriteLine(
+                                $"  [PENDING] Durable delivery could not be prepared: {entregaDurable.Detalle}. Message will be retried.");
+                            break;
+                        }
+
+                        if (entregaDurable.YaEnviado)
+                        {
+                            enviosConfirmadosPorSolicitud.Add(claveEntrega);
+                            Console.WriteLine(
+                                $"  [DEDUP DURABLE] Delivery #{entregaDurable.IdRadarMessageDelivery} was already confirmed by RSMaps; duplicate WhatsApp send skipped.");
+                            continue;
+                        }
+
+                        Console.WriteLine(
+                            $"  [DELIVERY] Durable delivery #{entregaDurable.IdRadarMessageDelivery} prepared Â· attempt {entregaDurable.IntentosEntrega}.");
+                    }
+
                     if (enviosConfirmadosPorSolicitud.Contains(claveEntrega))
                     {
+                        if (entregaDurable is not null && entregaDurable.IdRadarMessageDelivery > 0)
+                        {
+                            var confirmacionPendiente = await RadarDeliveryClient.CompletarAsync(
+                                entregaDurable.IdRadarMessageDelivery,
+                                true,
+                                null);
+
+                            if (!confirmacionPendiente.Ok)
+                            {
+                                mensajeCompletado = false;
+                                Console.WriteLine(
+                                    $"  [PENDING] Alert was already delivered locally, but durable confirmation is still pending: {confirmacionPendiente.Detalle}.");
+                                break;
+                            }
+
+                            Console.WriteLine(
+                                $"  [DEDUP] Previous local delivery confirmed durably as #{entregaDurable.IdRadarMessageDelivery}; duplicate send skipped.");
+                            continue;
+                        }
+
                         Console.WriteLine("  [DEDUP] This alert was already delivered during a previous retry; skipping duplicate.");
                         continue;
                     }
@@ -246,6 +298,20 @@ while (true)
 
                     if (!envio.Enviada)
                     {
+                        if (entregaDurable is not null && entregaDurable.IdRadarMessageDelivery > 0)
+                        {
+                            var falloDurable = await RadarDeliveryClient.CompletarAsync(
+                                entregaDurable.IdRadarMessageDelivery,
+                                false,
+                                envio.Detalle);
+
+                            if (!falloDurable.Ok)
+                            {
+                                Console.WriteLine(
+                                    $"  [WARN] Could not persist delivery failure: {falloDurable.Detalle}");
+                            }
+                        }
+
                         mensajeCompletado = false;
                         Console.WriteLine(
                             $"  [PENDING] Could not deliver alert to {AlertSettings.ChatDestino}. Stage: {envio.Detalle}. Message will be retried.");
@@ -253,6 +319,25 @@ while (true)
                     }
 
                     enviosConfirmadosPorSolicitud.Add(claveEntrega);
+
+                    if (entregaDurable is not null && entregaDurable.IdRadarMessageDelivery > 0)
+                    {
+                        var confirmacionDurable = await RadarDeliveryClient.CompletarAsync(
+                            entregaDurable.IdRadarMessageDelivery,
+                            true,
+                            null);
+
+                        if (!confirmacionDurable.Ok)
+                        {
+                            mensajeCompletado = false;
+                            Console.WriteLine(
+                                $"  [PENDING] WhatsApp delivery succeeded, but durable confirmation failed: {confirmacionDurable.Detalle}. No duplicate will be sent during this process.");
+                            break;
+                        }
+
+                        Console.WriteLine(
+                            $"  [DELIVERY] Durable delivery #{entregaDurable.IdRadarMessageDelivery} confirmed ENVIADO.");
+                    }
 
                     if (envio.MarcadoNoLeido)
                     {
