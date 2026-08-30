@@ -4,6 +4,9 @@ public static class RadarInterpreterFactory
 {
     public static IRadarInterpreter Create()
     {
+        if (RadarCentralIntelligenceClient.Habilitada)
+            return CreateCentral();
+
         string engine = (Environment.GetEnvironmentVariable("RADAR_INTERPRETER") ?? "radar")
             .Trim()
             .ToLowerInvariant();
@@ -16,6 +19,30 @@ public static class RadarInterpreterFactory
             _ => throw new InvalidOperationException(
                 $"RADAR_INTERPRETER='{engine}' no es válido. Usa 'radar', 'openai', 'openai_raw' o 'rules'.")
         };
+    }
+
+    private static IRadarInterpreter CreateCentral()
+    {
+        IRadarInterpreter? fallbackLocal = null;
+
+        if (RadarCentralIntelligenceClient.FallbackLocalHabilitado)
+        {
+            try
+            {
+                fallbackLocal = CreateRadarIntelligence();
+                Console.WriteLine("RADAR Intelligence central: fallback local temporal disponible.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(
+                    $"⚠ RADAR Intelligence central: no pude preparar fallback local ({ex.Message}).");
+            }
+        }
+
+        Console.WriteLine(
+            $"RADAR Intelligence: CENTRAL vía RSMaps ({RadarAgentBackendClient.BaseUrl}).");
+
+        return new CentralRadarInterpreter(fallbackLocal);
     }
 
     private static IRadarInterpreter CreateRadarIntelligence()
