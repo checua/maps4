@@ -29,7 +29,7 @@ function Format-Seconds([double]$Seconds) {
 }
 
 function Write-StartupSummary {
-    if ($summaryPrinted) {
+    if ($script:summaryPrinted) {
         return
     }
 
@@ -48,15 +48,15 @@ function Write-StartupSummary {
     }
 
     if ($marks.ContainsKey("InitStart") -and $marks.ContainsKey("StabilizeStart")) {
-        Write-Host ("Inicialización de chats:               {0}" -f (Format-Seconds ($marks["StabilizeStart"] - $marks["InitStart"])))
+        Write-Host ("Inicializacion de chats:               {0}" -f (Format-Seconds ($marks["StabilizeStart"] - $marks["InitStart"])))
     }
 
     for ($i = 0; $i -lt $roundDurations.Count; $i++) {
-        Write-Host ("Estabilización ronda {0}:               {1}" -f ($i + 1), (Format-Seconds $roundDurations[$i]))
+        Write-Host ("Estabilizacion ronda {0}:               {1}" -f ($i + 1), (Format-Seconds $roundDurations[$i]))
     }
 
     if ($marks.ContainsKey("StabilizeStart")) {
-        Write-Host ("Estabilización total:                  {0}" -f (Format-Seconds ($marks["Active"] - $marks["StabilizeStart"])))
+        Write-Host ("Estabilizacion total:                  {0}" -f (Format-Seconds ($marks["Active"] - $marks["StabilizeStart"])))
     }
 
     Write-Host ("TOTAL hasta RADAR ACTIVO:               {0}" -f (Format-Seconds $marks["Active"]))
@@ -85,7 +85,7 @@ Write-Host ""
     elseif ($line -eq "Inicializando chats...") {
         Set-Mark "InitStart"
     }
-    elseif (-not $inStabilization -and $line.StartsWith("✓ ")) {
+    elseif (-not $inStabilization -and $line.Contains("mensajes actuales registrados.")) {
         $initializedChats++
     }
     elseif ($line -eq "Estabilizando historial visible...") {
