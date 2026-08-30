@@ -72,12 +72,26 @@ Console.WriteLine("Estabilizando historial visible...");
 
 for (var ronda = 1; ronda <= 3; ronda++)
 {
+    var mensajesAntes = idsConocidosPorChat.Values.Sum(ids => ids.Count);
+
     foreach (var chat in idsConocidosPorChat.Keys.ToList())
     {
         if (!await AbrirChat(page, chat))
             continue;
 
         await EstabilizarMensajesChat(page, idsConocidosPorChat[chat]);
+    }
+
+    var mensajesDespues = idsConocidosPorChat.Values.Sum(ids => ids.Count);
+    var mensajesAdicionales = mensajesDespues - mensajesAntes;
+
+    Console.WriteLine(
+        $"  Ronda {ronda}: {mensajesAdicionales} mensaje(s) adicional(es) absorbido(s).");
+
+    if (mensajesAdicionales == 0)
+    {
+        Console.WriteLine("  Historial estable; se omiten rondas adicionales.");
+        break;
     }
 }
 
