@@ -24,6 +24,11 @@ public static class RsMapsMatchingClient
 
     public static async Task<string> ConstruirResumenAsync(SolicitudInmobiliaria solicitud)
     {
+        // En modo central, RSMaps ya interpretó y ejecutó matching en una sola
+        // operación. Reutilizamos ese resultado y evitamos una segunda llamada.
+        if (!string.IsNullOrWhiteSpace(solicitud.MatchingResumen))
+            return solicitud.MatchingResumen;
+
         string token = string.Empty;
 
         try
