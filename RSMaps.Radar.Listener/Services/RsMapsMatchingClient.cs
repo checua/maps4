@@ -64,6 +64,16 @@ public static class RsMapsMatchingClient
             if (resultado is null)
                 return "COINCIDENCIAS RSMAPS\n⚠ RSMaps respondió sin datos de matching.";
 
+            var mejor = resultado.Resultados
+                .OrderByDescending(x => x.Puntuacion)
+                .FirstOrDefault();
+
+            if (mejor is not null)
+            {
+                solicitud.MejorCoincidencia = mejor.Puntuacion;
+                solicitud.IdInmuebleCoincidente = mejor.IdInmueble;
+            }
+
             if (resultado.TotalCandidatos <= 0 || resultado.Resultados.Count == 0)
             {
                 return $"COINCIDENCIAS RSMAPS\n❌ Sin coincidencias útiles actuales.\nInventario evaluado: {resultado.TotalInventarioEvaluado}.";
@@ -106,7 +116,7 @@ public static class RsMapsMatchingClient
         }
         catch (TaskCanceledException)
         {
-            return "COINCIDENCIAS RSMAPS\n⚠ La comparación excedió el tiempo de espera; la alerta se envía de todos modos.";
+            return "COINCIDENCIAS RSMAPS\n\u26A0 La comparaci\u00F3n excedi\u00F3 el tiempo de espera; no se enviar\u00E1 alerta hasta confirmar matching.";
         }
         catch (HttpRequestException ex)
         {

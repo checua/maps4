@@ -47,6 +47,10 @@ Console.WriteLine(RadarSettings.ModoSeguroLab
 var idsConocidosPorChat = new Dictionary<string, HashSet<string>>(
     StringComparer.OrdinalIgnoreCase);
 
+// Tracks successful partial deliveries while a multi-request message is pending.
+// This prevents re-sending already confirmed alerts during an in-process retry.
+var enviosConfirmadosPorSolicitud = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
 IRadarInterpreter interpreter = RadarInterpreterFactory.Create();
 Console.WriteLine($"Intérprete Radar: {interpreter.GetType().Name}");
 
@@ -163,36 +167,91 @@ while (true)
                     $"{resultado.Solicitudes.Count} solicitud(es).");
             }
 
-            foreach (var solicitud in resultado.Solicitudes)
+            foreach (var messageId in resultado.DemandasInterpretadas)
             {
-                MostrarSolicitud(solicitud);
+                var solicitudesMensaje = resultado.Solicitudes
+                    .Where(x => string.Equals(x.MessageId, messageId, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
 
-                solicitud.MatchingResumen = await RsMapsMatchingClient.ConstruirResumenAsync(solicitud);
-                Console.WriteLine(
-                    $"  MATCH RSMAPS: {solicitud.MatchingResumen.Replace("\r", " ").Replace("\n", " | ")}");
-
-                if (RadarSettings.ModoSeguroLab)
+                if (solicitudesMensaje.Count == 0)
                 {
-                    Console.WriteLine("  🧪 MODO SEGURO: coincidencia calculada; envío de WhatsApp bloqueado.");
+                    idsConocidos.Add(messageId);
+                    Console.WriteLine($"  [ACK] {messageId}: Intelligence finished with no actionable requests.");
                     continue;
                 }
 
-                var envio = await EnviarAlerta(page, solicitud);
+                var mensajeCompletado = true;
 
-                if (!envio.Enviada)
+                for (var indice = 0; indice < solicitudesMensaje.Count; indice++)
                 {
+                    var solicitud = solicitudesMensaje[indice];
+                    MostrarSolicitud(solicitud);
+
+                    solicitud.MatchingResumen = await RsMapsMatchingClient.ConstruirResumenAsync(solicitud);
                     Console.WriteLine(
-                        $"  ⚠ No pude enviar la alerta a '{AlertSettings.ChatDestino}'. Etapa: {envio.Detalle}");
+                        $"  MATCH RSMAPS: {solicitud.MatchingResumen.Replace("\r", " ").Replace("\n", " | ")}");
+
+                    if (MatchingTemporalmenteNoDisponible(solicitud))
+                    {
+                        mensajeCompletado = false;
+                        Console.WriteLine("  [PENDING] Matching is not confirmed; message will be retried.");
+                        break;
+                    }
+
+                    if (!TieneCoincidenciaUtil(solicitud))
+                    {
+                        Console.WriteLine("  [NO ALERT] No useful match; WhatsApp alert is not sent.");
+                        continue;
+                    }
+
+                    if (RadarSettings.ModoSeguroLab)
+                    {
+                        Console.WriteLine("  [SAFE LAB] Useful match confirmed; WhatsApp delivery blocked by safe mode.");
+                        continue;
+                    }
+
+                    var claveEntrega = ClaveEntrega(messageId, indice, solicitud);
+                    if (enviosConfirmadosPorSolicitud.Contains(claveEntrega))
+                    {
+                        Console.WriteLine("  [DEDUP] This alert was already delivered during a previous retry; skipping duplicate.");
+                        continue;
+                    }
+
+                    var envio = await EnviarAlerta(page, solicitud);
+
+                    if (!envio.Enviada)
+                    {
+                        mensajeCompletado = false;
+                        Console.WriteLine(
+                            $"  [PENDING] Could not deliver alert to {AlertSettings.ChatDestino}. Stage: {envio.Detalle}. Message will be retried.");
+                        break;
+                    }
+
+                    enviosConfirmadosPorSolicitud.Add(claveEntrega);
+
+                    if (envio.MarcadoNoLeido)
+                    {
+                        Console.WriteLine(
+                            $"  [SENT] Alert delivered to {AlertSettings.ChatDestino}, returned to origin and marked unread.");
+                    }
+                    else
+                    {
+                        Console.WriteLine(
+                            $"  [SENT] Alert delivered to {AlertSettings.ChatDestino}. Could not mark it unread.");
+                    }
                 }
-                else if (envio.MarcadoNoLeido)
+
+                if (mensajeCompletado)
                 {
-                    Console.WriteLine(
-                        $"  📤 Alerta enviada a '{AlertSettings.ChatDestino}', regresé al origen y quedó marcada como no leída.");
+                    idsConocidos.Add(messageId);
+                    var prefijo = messageId + ":";
+                    enviosConfirmadosPorSolicitud.RemoveWhere(
+                        x => x.StartsWith(prefijo, StringComparison.OrdinalIgnoreCase));
+                    Console.WriteLine($"  [ACK] {messageId}: terminal processing completed.");
                 }
                 else
                 {
-                    Console.WriteLine(
-                        $"  📤 Alerta enviada a '{AlertSettings.ChatDestino}'. ⚠ No pude dejarla marcada como no leída.");
+                    Console.WriteLine($"  [PENDING] {messageId}: not acknowledged; retry remains enabled.");
                 }
             }
         }
@@ -497,7 +556,7 @@ static async Task AbsorberMensajesActuales(IPage page, HashSet<string> knownIds)
     }
 }
 
-static async Task<(int Revisados, List<SolicitudInmobiliaria> Solicitudes)> ProcesarMensajesNuevos(
+static async Task<(int Revisados, List<SolicitudInmobiliaria> Solicitudes, HashSet<string> DemandasInterpretadas)> ProcesarMensajesNuevos(
     IPage page,
     string chat,
     HashSet<string> knownIds,
@@ -507,6 +566,7 @@ static async Task<(int Revisados, List<SolicitudInmobiliaria> Solicitudes)> Proc
     var count = await messages.CountAsync();
     var revisados = 0;
     var solicitudes = new List<SolicitudInmobiliaria>();
+    var demandasInterpretadas = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
     for (var i = 0; i < count; i++)
     {
@@ -545,9 +605,9 @@ static async Task<(int Revisados, List<SolicitudInmobiliaria> Solicitudes)> Proc
             DetectadoEn = DateTime.Now
         };
 
-        // Demand messages are acknowledged only after Intelligence returns successfully.
+        // Demand messages are only acknowledged after all terminal downstream work finishes.
         var interpretacion = await interpreter.InterpretarAsync(radarMessage);
-        knownIds.Add(id);
+        demandasInterpretadas.Add(id);
         revisados++;
         Console.WriteLine(
             $"  ↳ Interpretación {interpretacion.Motor}: {interpretacion.Solicitudes.Count} solicitud(es).");
@@ -555,8 +615,28 @@ static async Task<(int Revisados, List<SolicitudInmobiliaria> Solicitudes)> Proc
         solicitudes.AddRange(interpretacion.Solicitudes);
     }
 
-    return (revisados, solicitudes);
+    return (revisados, solicitudes, demandasInterpretadas);
 }
+
+static bool MatchingTemporalmenteNoDisponible(SolicitudInmobiliaria solicitud)
+{
+    if (string.IsNullOrWhiteSpace(solicitud.MatchingResumen))
+        return true;
+
+    // Warning summaries represent a transient/operational matching failure, not a terminal no-match.
+    return solicitud.MatchingResumen.Contains("\u26A0");
+}
+
+static bool TieneCoincidenciaUtil(SolicitudInmobiliaria solicitud)
+{
+    // Keep this aligned with RadarMatchingService.PuntuacionMinimaCandidato.
+    return solicitud.IdInmuebleCoincidente.HasValue
+        && solicitud.MejorCoincidencia.HasValue
+        && solicitud.MejorCoincidencia.Value >= 55;
+}
+
+static string ClaveEntrega(string messageId, int indice, SolicitudInmobiliaria solicitud) =>
+    $"{messageId}:{indice}:{solicitud.IdInmuebleCoincidente?.ToString() ?? "-"}";
 
 static async Task<(bool Enviada, bool MarcadoNoLeido, string Detalle)> EnviarAlerta(
     IPage page,
