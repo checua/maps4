@@ -24,6 +24,7 @@ builder.Services.AddScoped<IComentarioService, ComentarioService>();
 builder.Services.AddScoped<IInventarioRepository, InventarioRepository>();
 builder.Services.AddScoped<IRadarMatchingService, RadarMatchingService>();
 builder.Services.AddScoped<IRadarAgentPairingRepository, RadarAgentPairingRepository>();
+builder.Services.AddScoped<IRadarMessageProcessingRepository, RadarMessageProcessingRepository>();
 builder.Services.AddScoped<IRadarAgentChatDiscoveryRepository, RadarAgentChatDiscoveryRepository>();
 builder.Services.AddScoped<IRadarAgentChatDiscoveryCommandRepository, RadarAgentChatDiscoveryCommandRepository>();
 builder.Services.AddSingleton<IRadarCentralIntelligenceService, RadarCentralIntelligenceService>();
