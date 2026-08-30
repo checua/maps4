@@ -20,6 +20,21 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+      RADAR Intelligence se ejecutará del lado de RSMaps. El Listener local
+      seguirá referenciándolo temporalmente mientras validamos la migración.
+    -->
+    <ProjectReference Include="RSMaps.Radar.Intelligence\RSMaps.Radar.Intelligence.csproj" />
+
+    <!-- Conocimiento central disponible tanto en desarrollo como al publicar. -->
+    <Content Include="RSMaps.Radar.Lab\Knowledge\radar-knowledge.json">
+      <Link>RadarKnowledge\radar-knowledge.json</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="Pages\Share\Index.cshtml" />
 
     <None Include="wwwroot\images\icon\apartment1.png" />
