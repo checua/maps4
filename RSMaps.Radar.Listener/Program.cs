@@ -513,18 +513,23 @@ static async Task<(int Revisados, List<SolicitudInmobiliaria> Solicitudes)> Proc
         var message = messages.Nth(i);
         var id = await message.GetAttributeAsync("data-id");
 
-        if (string.IsNullOrWhiteSpace(id) || !knownIds.Add(id))
+        if (string.IsNullOrWhiteSpace(id) || knownIds.Contains(id))
             continue;
 
-        revisados++;
 
         var text = (await message.InnerTextAsync()).Trim();
         if (string.IsNullOrWhiteSpace(text))
+        {
+            knownIds.Add(id);
+            revisados++;
             continue;
+        }
 
         var classification = ClasificarMensaje(text);
         if (classification != TipoMensaje.Demanda)
         {
+            knownIds.Add(id);
+            revisados++;
             Console.WriteLine($"  ↳ Nuevo mensaje ignorado ({classification}) en {chat}.");
             continue;
         }
@@ -540,7 +545,10 @@ static async Task<(int Revisados, List<SolicitudInmobiliaria> Solicitudes)> Proc
             DetectadoEn = DateTime.Now
         };
 
+        // Demand messages are acknowledged only after Intelligence returns successfully.
         var interpretacion = await interpreter.InterpretarAsync(radarMessage);
+        knownIds.Add(id);
+        revisados++;
         Console.WriteLine(
             $"  ↳ Interpretación {interpretacion.Motor}: {interpretacion.Solicitudes.Count} solicitud(es).");
 
