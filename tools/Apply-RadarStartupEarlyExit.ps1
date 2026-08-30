@@ -48,10 +48,21 @@ for (var ronda = 1; ronda <= 3; ronda++)
 }
 '@
 
-$content = [System.IO.File]::ReadAllText((Resolve-Path -LiteralPath $ProgramPath))
+$resolvedProgramPath = Resolve-Path -LiteralPath $ProgramPath
+$content = [System.IO.File]::ReadAllText($resolvedProgramPath)
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
 if ($content.Contains($new)) {
-    Write-Host "Early-exit startup patch is already applied."
+    # PowerShell 5.1's Set-Content -Encoding UTF8 would add a BOM.
+    # Normalize the already-patched file back to UTF-8 without BOM.
+    [System.IO.File]::WriteAllText($resolvedProgramPath, $content, $utf8NoBom)
+    Write-Host "Early-exit startup patch is already applied; encoding normalized to UTF-8 without BOM."
+    Write-Host ""
+    & git diff --check -- $ProgramPath
+    if ($LASTEXITCODE -ne 0) {
+        throw "git diff --check reported a problem."
+    }
+    & git diff -- $ProgramPath
     exit 0
 }
 
@@ -65,8 +76,7 @@ if ($updated -eq $content) {
     throw "Replacement produced no change. Program.cs was not modified."
 }
 
-$utf8Bom = New-Object System.Text.UTF8Encoding($true)
-[System.IO.File]::WriteAllText((Resolve-Path -LiteralPath $ProgramPath), $updated, $utf8Bom)
+[System.IO.File]::WriteAllText($resolvedProgramPath, $updated, $utf8NoBom)
 
 Write-Host "Applied Radar startup early-exit patch."
 Write-Host ""
