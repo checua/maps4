@@ -13,37 +13,19 @@ $content = [System.IO.File]::ReadAllText(
     (Resolve-Path -LiteralPath $sourcePath),
     [System.Text.Encoding]::UTF8)
 
-$oldPrefixEnd = @'
-{
-'@ + $sharedBlock.Replace('resultado.DemandasInterpretadas', 'demandasInterpretadas').Replace('resultado.Solicitudes', 'solicitudes') + @'
-}
+$newLine = [System.Environment]::NewLine
 
-static async Task RecuperarProcesamientosDurablesPendientesAsync(
-'@
+$oldComposition = "'@ + `$sharedBlock.Replace('resultado.DemandasInterpretadas', 'demandasInterpretadas').Replace('resultado.Solicitudes', 'solicitudes') + @'"
+$newComposition = "'@" + $newLine + "`$sharedFunctionPrefix = `$sharedFunction" + $newLine + "`$sharedFunctionSuffix = @'"
 
-$newPrefixEnd = @'
-{
-'@
-$sharedFunctionPrefix = $sharedFunction
-$sharedFunctionSuffix = @'
-}
-
-static async Task RecuperarProcesamientosDurablesPendientesAsync(
-'@
-$sharedFunction = $sharedFunctionPrefix + $sharedBlock.Replace('resultado.DemandasInterpretadas', 'demandasInterpretadas').Replace('resultado.Solicitudes', 'solicitudes') + $sharedFunctionSuffix
-
-$oldNeedle = [System.Environment]::NewLine + "'@ + `$sharedBlock.Replace('resultado.DemandasInterpretadas', 'demandasInterpretadas').Replace('resultado.Solicitudes', 'solicitudes') + @'" + [System.Environment]::NewLine + '}' + [System.Environment]::NewLine + [System.Environment]::NewLine + 'static async Task RecuperarProcesamientosDurablesPendientesAsync('
-
-$newNeedle = [System.Environment]::NewLine + "'@" + [System.Environment]::NewLine + '`$sharedFunctionPrefix = `$sharedFunction' + [System.Environment]::NewLine + "`$sharedFunctionSuffix = @'" + [System.Environment]::NewLine + '}' + [System.Environment]::NewLine + [System.Environment]::NewLine + 'static async Task RecuperarProcesamientosDurablesPendientesAsync('
-
-if (-not $content.Contains($oldNeedle)) {
+if (-not $content.Contains($oldComposition)) {
     throw 'Could not locate PowerShell 5.1 here-string composition in processing recovery helper.'
 }
 
-$content = $content.Replace($oldNeedle, $newNeedle)
+$content = $content.Replace($oldComposition, $newComposition)
 
-$closingNeedle = [System.Environment]::NewLine + "'@" + [System.Environment]::NewLine + [System.Environment]::NewLine + "`$deliveryFunctionMarker = 'static async Task RecuperarEntregasDurablesPendientesAsync('"
-$closingReplacement = [System.Environment]::NewLine + "'@" + [System.Environment]::NewLine + "`$sharedFunction = `$sharedFunctionPrefix + `$sharedBlock.Replace('resultado.DemandasInterpretadas', 'demandasInterpretadas').Replace('resultado.Solicitudes', 'solicitudes') + `$sharedFunctionSuffix" + [System.Environment]::NewLine + [System.Environment]::NewLine + "`$deliveryFunctionMarker = 'static async Task RecuperarEntregasDurablesPendientesAsync('"
+$closingNeedle = "'@" + $newLine + $newLine + "`$deliveryFunctionMarker = 'static async Task RecuperarEntregasDurablesPendientesAsync('"
+$closingReplacement = "'@" + $newLine + "`$sharedFunction = `$sharedFunctionPrefix + `$sharedBlock.Replace('resultado.DemandasInterpretadas', 'demandasInterpretadas').Replace('resultado.Solicitudes', 'solicitudes') + `$sharedFunctionSuffix" + $newLine + $newLine + "`$deliveryFunctionMarker = 'static async Task RecuperarEntregasDurablesPendientesAsync('"
 
 if (-not $content.Contains($closingNeedle)) {
     throw 'Could not locate processing recovery helper suffix.'
