@@ -285,7 +285,9 @@ SET Estado = N'COMPLETADO',
     ResultadoCentralJson = @resultadoCentralJson,
     InterpretadoUtc = COALESCE(InterpretadoUtc, SYSUTCDATETIME()),
     MatchingCompletadoUtc = SYSUTCDATETIME(),
-    TerminadoUtc = SYSUTCDATETIME(),
+    TerminadoUtc = NULL,
+    DownstreamAckUtc = NULL,
+    DisposicionTerminal = NULL,
     ReintentarDespuesUtc = NULL,
     UltimoError = NULL,
     ActualizadoUtc = SYSUTCDATETIME(),
@@ -325,6 +327,113 @@ WHERE IdRadarMessageProcessing = @idProcessing
         await tx.CommitAsync(cancellationToken);
     }
 
+    public async Task<bool> MarcarTerminadoAsync(
+        Guid idAgent,
+        string chatOrigen,
+        string messageId,
+        string disposicionTerminal,
+        CancellationToken cancellationToken = default)
+    {
+        if (idAgent == Guid.Empty ||
+            string.IsNullOrWhiteSpace(chatOrigen) ||
+            string.IsNullOrWhiteSpace(messageId) ||
+            string.IsNullOrWhiteSpace(disposicionTerminal))
+        {
+            return false;
+        }
+
+        string chat = chatOrigen.Trim();
+        string id = messageId.Trim();
+        string disposicion = disposicionTerminal.Trim();
+        if (chat.Length > 300 || id.Length > 200 || disposicion.Length > 60)
+            return false;
+
+        await using SqlConnection conexion = new(_cadenaSQL);
+        await conexion.OpenAsync(cancellationToken);
+        await using SqlTransaction tx = (SqlTransaction)await conexion.BeginTransactionAsync(cancellationToken);
+
+        const string sqlUpdate = @"
+UPDATE dbo.RSMAPS_RadarMessageProcessing
+SET DownstreamAckUtc = SYSUTCDATETIME(),
+    DisposicionTerminal = @disposicion,
+    TerminadoUtc = SYSUTCDATETIME(),
+    ActualizadoUtc = SYSUTCDATETIME()
+WHERE IdAgent = @idAgent
+  AND ChatOrigen = @chatOrigen
+  AND MessageId = @messageId
+  AND Estado = N'COMPLETADO'
+  AND ResultadoCentralJson IS NOT NULL
+  AND DownstreamAckUtc IS NULL;";
+
+        int afectados;
+        long? idProcessing = null;
+
+        const string sqlFind = @"
+SELECT TOP (1)
+    IdRadarMessageProcessing,
+    DownstreamAckUtc
+FROM dbo.RSMAPS_RadarMessageProcessing WITH (UPDLOCK, HOLDLOCK)
+WHERE IdAgent = @idAgent
+  AND ChatOrigen = @chatOrigen
+  AND MessageId = @messageId
+  AND Estado = N'COMPLETADO'
+  AND ResultadoCentralJson IS NOT NULL;";
+
+        bool yaTerminado = false;
+        await using (SqlCommand find = new(sqlFind, conexion, tx))
+        {
+            find.Parameters.Add("@idAgent", SqlDbType.UniqueIdentifier).Value = idAgent;
+            find.Parameters.Add("@chatOrigen", SqlDbType.NVarChar, 300).Value = chat;
+            find.Parameters.Add("@messageId", SqlDbType.NVarChar, 200).Value = id;
+
+            await using SqlDataReader dr = await find.ExecuteReaderAsync(cancellationToken);
+            if (await dr.ReadAsync(cancellationToken))
+            {
+                idProcessing = Convert.ToInt64(dr["IdRadarMessageProcessing"]);
+                yaTerminado = dr["DownstreamAckUtc"] != DBNull.Value;
+            }
+        }
+
+        if (!idProcessing.HasValue)
+        {
+            await tx.CommitAsync(cancellationToken);
+            return false;
+        }
+
+        if (yaTerminado)
+        {
+            await tx.CommitAsync(cancellationToken);
+            return true;
+        }
+
+        await using (SqlCommand update = new(sqlUpdate, conexion, tx))
+        {
+            update.Parameters.Add("@disposicion", SqlDbType.NVarChar, 60).Value = disposicion;
+            update.Parameters.Add("@idAgent", SqlDbType.UniqueIdentifier).Value = idAgent;
+            update.Parameters.Add("@chatOrigen", SqlDbType.NVarChar, 300).Value = chat;
+            update.Parameters.Add("@messageId", SqlDbType.NVarChar, 200).Value = id;
+            afectados = await update.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        if (afectados != 1)
+        {
+            await tx.RollbackAsync(cancellationToken);
+            return false;
+        }
+
+        await InsertarEventoAsync(
+            conexion,
+            tx,
+            idProcessing.Value,
+            "WORKFLOW_TERMINADO",
+            "COMPLETADO",
+            "COMPLETADO",
+            "ACK terminal durable: " + disposicion,
+            cancellationToken);
+
+        await tx.CommitAsync(cancellationToken);
+        return true;
+    }
     public async Task<bool> MarcarFalloReintentableAsync(
         long idRadarMessageProcessing,
         Guid leaseToken,

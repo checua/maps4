@@ -8,4 +8,9 @@ public interface IRadarPendingProcessingRepository
         Guid idAgent,
         int max,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<RadarPendingWorkflowItem>> ListarDownstreamPendienteAsync(
+        Guid idAgent,
+        int max,
+        CancellationToken cancellationToken = default);
 }

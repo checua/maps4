@@ -18,6 +18,13 @@ public interface IRadarMessageProcessingRepository
         string resultadoCentralJson,
         CancellationToken cancellationToken = default);
 
+    Task<bool> MarcarTerminadoAsync(
+        Guid idAgent,
+        string chatOrigen,
+        string messageId,
+        string disposicionTerminal,
+        CancellationToken cancellationToken = default);
+
     Task<bool> MarcarFalloReintentableAsync(
         long idRadarMessageProcessing,
         Guid leaseToken,

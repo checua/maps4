@@ -1,6 +1,7 @@
 using Microsoft.Playwright;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Text.Json;
 using RSMaps.Radar.Listener.Config;
 using RSMaps.Radar.Listener.Models;
 using RSMaps.Radar.Listener.Services;
@@ -145,6 +146,11 @@ while (true)
             entregasPendientesAlArranque,
             capturarPendientesAlArranque);
         capturarPendientesAlArranque = false;
+        await RecuperarWorkflowsDurablesPendientesAsync(
+            page,
+            idsConocidosPorChat,
+            enviosConfirmadosPorSolicitud,
+            entregasLabFalladasUnaVez);
 
         // Tomamos una fotografía estable de la configuración para este barrido.
         // Si el heartbeat cambia la configuración mientras recorremos los chats,
@@ -191,6 +197,7 @@ while (true)
             await ProcesarDemandasInterpretadasAsync(
                 page,
                 idsConocidos,
+                chat,
                 resultado.DemandasInterpretadas,
                 resultado.Solicitudes,
                 enviosConfirmadosPorSolicitud,
@@ -224,6 +231,7 @@ while (true)
 static async Task ProcesarDemandasInterpretadasAsync(
     IPage page,
     HashSet<string> idsConocidos,
+    string chatOrigen,
     IReadOnlyCollection<string> demandasInterpretadas,
     IReadOnlyList<SolicitudInmobiliaria> solicitudes,
     HashSet<string> enviosConfirmadosPorSolicitud,
@@ -236,12 +244,20 @@ static async Task ProcesarDemandasInterpretadasAsync(
 
                 if (solicitudesMensaje.Count == 0)
                 {
+                    if (!await ConfirmarAckTerminalAsync(chatOrigen, messageId, "SIN_SOLICITUD_ACCIONABLE"))
+                    {
+                        Console.WriteLine($"  [PENDING] {messageId}: durable terminal ACK is still pending.");
+                        continue;
+                    }
+
                     idsConocidos.Add(messageId);
-                    Console.WriteLine($"  [ACK] {messageId}: Intelligence finished with no actionable requests.");
+                    Console.WriteLine($"  [ACK DURABLE] {messageId}: Intelligence finished with no actionable requests.");
                     continue;
                 }
 
                 var mensajeCompletado = true;
+                var tuvoCoincidenciaUtil = false;
+                var bloqueoSafeLab = false;
 
                 for (var indice = 0; indice < solicitudesMensaje.Count; indice++)
                 {
@@ -265,6 +281,7 @@ static async Task ProcesarDemandasInterpretadasAsync(
                         continue;
                     }
 
+                    tuvoCoincidenciaUtil = true;
                     var claveEntrega = ClaveEntrega(messageId, indice, solicitud);
                     var payloadEntrega = ConstruirAlerta(solicitud) + Environment.NewLine + Environment.NewLine + MarcaEntrega(claveEntrega);
                     var pruebaEntregaLab = Environment.GetEnvironmentVariable("RADAR_SAFE_LAB_DELIVERY_TEST")?.Trim();
@@ -273,6 +290,7 @@ static async Task ProcesarDemandasInterpretadasAsync(
 
                     if (RadarSettings.ModoSeguroLab && !simularFailOnce)
                     {
+                        bloqueoSafeLab = true;
                         Console.WriteLine("  [SAFE LAB] Useful match confirmed; WhatsApp delivery blocked by safe mode.");
                         continue;
                     }
@@ -413,11 +431,23 @@ static async Task ProcesarDemandasInterpretadasAsync(
 
                 if (mensajeCompletado)
                 {
+                    string disposicion = bloqueoSafeLab
+                        ? "SAFE_LAB_BLOQUEADO"
+                        : tuvoCoincidenciaUtil
+                            ? "ALERTA_ENTREGADA"
+                            : "SIN_COINCIDENCIA_UTIL";
+
+                    if (!await ConfirmarAckTerminalAsync(chatOrigen, messageId, disposicion))
+                    {
+                        Console.WriteLine($"  [PENDING] {messageId}: downstream finished but durable terminal ACK is still pending.");
+                        continue;
+                    }
+
                     idsConocidos.Add(messageId);
                     var prefijo = messageId + ":";
                     enviosConfirmadosPorSolicitud.RemoveWhere(
                         x => x.StartsWith(prefijo, StringComparison.OrdinalIgnoreCase));
-                    Console.WriteLine($"  [ACK] {messageId}: terminal processing completed.");
+                    Console.WriteLine($"  [ACK DURABLE] {messageId}: terminal workflow completed ({disposicion}).");
                 }
                 else
                 {
@@ -482,6 +512,7 @@ static async Task RecuperarProcesamientosDurablesPendientesAsync(
             await ProcesarDemandasInterpretadasAsync(
                 page,
                 idsConocidos,
+                pendiente.ChatOrigen,
                 new[] { pendiente.MessageId },
                 interpretacion.Solicitudes,
                 enviosConfirmadosPorSolicitud,
@@ -491,6 +522,88 @@ static async Task RecuperarProcesamientosDurablesPendientesAsync(
         {
             Console.WriteLine(
                 $"  [PROCESSING RECOVERY PENDING] {pendiente.MessageId}: {ex.Message}");
+        }
+    }
+}
+static async Task<bool> ConfirmarAckTerminalAsync(
+    string chatOrigen,
+    string messageId,
+    string disposicion)
+{
+    if (!RadarCentralIntelligenceClient.Habilitada)
+        return true;
+
+    RadarTerminalAckClientResult ack = await RadarWorkflowClient.ConfirmarTerminalAsync(
+        chatOrigen,
+        messageId,
+        disposicion);
+
+    if (ack.Ok)
+        return true;
+
+    Console.WriteLine($"  [ACK DURABLE PENDING] {messageId}: {ack.Detalle}");
+    return false;
+}
+
+static async Task RecuperarWorkflowsDurablesPendientesAsync(
+    IPage page,
+    Dictionary<string, HashSet<string>> idsConocidosPorChat,
+    HashSet<string> enviosConfirmadosPorSolicitud,
+    HashSet<string> entregasLabFalladasUnaVez)
+{
+    if (!RadarCentralIntelligenceClient.Habilitada)
+        return;
+
+    RadarPendingWorkflowClientResult consulta = await RadarWorkflowClient.ListarPendientesAsync();
+    if (!consulta.Ok)
+    {
+        Console.WriteLine($"  [WORKFLOW RECOVERY] Could not query completed messages with pending downstream work: {consulta.Detalle}");
+        return;
+    }
+
+    if (consulta.Items.Count == 0)
+        return;
+
+    Console.WriteLine(
+        $"  [WORKFLOW RECOVERY] {consulta.Items.Count} completed central message(s) still require terminal downstream ACK.");
+
+    foreach (RadarPendingWorkflowClientItem pendiente in consulta.Items)
+    {
+        try
+        {
+            RadarInterpretationResult? interpretacion = JsonSerializer.Deserialize<RadarInterpretationResult>(
+                pendiente.ResultadoCentralJson,
+                new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+            if (interpretacion is null)
+            {
+                Console.WriteLine(
+                    $"  [WORKFLOW RECOVERY PENDING] {pendiente.MessageId}: persisted central result could not be reconstructed.");
+                continue;
+            }
+
+            Console.WriteLine(
+                $"  [WORKFLOW RECOVERY] {pendiente.MessageId}: resuming downstream from persisted central result ({interpretacion.Solicitudes.Count} request(s)).");
+
+            if (!idsConocidosPorChat.TryGetValue(pendiente.ChatOrigen, out HashSet<string>? idsConocidos))
+            {
+                idsConocidos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                idsConocidosPorChat[pendiente.ChatOrigen] = idsConocidos;
+            }
+
+            await ProcesarDemandasInterpretadasAsync(
+                page,
+                idsConocidos,
+                pendiente.ChatOrigen,
+                new[] { pendiente.MessageId },
+                interpretacion.Solicitudes,
+                enviosConfirmadosPorSolicitud,
+                entregasLabFalladasUnaVez);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"  [WORKFLOW RECOVERY PENDING] {pendiente.MessageId}: {ex.Message}");
         }
     }
 }
@@ -586,13 +699,11 @@ static async Task RecuperarEntregasDurablesPendientesAsync(
             }
 
             entregasPendientesAlArranque.Remove(pendiente.IdRadarMessageDelivery);
-            if (idsConocidosPorChat.TryGetValue(pendiente.ChatOrigen, out HashSet<string>? idsReconciliados))
-                idsReconciliados.Add(pendiente.MessageId);
 
             Console.WriteLine(
                 $"  [RECOVERY RECONCILED] Delivery #{pendiente.IdRadarMessageDelivery} already exists in WhatsApp; duplicate send skipped and RSMaps marked ENVIADO.");
             Console.WriteLine(
-                $"  [RECOVERY ACK] {pendiente.MessageId}: uncertain external send reconciled.");
+                $"  [RECOVERY DELIVERY] {pendiente.MessageId}: delivery reconciled; message-level terminal ACK will be evaluated separately.");
             continue;
         }
 
@@ -617,8 +728,6 @@ static async Task RecuperarEntregasDurablesPendientesAsync(
         if (preparada.YaEnviado)
         {
             entregasPendientesAlArranque.Remove(pendiente.IdRadarMessageDelivery);
-            if (idsConocidosPorChat.TryGetValue(pendiente.ChatOrigen, out HashSet<string>? idsEnviados))
-                idsEnviados.Add(pendiente.MessageId);
 
             Console.WriteLine(
                 $"  [RECOVERY DEDUP] Delivery #{preparada.IdRadarMessageDelivery} was already ENVIADO; duplicate skipped.");
@@ -675,13 +784,11 @@ static async Task RecuperarEntregasDurablesPendientesAsync(
         }
 
         entregasPendientesAlArranque.Remove(pendiente.IdRadarMessageDelivery);
-        if (idsConocidosPorChat.TryGetValue(pendiente.ChatOrigen, out HashSet<string>? idsRecuperados))
-            idsRecuperados.Add(pendiente.MessageId);
 
         Console.WriteLine(
             $"  [RECOVERY SENT] Durable delivery #{preparada.IdRadarMessageDelivery} confirmed ENVIADO after restart recovery.");
         Console.WriteLine(
-            $"  [RECOVERY ACK] {pendiente.MessageId}: durable pending delivery recovered.");
+            $"  [RECOVERY DELIVERY] {pendiente.MessageId}: delivery recovered; message-level terminal ACK will be evaluated separately.");
     }
 }
 static async Task<HashSet<string>> ReconciliarEstadoChatsAsync(
@@ -1018,6 +1125,7 @@ static async Task<(int Revisados, List<SolicitudInmobiliaria> Solicitudes, HashS
 
         // Demand messages are only acknowledged after all terminal downstream work finishes.
         var interpretacion = await interpreter.InterpretarAsync(radarMessage);
+
         demandasInterpretadas.Add(id);
         revisados++;
         Console.WriteLine(

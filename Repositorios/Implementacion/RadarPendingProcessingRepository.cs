@@ -91,4 +91,68 @@ ORDER BY
 
         return items;
     }
+
+    public async Task<IReadOnlyList<RadarPendingWorkflowItem>> ListarDownstreamPendienteAsync(
+        Guid idAgent,
+        int max,
+        CancellationToken cancellationToken = default)
+    {
+        if (idAgent == Guid.Empty)
+            return [];
+
+        int limite = Math.Clamp(max, 1, 100);
+        var items = new List<RadarPendingWorkflowItem>();
+
+        await using SqlConnection conexion = new(_cadenaSQL);
+        await conexion.OpenAsync(cancellationToken);
+
+        const string sql = @"
+SELECT TOP (@max)
+    IdRadarMessageProcessing,
+    ChatOrigen,
+    MessageId,
+    Autor,
+    Telefono,
+    MensajeOriginal,
+    MotorInteligencia,
+    ResultadoCentralJson,
+    DetectadoUtc,
+    MatchingCompletadoUtc
+FROM dbo.RSMAPS_RadarMessageProcessing WITH (READPAST)
+WHERE IdAgent = @idAgent
+  AND Estado = N'COMPLETADO'
+  AND ResultadoCentralJson IS NOT NULL
+  AND DownstreamAckUtc IS NULL
+ORDER BY MatchingCompletadoUtc, IdRadarMessageProcessing;";
+
+        await using SqlCommand cmd = new(sql, conexion);
+        cmd.Parameters.Add("@max", SqlDbType.Int).Value = limite;
+        cmd.Parameters.Add("@idAgent", SqlDbType.UniqueIdentifier).Value = idAgent;
+
+        await using SqlDataReader dr = await cmd.ExecuteReaderAsync(cancellationToken);
+        while (await dr.ReadAsync(cancellationToken))
+        {
+            items.Add(new RadarPendingWorkflowItem
+            {
+                IdRadarMessageProcessing = Convert.ToInt64(dr["IdRadarMessageProcessing"]),
+                ChatOrigen = dr["ChatOrigen"].ToString() ?? string.Empty,
+                MessageId = dr["MessageId"].ToString() ?? string.Empty,
+                Autor = dr["Autor"] == DBNull.Value ? null : dr["Autor"].ToString(),
+                Telefono = dr["Telefono"] == DBNull.Value ? null : dr["Telefono"].ToString(),
+                MensajeOriginal = dr["MensajeOriginal"] == DBNull.Value
+                    ? string.Empty
+                    : dr["MensajeOriginal"].ToString() ?? string.Empty,
+                MotorInteligencia = dr["MotorInteligencia"] == DBNull.Value
+                    ? null
+                    : dr["MotorInteligencia"].ToString(),
+                ResultadoCentralJson = dr["ResultadoCentralJson"].ToString() ?? string.Empty,
+                DetectadoUtc = Convert.ToDateTime(dr["DetectadoUtc"]),
+                MatchingCompletadoUtc = dr["MatchingCompletadoUtc"] == DBNull.Value
+                    ? null
+                    : Convert.ToDateTime(dr["MatchingCompletadoUtc"])
+            });
+        }
+
+        return items;
+    }
 }
