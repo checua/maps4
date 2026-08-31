@@ -27,6 +27,7 @@ builder.Services.AddScoped<IRadarAgentPairingRepository, RadarAgentPairingReposi
 builder.Services.AddScoped<IRadarMessageProcessingRepository, RadarMessageProcessingRepository>();
 builder.Services.AddScoped<IRadarMessageDeliveryRepository, RadarMessageDeliveryRepository>();
 builder.Services.AddScoped<IRadarPendingDeliveryRepository, RadarPendingDeliveryRepository>();
+builder.Services.AddScoped<IRadarPendingProcessingRepository, RadarPendingProcessingRepository>();
 builder.Services.AddScoped<IRadarAgentChatDiscoveryRepository, RadarAgentChatDiscoveryRepository>();
 builder.Services.AddScoped<IRadarAgentChatDiscoveryCommandRepository, RadarAgentChatDiscoveryCommandRepository>();
 builder.Services.AddSingleton<IRadarCentralIntelligenceService, RadarCentralIntelligenceService>();

@@ -133,6 +133,12 @@ while (true)
             page,
             RadarSettings.ConfiguracionAgente);
 
+        await RecuperarProcesamientosDurablesPendientesAsync(
+            page,
+            idsConocidosPorChat,
+            interpreter,
+            enviosConfirmadosPorSolicitud,
+            entregasLabFalladasUnaVez);
         await RecuperarEntregasDurablesPendientesAsync(
             page,
             idsConocidosPorChat,
@@ -182,9 +188,49 @@ while (true)
                     $"{resultado.Solicitudes.Count} solicitud(es).");
             }
 
-            foreach (var messageId in resultado.DemandasInterpretadas)
+            await ProcesarDemandasInterpretadasAsync(
+                page,
+                idsConocidos,
+                resultado.DemandasInterpretadas,
+                resultado.Solicitudes,
+                enviosConfirmadosPorSolicitud,
+                entregasLabFalladasUnaVez);
+        }
+    }
+    catch (PlaywrightException ex)
+    {
+        Console.WriteLine($"[PLAYWRIGHT] {ex.Message}");
+
+        try
+        {
+            page = await RadarWhatsAppSession.ObtenerPaginaActivaAsync(
+                context,
+                page,
+                mostrarRecuperacion: true);
+        }
+        catch (Exception recuperacionEx)
+        {
+            Console.WriteLine($"[RADAR] No pude recuperar WhatsApp Web: {recuperacionEx.Message}");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[RADAR] {ex.Message}");
+    }
+
+    await Task.Delay(RadarSettings.IntervaloRevisionMs);
+}
+
+static async Task ProcesarDemandasInterpretadasAsync(
+    IPage page,
+    HashSet<string> idsConocidos,
+    IReadOnlyCollection<string> demandasInterpretadas,
+    IReadOnlyList<SolicitudInmobiliaria> solicitudes,
+    HashSet<string> enviosConfirmadosPorSolicitud,
+    HashSet<string> entregasLabFalladasUnaVez)
+{            foreach (var messageId in demandasInterpretadas)
             {
-                var solicitudesMensaje = resultado.Solicitudes
+                var solicitudesMensaje = solicitudes
                     .Where(x => string.Equals(x.MessageId, messageId, StringComparison.OrdinalIgnoreCase))
                     .ToList();
 
@@ -378,32 +424,76 @@ while (true)
                     Console.WriteLine($"  [PENDING] {messageId}: not acknowledged; retry remains enabled.");
                 }
             }
-        }
-    }
-    catch (PlaywrightException ex)
-    {
-        Console.WriteLine($"[PLAYWRIGHT] {ex.Message}");
-
-        try
-        {
-            page = await RadarWhatsAppSession.ObtenerPaginaActivaAsync(
-                context,
-                page,
-                mostrarRecuperacion: true);
-        }
-        catch (Exception recuperacionEx)
-        {
-            Console.WriteLine($"[RADAR] No pude recuperar WhatsApp Web: {recuperacionEx.Message}");
-        }
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"[RADAR] {ex.Message}");
-    }
-
-    await Task.Delay(RadarSettings.IntervaloRevisionMs);
 }
 
+static async Task RecuperarProcesamientosDurablesPendientesAsync(
+    IPage page,
+    Dictionary<string, HashSet<string>> idsConocidosPorChat,
+    IRadarInterpreter interpreter,
+    HashSet<string> enviosConfirmadosPorSolicitud,
+    HashSet<string> entregasLabFalladasUnaVez)
+{
+    if (!RadarCentralIntelligenceClient.Habilitada)
+        return;
+
+    RadarPendingProcessingClientResult consulta = await RadarProcessingRecoveryClient.ListarPendientesAsync();
+    if (!consulta.Ok)
+    {
+        Console.WriteLine($"  [PROCESSING RECOVERY] Could not query durable pending processing: {consulta.Detalle}");
+        return;
+    }
+
+    if (consulta.Items.Count == 0)
+        return;
+
+    Console.WriteLine(
+        $"  [PROCESSING RECOVERY] {consulta.Items.Count} durable message(s) require central processing recovery.");
+
+    foreach (RadarPendingProcessingClientItem pendiente in consulta.Items)
+    {
+        try
+        {
+            Console.WriteLine(
+                $"  [PROCESSING RECOVERY] Message {pendiente.MessageId} from {pendiente.ChatOrigen} resumes after attempt {pendiente.IntentosProcesamiento}.");
+
+            var radarMessage = new RadarMessage
+            {
+                MessageId = pendiente.MessageId,
+                ChatOrigen = pendiente.ChatOrigen,
+                Autor = pendiente.Autor,
+                Telefono = pendiente.Telefono,
+                TextoOriginal = pendiente.MensajeOriginal,
+                DetectadoEn = pendiente.DetectadoUtc.Kind == DateTimeKind.Utc
+                    ? pendiente.DetectadoUtc.ToLocalTime()
+                    : pendiente.DetectadoUtc
+            };
+
+            RadarInterpretationResult interpretacion = await interpreter.InterpretarAsync(radarMessage);
+
+            Console.WriteLine(
+                $"  [PROCESSING RECOVERY] {pendiente.MessageId}: central processing recovered with {interpretacion.Solicitudes.Count} request(s). Motor: {interpretacion.Motor}.");
+
+            if (!idsConocidosPorChat.TryGetValue(pendiente.ChatOrigen, out HashSet<string>? idsConocidos))
+            {
+                idsConocidos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                idsConocidosPorChat[pendiente.ChatOrigen] = idsConocidos;
+            }
+
+            await ProcesarDemandasInterpretadasAsync(
+                page,
+                idsConocidos,
+                new[] { pendiente.MessageId },
+                interpretacion.Solicitudes,
+                enviosConfirmadosPorSolicitud,
+                entregasLabFalladasUnaVez);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(
+                $"  [PROCESSING RECOVERY PENDING] {pendiente.MessageId}: {ex.Message}");
+        }
+    }
+}
 static async Task RecuperarEntregasDurablesPendientesAsync(
     IPage page,
     Dictionary<string, HashSet<string>> idsConocidosPorChat,
