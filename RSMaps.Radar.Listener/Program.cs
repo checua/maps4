@@ -220,6 +220,7 @@ while (true)
                     }
 
                     var claveEntrega = ClaveEntrega(messageId, indice, solicitud);
+                    var payloadEntrega = ConstruirAlerta(solicitud) + Environment.NewLine + Environment.NewLine + MarcaEntrega(claveEntrega);
                     var pruebaEntregaLab = Environment.GetEnvironmentVariable("RADAR_SAFE_LAB_DELIVERY_TEST")?.Trim();
                     var simularFailOnce = RadarSettings.ModoSeguroLab
                         && string.Equals(pruebaEntregaLab, "fail-once", StringComparison.OrdinalIgnoreCase);
@@ -240,7 +241,7 @@ while (true)
                             claveEntrega,
                             solicitud.IdInmuebleCoincidente,
                             solicitud.MejorCoincidencia,
-                            ConstruirAlerta(solicitud));
+                            payloadEntrega);
 
                         if (!entregaDurable.Ok)
                         {
@@ -305,7 +306,8 @@ while (true)
                     }
                     else
                     {
-                        envio = await EnviarAlerta(page, solicitud);
+                        envio = await EnviarAlertaPayload(page, payloadEntrega, solicitud.ChatOrigen);
+
                     }
 
                     if (!envio.Enviada)
@@ -462,6 +464,50 @@ static async Task RecuperarEntregasDurablesPendientesAsync(
             continue;
         }
 
+        // The previous Agent process may have pressed Enter successfully and crashed
+        // before RSMaps received the ENVIADO confirmation. Reconcile WhatsApp first.
+        bool requiereReconciliacionIncierta = string.Equals(
+            pendiente.Estado,
+            "PENDIENTE",
+            StringComparison.OrdinalIgnoreCase);
+
+        if (requiereReconciliacionIncierta)
+        {
+            var verificacionEntrega = await VerificarEntregaEnDestinoAsync(page, pendiente.ClaveEntrega);
+        if (!verificacionEntrega.Consultada)
+        {
+            Console.WriteLine(
+                $"  [RECOVERY UNCERTAIN] Delivery #{pendiente.IdRadarMessageDelivery} could not be verified in WhatsApp; it remains pending and WILL NOT be resent.");
+            continue;
+        }
+
+        if (verificacionEntrega.Encontrada)
+        {
+            RadarDeliveryCompleteClientResult reconciliada = await RadarDeliveryClient.CompletarAsync(
+                pendiente.IdRadarMessageDelivery,
+                true,
+                null);
+
+            if (!reconciliada.Ok)
+            {
+                Console.WriteLine(
+                    $"  [RECOVERY UNCERTAIN] Delivery #{pendiente.IdRadarMessageDelivery} is visible in WhatsApp but RSMaps confirmation failed: {reconciliada.Detalle}");
+                continue;
+            }
+
+            entregasPendientesAlArranque.Remove(pendiente.IdRadarMessageDelivery);
+            if (idsConocidosPorChat.TryGetValue(pendiente.ChatOrigen, out HashSet<string>? idsReconciliados))
+                idsReconciliados.Add(pendiente.MessageId);
+
+            Console.WriteLine(
+                $"  [RECOVERY RECONCILED] Delivery #{pendiente.IdRadarMessageDelivery} already exists in WhatsApp; duplicate send skipped and RSMaps marked ENVIADO.");
+            Console.WriteLine(
+                $"  [RECOVERY ACK] {pendiente.MessageId}: uncertain external send reconciled.");
+            continue;
+        }
+
+        }
+
         RadarDeliveryPrepareClientResult preparada = await RadarDeliveryClient.PrepararAsync(
             pendiente.ChatOrigen,
             pendiente.MessageId,
@@ -517,6 +563,7 @@ static async Task RecuperarEntregasDurablesPendientesAsync(
                 pendiente.PayloadAlerta,
                 pendiente.ChatOrigen);
         }
+
 
         RadarDeliveryCompleteClientResult confirmacion = await RadarDeliveryClient.CompletarAsync(
             preparada.IdRadarMessageDelivery,
@@ -616,7 +663,14 @@ static async Task<bool> AbrirChat(IPage page, string nombreChat)
     if (input is null)
         return false;
 
-    foreach (var termino in RadarSettings.ObtenerTerminosBusqueda(nombreChat))
+    var terminosBusqueda = RadarSettings.ObtenerTerminosBusqueda(nombreChat).ToList();
+    if (terminosBusqueda.Count == 0 &&
+        string.Equals(nombreChat, AlertSettings.ChatDestino, StringComparison.OrdinalIgnoreCase))
+    {
+        terminosBusqueda.Add(nombreChat);
+    }
+
+    foreach (var termino in terminosBusqueda)
     {
         try
         {
@@ -905,10 +959,49 @@ static bool TieneCoincidenciaUtil(SolicitudInmobiliaria solicitud)
 static string ClaveEntrega(string messageId, int indice, SolicitudInmobiliaria solicitud) =>
     $"{messageId}:{indice}:{solicitud.IdInmuebleCoincidente?.ToString() ?? "-"}";
 
-static Task<(bool Enviada, bool MarcadoNoLeido, string Detalle)> EnviarAlerta(
+static string MarcaEntrega(string claveEntrega) =>
+    $"RADAR-DELIVERY:{claveEntrega}";
+
+static async Task<(bool Consultada, bool Encontrada)> VerificarEntregaEnDestinoAsync(
     IPage page,
-    SolicitudInmobiliaria s) =>
-    EnviarAlertaPayload(page, ConstruirAlerta(s), s.ChatOrigen);
+    string claveEntrega)
+{
+    try
+    {
+        if (!await AbrirChat(page, AlertSettings.ChatDestino))
+            return (false, false);
+
+        await Task.Delay(500);
+        string marca = MarcaEntrega(claveEntrega);
+        var mensajes = page.Locator("[data-testid^='conv-msg-'][data-id]");
+        int total = await mensajes.CountAsync();
+        if (total <= 0)
+            return (false, false);
+
+        int inicio = Math.Max(0, total - 60);
+        for (int i = total - 1; i >= inicio; i--)
+        {
+            string texto;
+            try
+            {
+                texto = await mensajes.Nth(i).InnerTextAsync();
+            }
+            catch
+            {
+                return (false, false);
+            }
+
+            if (texto.Contains(marca, StringComparison.Ordinal))
+                return (true, true);
+        }
+
+        return (true, false);
+    }
+    catch
+    {
+        return (false, false);
+    }
+}
 
 static async Task<(bool Enviada, bool MarcadoNoLeido, string Detalle)> EnviarAlertaPayload(
     IPage page,
