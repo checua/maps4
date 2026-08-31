@@ -54,6 +54,11 @@ var enviosConfirmadosPorSolicitud = new HashSet<string>(StringComparer.OrdinalIg
 // LAB-only state used to simulate one failed delivery followed by recovery.
 var entregasLabFalladasUnaVez = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+// Durable deliveries found on the first server query belong to a previous Agent process.
+// They remain eligible for recovery until they are confirmed ENVIADO.
+var entregasPendientesAlArranque = new HashSet<long>();
+var capturarPendientesAlArranque = true;
+
 IRadarInterpreter interpreter = RadarInterpreterFactory.Create();
 Console.WriteLine($"Intérprete Radar: {interpreter.GetType().Name}");
 
@@ -127,6 +132,13 @@ while (true)
         await RadarWhatsAppChatDiscovery.ActualizarSiCorrespondeAsync(
             page,
             RadarSettings.ConfiguracionAgente);
+
+        await RecuperarEntregasDurablesPendientesAsync(
+            page,
+            idsConocidosPorChat,
+            entregasPendientesAlArranque,
+            capturarPendientesAlArranque);
+        capturarPendientesAlArranque = false;
 
         // Tomamos una fotografía estable de la configuración para este barrido.
         // Si el heartbeat cambia la configuración mientras recorremos los chats,
@@ -228,7 +240,7 @@ while (true)
                             claveEntrega,
                             solicitud.IdInmuebleCoincidente,
                             solicitud.MejorCoincidencia,
-                            solicitud.MensajeOriginal + Environment.NewLine + Environment.NewLine + solicitud.MatchingResumen);
+                            ConstruirAlerta(solicitud));
 
                         if (!entregaDurable.Ok)
                         {
@@ -247,7 +259,7 @@ while (true)
                         }
 
                         Console.WriteLine(
-                            $"  [DELIVERY] Durable delivery #{entregaDurable.IdRadarMessageDelivery} prepared Â· attempt {entregaDurable.IntentosEntrega}.");
+                            $"  [DELIVERY] Durable delivery #{entregaDurable.IdRadarMessageDelivery} prepared - attempt {entregaDurable.IntentosEntrega}.");
                     }
 
                     if (enviosConfirmadosPorSolicitud.Contains(claveEntrega))
@@ -390,6 +402,151 @@ while (true)
     await Task.Delay(RadarSettings.IntervaloRevisionMs);
 }
 
+static async Task RecuperarEntregasDurablesPendientesAsync(
+    IPage page,
+    Dictionary<string, HashSet<string>> idsConocidosPorChat,
+    HashSet<long> entregasPendientesAlArranque,
+    bool capturarPendientesAlArranque)
+{
+    if (!RadarDeliveryClient.Habilitada)
+        return;
+
+    RadarPendingDeliveryClientResult consulta = await RadarDeliveryRecoveryClient.ListarPendientesAsync();
+    if (!consulta.Ok)
+    {
+        Console.WriteLine($"  [RECOVERY] Could not query durable pending deliveries: {consulta.Detalle}");
+        return;
+    }
+
+    if (capturarPendientesAlArranque)
+    {
+        foreach (RadarPendingDeliveryClientItem item in consulta.Items)
+            entregasPendientesAlArranque.Add(item.IdRadarMessageDelivery);
+
+        if (entregasPendientesAlArranque.Count > 0)
+        {
+            Console.WriteLine(
+                $"  [RECOVERY] {entregasPendientesAlArranque.Count} durable delivery(ies) from a previous Agent process detected.");
+        }
+    }
+
+    foreach (RadarPendingDeliveryClientItem pendiente in consulta.Items)
+    {
+        bool absorbidaComoHistorial =
+            idsConocidosPorChat.TryGetValue(pendiente.ChatOrigen, out HashSet<string>? idsChat) &&
+            idsChat.Contains(pendiente.MessageId);
+
+        bool perteneceAProcesoAnterior = entregasPendientesAlArranque.Contains(
+            pendiente.IdRadarMessageDelivery);
+
+        // Live pending work created by this process remains owned by the ordinary WhatsApp scanner.
+        if (!perteneceAProcesoAnterior && !absorbidaComoHistorial)
+            continue;
+
+        string? pruebaEntregaLab = Environment.GetEnvironmentVariable(
+            "RADAR_SAFE_LAB_DELIVERY_TEST")?.Trim();
+        bool simularFailOnce = RadarSettings.ModoSeguroLab &&
+            string.Equals(pruebaEntregaLab, "fail-once", StringComparison.OrdinalIgnoreCase);
+
+        if (RadarSettings.ModoSeguroLab && !simularFailOnce)
+        {
+            Console.WriteLine(
+                $"  [RECOVERY SAFE LAB] Delivery #{pendiente.IdRadarMessageDelivery} remains pending; real WhatsApp delivery is blocked.");
+            continue;
+        }
+
+        if (string.IsNullOrWhiteSpace(pendiente.PayloadAlerta))
+        {
+            Console.WriteLine(
+                $"  [RECOVERY] Delivery #{pendiente.IdRadarMessageDelivery} has no persisted alert payload; it remains pending.");
+            continue;
+        }
+
+        RadarDeliveryPrepareClientResult preparada = await RadarDeliveryClient.PrepararAsync(
+            pendiente.ChatOrigen,
+            pendiente.MessageId,
+            pendiente.SolicitudIndice,
+            pendiente.ClaveEntrega,
+            pendiente.IdInmueble,
+            pendiente.Puntuacion.HasValue ? (double?)pendiente.Puntuacion.Value : null,
+            pendiente.PayloadAlerta);
+
+        if (!preparada.Ok)
+        {
+            Console.WriteLine(
+                $"  [RECOVERY] Delivery #{pendiente.IdRadarMessageDelivery} could not be reclaimed: {preparada.Detalle}");
+            continue;
+        }
+
+        if (preparada.YaEnviado)
+        {
+            entregasPendientesAlArranque.Remove(pendiente.IdRadarMessageDelivery);
+            if (idsConocidosPorChat.TryGetValue(pendiente.ChatOrigen, out HashSet<string>? idsEnviados))
+                idsEnviados.Add(pendiente.MessageId);
+
+            Console.WriteLine(
+                $"  [RECOVERY DEDUP] Delivery #{preparada.IdRadarMessageDelivery} was already ENVIADO; duplicate skipped.");
+            continue;
+        }
+
+        Console.WriteLine(
+            $"  [RECOVERY] Durable delivery #{preparada.IdRadarMessageDelivery} resumed - attempt {preparada.IntentosEntrega}.");
+
+        (bool Enviada, bool MarcadoNoLeido, string Detalle) envio;
+        if (simularFailOnce)
+        {
+            // A recovered delivery already had a prior durable attempt. Once it is reclaimed,
+            // the attempt number is > 1, so the LAB recovery succeeds even after process memory reset.
+            if (preparada.IntentosEntrega <= 1)
+            {
+                envio = (false, false, "SAFE LAB simulated first delivery failure during recovery");
+                Console.WriteLine(
+                    "  [SAFE LAB RECOVERY] First durable attempt intentionally failed; no WhatsApp message was sent.");
+            }
+            else
+            {
+                envio = (true, true, "SAFE LAB simulated delivery recovery after Agent restart");
+                Console.WriteLine(
+                    "  [SAFE LAB RECOVERY] Durable retry succeeded after Agent restart; no WhatsApp message was sent.");
+            }
+        }
+        else
+        {
+            envio = await EnviarAlertaPayload(
+                page,
+                pendiente.PayloadAlerta,
+                pendiente.ChatOrigen);
+        }
+
+        RadarDeliveryCompleteClientResult confirmacion = await RadarDeliveryClient.CompletarAsync(
+            preparada.IdRadarMessageDelivery,
+            envio.Enviada,
+            envio.Enviada ? null : envio.Detalle);
+
+        if (!confirmacion.Ok)
+        {
+            Console.WriteLine(
+                $"  [RECOVERY] Delivery #{preparada.IdRadarMessageDelivery} could not persist its result: {confirmacion.Detalle}");
+            continue;
+        }
+
+        if (!envio.Enviada)
+        {
+            Console.WriteLine(
+                $"  [RECOVERY PENDING] Delivery #{preparada.IdRadarMessageDelivery} failed again: {envio.Detalle}");
+            continue;
+        }
+
+        entregasPendientesAlArranque.Remove(pendiente.IdRadarMessageDelivery);
+        if (idsConocidosPorChat.TryGetValue(pendiente.ChatOrigen, out HashSet<string>? idsRecuperados))
+            idsRecuperados.Add(pendiente.MessageId);
+
+        Console.WriteLine(
+            $"  [RECOVERY SENT] Durable delivery #{preparada.IdRadarMessageDelivery} confirmed ENVIADO after restart recovery.");
+        Console.WriteLine(
+            $"  [RECOVERY ACK] {pendiente.MessageId}: durable pending delivery recovered.");
+    }
+}
 static async Task<HashSet<string>> ReconciliarEstadoChatsAsync(
     IPage page,
     IReadOnlyCollection<string> chatsConfigurados,
@@ -748,9 +905,15 @@ static bool TieneCoincidenciaUtil(SolicitudInmobiliaria solicitud)
 static string ClaveEntrega(string messageId, int indice, SolicitudInmobiliaria solicitud) =>
     $"{messageId}:{indice}:{solicitud.IdInmuebleCoincidente?.ToString() ?? "-"}";
 
-static async Task<(bool Enviada, bool MarcadoNoLeido, string Detalle)> EnviarAlerta(
+static Task<(bool Enviada, bool MarcadoNoLeido, string Detalle)> EnviarAlerta(
     IPage page,
-    SolicitudInmobiliaria s)
+    SolicitudInmobiliaria s) =>
+    EnviarAlertaPayload(page, ConstruirAlerta(s), s.ChatOrigen);
+
+static async Task<(bool Enviada, bool MarcadoNoLeido, string Detalle)> EnviarAlertaPayload(
+    IPage page,
+    string alerta,
+    string chatOrigen)
 {
     try
     {
@@ -761,7 +924,6 @@ static async Task<(bool Enviada, bool MarcadoNoLeido, string Detalle)> EnviarAle
         if (compose is null)
             return (false, false, "encontrar caja de mensaje");
 
-        var alerta = ConstruirAlerta(s);
         await compose.ClickAsync();
 
         try
@@ -777,7 +939,7 @@ static async Task<(bool Enviada, bool MarcadoNoLeido, string Detalle)> EnviarAle
         await page.Keyboard.PressAsync("Enter");
         await Task.Delay(700);
 
-        var regresoOrigen = await AbrirChat(page, s.ChatOrigen);
+        var regresoOrigen = await AbrirChat(page, chatOrigen);
         if (!regresoOrigen)
             return (true, false, "enviado; no pude regresar al chat origen");
 
@@ -794,7 +956,6 @@ static async Task<(bool Enviada, bool MarcadoNoLeido, string Detalle)> EnviarAle
         return (false, false, ex.Message);
     }
 }
-
 static async Task<ILocator?> ObtenerCajaMensaje(IPage page)
 {
     var selectores = new[]
