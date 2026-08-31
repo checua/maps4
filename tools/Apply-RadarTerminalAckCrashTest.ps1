@@ -26,38 +26,42 @@ if ($content.Contains('RADAR_TERMINAL_ACK_TEST')) {
     exit 0
 }
 
-$anchor = @'
-        var interpretacion = await interpreter.InterpretarAsync(radarMessage);
-        demandasInterpretadas.Add(id);
-'@
+# Match the ordinary WhatsApp interpretation path by the unique
+# demandasInterpretadas.Add(id) that follows InterpretarAsync.  Use a regex
+# instead of an exact multiline string so CRLF/LF differences cannot break
+# the helper after previous generated patches rewrite Program.cs.
+$pattern = '(?m)(?<indent>^[ \t]*)var interpretacion = await interpreter\.InterpretarAsync\(radarMessage\);\r?\n\k<indent>demandasInterpretadas\.Add\(id\);'
+$matches = [regex]::Matches($content, $pattern)
 
-$replacement = @'
-        var interpretacion = await interpreter.InterpretarAsync(radarMessage);
-
-        string? terminalAckTest = Environment.GetEnvironmentVariable("RADAR_TERMINAL_ACK_TEST")?.Trim();
-        if (string.Equals(terminalAckTest, "crash-after-central", StringComparison.OrdinalIgnoreCase) &&
-            text.Contains("CENTRAL 012", StringComparison.OrdinalIgnoreCase))
-        {
-            Console.WriteLine(
-                "  [TERMINAL ACK TEST] Central Intelligence + matching persisted for CENTRAL 012; " +
-                "terminating Agent before any downstream processing or Delivery preparation.");
-            Environment.Exit(87);
-        }
-
-        demandasInterpretadas.Add(id);
-'@
-
-$first = $content.IndexOf($anchor, [System.StringComparison]::Ordinal)
-if ($first -lt 0) {
+if ($matches.Count -eq 0) {
     throw 'Could not locate ordinary message interpretation anchor in Listener Program.cs.'
 }
-
-$second = $content.IndexOf($anchor, $first + $anchor.Length, [System.StringComparison]::Ordinal)
-if ($second -ge 0) {
-    throw 'Ordinary message interpretation anchor is not unique; refusing to patch.'
+if ($matches.Count -ne 1) {
+    throw "Ordinary message interpretation anchor matched $($matches.Count) times; refusing to patch."
 }
 
-$content = $content.Substring(0, $first) + $replacement + $content.Substring($first + $anchor.Length)
+$match = $matches[0]
+$indent = $match.Groups['indent'].Value
+$newLine = if ($match.Value.Contains("`r`n")) { "`r`n" } else { "`n" }
+
+$replacementLines = @(
+    $indent + 'var interpretacion = await interpreter.InterpretarAsync(radarMessage);',
+    '',
+    $indent + 'string? terminalAckTest = Environment.GetEnvironmentVariable("RADAR_TERMINAL_ACK_TEST")?.Trim();',
+    $indent + 'if (string.Equals(terminalAckTest, "crash-after-central", StringComparison.OrdinalIgnoreCase) &&',
+    $indent + '    text.Contains("CENTRAL 012", StringComparison.OrdinalIgnoreCase))',
+    $indent + '{',
+    $indent + '    Console.WriteLine(',
+    $indent + '        "  [TERMINAL ACK TEST] Central Intelligence + matching persisted for CENTRAL 012; " +',
+    $indent + '        "terminating Agent before any downstream processing or Delivery preparation.");',
+    $indent + '    Environment.Exit(87);',
+    $indent + '}',
+    '',
+    $indent + 'demandasInterpretadas.Add(id);'
+)
+$replacement = [string]::Join($newLine, $replacementLines)
+
+$content = $content.Substring(0, $match.Index) + $replacement + $content.Substring($match.Index + $match.Length)
 Write-Utf8NoBom -Path $programPath -Content $content
 
 Write-Host 'RADAR terminal ACK crash test hook applied.'
