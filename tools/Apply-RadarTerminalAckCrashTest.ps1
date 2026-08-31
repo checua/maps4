@@ -27,11 +27,17 @@ if ($content.Contains('RADAR_TERMINAL_ACK_TEST')) {
 }
 
 # Match the ordinary WhatsApp interpretation path by the unique
-# demandasInterpretadas.Add(id) that follows InterpretarAsync.  Use a regex
-# instead of an exact multiline string so CRLF/LF differences cannot break
-# the helper after previous generated patches rewrite Program.cs.
+# demandasInterpretadas.Add(id) that follows InterpretarAsync. In a
+# PowerShell single-quoted string, regex escapes use ONE backslash.
 $pattern = '(?m)(?<indent>^[ \t]*)var interpretacion = await interpreter\.InterpretarAsync\(radarMessage\);\r?\n\k<indent>demandasInterpretadas\.Add\(id\);'
 $matches = [regex]::Matches($content, $pattern)
+
+if ($matches.Count -eq 0) {
+    # Fallback tolerates an explicit RadarInterpretationResult type and
+    # optional blank whitespace without risking a broad unrelated match.
+    $pattern = '(?m)(?<indent>^[ \t]*)(?:var|RadarInterpretationResult) interpretacion = await interpreter\.InterpretarAsync\(radarMessage\);[ \t]*\r?\n(?:[ \t]*\r?\n)*\k<indent>demandasInterpretadas\.Add\(id\);'
+    $matches = [regex]::Matches($content, $pattern)
+}
 
 if ($matches.Count -eq 0) {
     throw 'Could not locate ordinary message interpretation anchor in Listener Program.cs.'
