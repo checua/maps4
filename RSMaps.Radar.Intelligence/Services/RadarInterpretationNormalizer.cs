@@ -87,6 +87,47 @@ public static class RadarInterpretationNormalizer
             solicitud.TipoFraccionamiento = "Privado";
         }
 
+        if (!solicitud.CocheraMinAutos.HasValue)
+        {
+            var textoSolicitud = texto;
+            var inicioRespuesta = BuscarInicioRespuestaOferta(textoSolicitud);
+            if (inicioRespuesta >= 0)
+                textoSolicitud = textoSolicitud[..inicioRespuesta].Trim();
+
+            Match cantidadCochera = Regex.Match(
+                textoSolicitud,
+                @"\b(?:cochera|garage|garaje)\s+(?:para\s+)?(?<autos>\d+)\s*(?:autos?|carros?|vehiculos?)\b",
+                RegexOptions.IgnoreCase);
+
+            if (cantidadCochera.Success &&
+                int.TryParse(cantidadCochera.Groups["autos"].Value, out int autos) &&
+                autos > 0)
+            {
+                solicitud.CocheraMinAutos = autos;
+            }
+            else if (Regex.IsMatch(
+                textoSolicitud,
+                @"\b(?:cochera|garage|garaje)\s+doble\b",
+                RegexOptions.IgnoreCase))
+            {
+                solicitud.CocheraMinAutos = 2;
+            }
+            else
+            {
+                bool cocheraNegada = Regex.IsMatch(
+                    textoSolicitud,
+                    @"\b(?:sin\s+(?:cochera|garage|garaje)|no\s+(?:requiere|necesita|ocupa)\s+(?:cochera|garage|garaje))\b",
+                    RegexOptions.IgnoreCase);
+                bool conCochera = Regex.IsMatch(
+                    textoSolicitud,
+                    @"\bcon\s+(?:cochera|garage|garaje)\b",
+                    RegexOptions.IgnoreCase);
+
+                if (conCochera && !cocheraNegada)
+                    solicitud.CocheraMinAutos = 1;
+            }
+        }
+
         if (string.IsNullOrWhiteSpace(solicitud.Operacion))
         {
             if (Regex.IsMatch(texto, @"\b(?:renta|rentar|arrendar|alquiler)\b", RegexOptions.IgnoreCase))

@@ -32,6 +32,7 @@ Reglas:
 - "recámara en planta baja" tampoco significa necesariamente que toda la casa sea de una planta.
 - En modalidadesPago usa valores canónicos cuando sea posible: Infonavit, Fovissste, Banjercito, Crédito bancario, Crédito hipotecario o Contado. "efectivo" equivale a Contado. Detalles como "Total" o "Conyugal" pueden ir en requisitosAdicionales.
 - Si no es una solicitud inmobiliaria, devuelve esSolicitudInmobiliaria=false y solicitudes vacías.
+- "con cochera", "con garage" o "con garaje" sin cantidad significa cocheraMinAutos=1; si indica "cochera/garage/garaje para N autos", usa N. No tomes cochera de una respuesta/oferta citada como requisito del solicitante.
 - La confianza debe estar entre 0 y 1.
 """;
 
