@@ -94,6 +94,17 @@ namespace maps4.Services
                 if (inmueble.BanosCompletos.Value < solicitud.BanosMin.Value - 1)
                     return false;
             }
+            if (solicitud.CocheraMinAutos.HasValue)
+            {
+                // Una cochera solicitada explícitamente es requisito duro.
+                // Si el inventario no confirma estacionamientos suficientes,
+                // RADAR no debe generar una alerta.
+                if (!inmueble.Estacionamientos.HasValue ||
+                    inmueble.Estacionamientos.Value < solicitud.CocheraMinAutos.Value)
+                {
+                    return false;
+                }
+            }
 
             if (solicitud.TerrenoMinM2.HasValue && inmueble.Terreno.HasValue)
             {
