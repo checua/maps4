@@ -1074,6 +1074,31 @@ static async Task AbsorberMensajesActuales(IPage page, HashSet<string> knownIds)
     }
 }
 
+static string LimpiarTextoMensajeWhatsApp(string texto)
+{
+    if (string.IsNullOrWhiteSpace(texto))
+        return texto;
+
+    // WhatsApp Web suele incluir la hora visible como una Ãºltima lÃ­nea independiente
+    // dentro del InnerText del mensaje. Se elimina solo si toda la Ãºltima lÃ­nea es una hora.
+    var lineas = texto
+        .Replace("\r\n", "\n", StringComparison.Ordinal)
+        .Split('\n');
+
+    if (lineas.Length <= 1)
+        return texto.Trim();
+
+    var ultima = lineas[^1].Trim();
+    if (!Regex.IsMatch(
+            ultima,
+            @"^\d{1,2}:\d{2}\s*(?:a\.?\s*m\.?|p\.?\s*m\.?)$",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+    {
+        return texto.Trim();
+    }
+
+    return string.Join("\n", lineas[..^1]).Trim();
+}
 static async Task<(int Revisados, List<SolicitudInmobiliaria> Solicitudes, HashSet<string> DemandasInterpretadas)> ProcesarMensajesNuevos(
     IPage page,
     string chat,
@@ -1095,7 +1120,7 @@ static async Task<(int Revisados, List<SolicitudInmobiliaria> Solicitudes, HashS
             continue;
 
 
-        var text = (await message.InnerTextAsync()).Trim();
+        var text = LimpiarTextoMensajeWhatsApp((await message.InnerTextAsync()).Trim());
         if (string.IsNullOrWhiteSpace(text))
         {
             knownIds.Add(id);
