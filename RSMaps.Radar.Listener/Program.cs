@@ -1317,31 +1317,8 @@ static async Task<bool> MarcarChatEnListaComoNoLeido(IPage page, string nombreCh
         var titulos = page.Locator("[data-testid='cell-frame-title']");
         ILocator? tituloObjetivo = null;
 
-        for (var i = 0; i < await titulos.CountAsync(); i++)
+        async Task<bool> BuscarTituloVisibleAsync()
         {
-            var titulo = titulos.Nth(i);
-            if (!await titulo.IsVisibleAsync())
-                continue;
-
-            var texto = (await titulo.InnerTextAsync()).Trim();
-            if (EsMismoChat(texto, nombreChat))
-            {
-                tituloObjetivo = titulo;
-                break;
-            }
-        }
-
-        if (tituloObjetivo is null)
-        {
-            var input = await ObtenerInputBusqueda(page);
-            if (input is null)
-                return false;
-
-            await input.ClickAsync();
-            await input.FillAsync(nombreChat);
-            await Task.Delay(Math.Max(RadarSettings.EsperaBusquedaMs, 900));
-
-            titulos = page.Locator("[data-testid='cell-frame-title']");
             for (var i = 0; i < await titulos.CountAsync(); i++)
             {
                 var titulo = titulos.Nth(i);
@@ -1352,18 +1329,32 @@ static async Task<bool> MarcarChatEnListaComoNoLeido(IPage page, string nombreCh
                 if (EsMismoChat(texto, nombreChat))
                 {
                     tituloObjetivo = titulo;
-                    break;
+                    return true;
                 }
             }
-        }
 
-        if (tituloObjetivo is null)
-        {
-            await LimpiarBusqueda(page);
             return false;
         }
 
-        var fila = tituloObjetivo.Locator(
+        if (!await BuscarTituloVisibleAsync())
+        {
+            var input = await ObtenerInputBusqueda(page);
+            if (input is null)
+                return false;
+
+            await input.ClickAsync();
+            await input.FillAsync(nombreChat);
+            await Task.Delay(Math.Max(RadarSettings.EsperaBusquedaMs, 900));
+
+            titulos = page.Locator("[data-testid='cell-frame-title']");
+            if (!await BuscarTituloVisibleAsync())
+            {
+                await LimpiarBusqueda(page);
+                return false;
+            }
+        }
+
+        var fila = tituloObjetivo!.Locator(
             "xpath=ancestor::*[@role='row' or @role='listitem' or @tabindex='-1' or @tabindex='0'][1]");
 
         if (await fila.CountAsync() == 0)
@@ -1375,7 +1366,63 @@ static async Task<bool> MarcarChatEnListaComoNoLeido(IPage page, string nombreCh
             return false;
         }
 
-        await fila.First.HoverAsync();
+        var filaChat = fila.First;
+        var opciones = new[]
+        {
+            "Marcar como no le\u00EDdo",
+            "Marcar como no leido",
+            "Mark as unread"
+        };
+
+        async Task<bool> ClickOpcionNoLeidoAsync()
+        {
+            foreach (var texto in opciones)
+            {
+                var opcion = page.GetByText(texto, new PageGetByTextOptions { Exact = true });
+                var total = await opcion.CountAsync();
+
+                for (var i = 0; i < total; i++)
+                {
+                    var item = opcion.Nth(i);
+                    if (!await item.IsVisibleAsync())
+                        continue;
+
+                    await item.ClickAsync(new LocatorClickOptions { Timeout = 2_000 });
+                    await Task.Delay(350);
+                    await LimpiarBusqueda(page);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        // Current WhatsApp Web versions reliably expose the chat actions with a
+        // context click even when the hover-only dropdown icon changes its DOM.
+        try
+        {
+            await filaChat.ClickAsync(new LocatorClickOptions
+            {
+                Button = MouseButton.Right,
+                Timeout = 2_000
+            });
+            await Task.Delay(300);
+
+            if (await ClickOpcionNoLeidoAsync())
+            {
+                Console.WriteLine($"  [UNREAD] {nombreChat}: marcado como no le\u00EDdo mediante men\u00FA contextual.");
+                return true;
+            }
+
+            await page.Keyboard.PressAsync("Escape");
+        }
+        catch
+        {
+            try { await page.Keyboard.PressAsync("Escape"); } catch { }
+        }
+
+        // Fallback for older WhatsApp DOMs that still expose a hover dropdown.
+        await filaChat.HoverAsync();
         await Task.Delay(250);
 
         ILocator? botonMenu = null;
@@ -1383,13 +1430,13 @@ static async Task<bool> MarcarChatEnListaComoNoLeido(IPage page, string nombreCh
         {
             "span[data-icon='down-context']",
             "[data-testid='down']",
-            "button[aria-label*='menú' i]",
+            "button[aria-label*='men\u00FA' i]",
             "button[aria-label*='menu' i]"
         };
 
         foreach (var selector in selectoresMenu)
         {
-            var candidatos = fila.First.Locator(selector);
+            var candidatos = filaChat.Locator(selector);
             var total = await candidatos.CountAsync();
 
             for (var i = 0; i < total; i++)
@@ -1415,36 +1462,14 @@ static async Task<bool> MarcarChatEnListaComoNoLeido(IPage page, string nombreCh
                 break;
         }
 
-        if (botonMenu is null)
+        if (botonMenu is not null)
         {
-            await LimpiarBusqueda(page);
-            return false;
-        }
+            await botonMenu.ClickAsync(new LocatorClickOptions { Timeout = 2_000 });
+            await Task.Delay(250);
 
-        await botonMenu.ClickAsync(new LocatorClickOptions { Timeout = 2_000 });
-        await Task.Delay(250);
-
-        var opciones = new[]
-        {
-            "Marcar como no leído",
-            "Marcar como no leido",
-            "Mark as unread"
-        };
-
-        foreach (var texto in opciones)
-        {
-            var opcion = page.GetByText(texto, new PageGetByTextOptions { Exact = true });
-            var total = await opcion.CountAsync();
-
-            for (var i = 0; i < total; i++)
+            if (await ClickOpcionNoLeidoAsync())
             {
-                var item = opcion.Nth(i);
-                if (!await item.IsVisibleAsync())
-                    continue;
-
-                await item.ClickAsync(new LocatorClickOptions { Timeout = 2_000 });
-                await Task.Delay(350);
-                await LimpiarBusqueda(page);
+                Console.WriteLine($"  [UNREAD] {nombreChat}: marcado como no le\u00EDdo mediante men\u00FA desplegable.");
                 return true;
             }
         }
