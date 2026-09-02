@@ -1746,10 +1746,18 @@ static string MostrarRango(int? min, int? max)
     if (!min.HasValue && !max.HasValue)
         return "-";
 
-    if (min == max)
-        return min?.ToString() ?? "-";
+    if (min.HasValue && max.HasValue)
+    {
+        if (min.Value == max.Value)
+            return min.Value.ToString();
 
-    return $"{min?.ToString() ?? "-"} a {max?.ToString() ?? "-"}";
+        return $"{min.Value} a {max.Value}";
+    }
+
+    if (min.HasValue)
+        return $"m\u00EDnimo {min.Value}";
+
+    return $"m\u00E1ximo {max!.Value}";
 }
 
 static string MostrarMetros(decimal? valor, bool espacioInicial = false)
