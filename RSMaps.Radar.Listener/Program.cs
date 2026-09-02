@@ -1434,53 +1434,75 @@ static string ConstruirAlerta(SolicitudInmobiliaria s)
 {
     var sb = new StringBuilder();
 
-    sb.AppendLine("🔥 RSMAPS RADAR");
+    string coincidencia = s.MejorCoincidencia.HasValue
+        ? $"{Math.Round(s.MejorCoincidencia.Value, MidpointRounding.AwayFromZero):0}%"
+        : "confirmada";
+
+    sb.AppendLine($"\U0001F525 RSMAPS RADAR \u00B7 COINCIDENCIA {coincidencia}");
     sb.AppendLine();
-    sb.AppendLine("ORIGEN");
-    sb.AppendLine($"Chat: {s.ChatOrigen}");
-    sb.AppendLine($"Autor: {s.Autor ?? "No identificado"}");
-    sb.AppendLine($"Teléfono: {s.Telefono ?? "No disponible"}");
-    sb.AppendLine();
-    sb.AppendLine("SOLICITUD");
-    sb.AppendLine($"Operación: {s.Operacion ?? "No determinada"}");
-    sb.AppendLine($"Tipo: {MostrarLista(s.TiposPropiedad)}");
-    sb.AppendLine($"Subtipo: {MostrarLista(s.SubtiposPropiedad)}");
-    sb.AppendLine($"Zona: {MostrarLista(s.Zonas)}");
+
+    if (!string.IsNullOrWhiteSpace(s.MatchingResumen))
+    {
+        sb.AppendLine("\u2705 MATCH RSMAPS");
+
+        var lineasMatching = s.MatchingResumen
+            .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(x => !string.Equals(x, "COINCIDENCIAS RSMAPS", StringComparison.OrdinalIgnoreCase))
+            .Where(x => !x.StartsWith("Candidatos:", StringComparison.OrdinalIgnoreCase));
+
+        foreach (var linea in lineasMatching)
+            sb.AppendLine(linea);
+
+        sb.AppendLine();
+    }
+
+    sb.AppendLine("\U0001F50E SOLICITUD DETECTADA");
+
+    if (!string.IsNullOrWhiteSpace(s.Operacion))
+        sb.AppendLine($"Operaci\u00F3n: {s.Operacion}");
+
+    if (s.TiposPropiedad.Count > 0)
+        sb.AppendLine($"Tipo: {MostrarLista(s.TiposPropiedad)}");
+
+    if (s.SubtiposPropiedad.Count > 0)
+        sb.AppendLine($"Subtipo: {MostrarLista(s.SubtiposPropiedad)}");
+
+    if (s.Zonas.Count > 0)
+        sb.AppendLine($"Zona: {MostrarLista(s.Zonas)}");
 
     if (s.PrecioMinimo.HasValue)
-        sb.AppendLine($"Precio mínimo: {MostrarDinero(s.PrecioMinimo)}");
+        sb.AppendLine($"Precio m\u00EDnimo: {MostrarDinero(s.PrecioMinimo)}");
 
     if (s.PrecioMaximo.HasValue)
-        sb.AppendLine($"Precio máximo: {MostrarDinero(s.PrecioMaximo)}");
+        sb.AppendLine($"Precio m\u00E1ximo: {MostrarDinero(s.PrecioMaximo)}");
 
     if (s.RecamarasMin.HasValue || s.RecamarasMax.HasValue)
-        sb.AppendLine($"Recámaras: {MostrarRango(s.RecamarasMin, s.RecamarasMax)}");
+        sb.AppendLine($"Rec\u00E1maras: {MostrarRango(s.RecamarasMin, s.RecamarasMax)}");
 
     if (s.BanosMin.HasValue || s.BanosMax.HasValue)
-        sb.AppendLine($"Baños: {MostrarRango(s.BanosMin, s.BanosMax)}");
+        sb.AppendLine($"Ba\u00F1os: {MostrarRango(s.BanosMin, s.BanosMax)}");
 
     if (s.CocheraMinAutos.HasValue)
-        sb.AppendLine($"Cochera mínima: {s.CocheraMinAutos}");
+        sb.AppendLine($"Cochera m\u00EDnima: {s.CocheraMinAutos}");
 
     if (s.AceptaMascotas.HasValue)
         sb.AppendLine($"Mascotas: {MostrarBooleano(s.AceptaMascotas)}");
 
     if (s.ModalidadesPago.Count > 0)
-        sb.AppendLine($"Pago/crédito: {MostrarLista(s.ModalidadesPago)}");
+        sb.AppendLine($"Pago/cr\u00E9dito: {MostrarLista(s.ModalidadesPago)}");
 
     sb.AppendLine();
-    sb.AppendLine("MENSAJE ORIGINAL");
-    sb.AppendLine(s.MensajeOriginal.Trim());
+    sb.AppendLine($"\U0001F4CD Origen: {s.ChatOrigen}");
+
+    if (!string.IsNullOrWhiteSpace(s.Autor))
+        sb.AppendLine($"Autor: {s.Autor}");
+
+    if (!string.IsNullOrWhiteSpace(s.Telefono))
+        sb.AppendLine($"Tel\u00E9fono: {s.Telefono}");
+
     sb.AppendLine();
-    if (!string.IsNullOrWhiteSpace(s.MatchingResumen))
-    {
-        sb.AppendLine(s.MatchingResumen);
-    }
-    else
-    {
-        sb.AppendLine("COINCIDENCIAS RSMAPS");
-        sb.AppendLine("AVISO: Comparacion no disponible.");
-    }
+    sb.AppendLine("\U0001F4AC MENSAJE ORIGINAL");
+    sb.AppendLine(s.MensajeOriginal.Trim());
 
     return sb.ToString().Trim();
 }
