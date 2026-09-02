@@ -71,7 +71,7 @@ static async Task<bool> MarcarChatEnListaComoNoLeido(IPage page, string nombreCh
         var filaChat = fila.First;
         var opciones = new[]
         {
-            "Marcar como no leído",
+            "Marcar como no le\u00EDdo",
             "Marcar como no leido",
             "Mark as unread"
         };
@@ -112,7 +112,7 @@ static async Task<bool> MarcarChatEnListaComoNoLeido(IPage page, string nombreCh
 
             if (await ClickOpcionNoLeidoAsync())
             {
-                Console.WriteLine($"  [UNREAD] {nombreChat}: marcado como no leído mediante menú contextual.");
+                Console.WriteLine($"  [UNREAD] {nombreChat}: marcado como no le\u00EDdo mediante men\u00FA contextual.");
                 return true;
             }
 
@@ -132,7 +132,7 @@ static async Task<bool> MarcarChatEnListaComoNoLeido(IPage page, string nombreCh
         {
             "span[data-icon='down-context']",
             "[data-testid='down']",
-            "button[aria-label*='menú' i]",
+            "button[aria-label*='men\u00FA' i]",
             "button[aria-label*='menu' i]"
         };
 
@@ -171,7 +171,7 @@ static async Task<bool> MarcarChatEnListaComoNoLeido(IPage page, string nombreCh
 
             if (await ClickOpcionNoLeidoAsync())
             {
-                Console.WriteLine($"  [UNREAD] {nombreChat}: marcado como no leído mediante menú desplegable.");
+                Console.WriteLine($"  [UNREAD] {nombreChat}: marcado como no le\u00EDdo mediante men\u00FA desplegable.");
                 return true;
             }
         }
