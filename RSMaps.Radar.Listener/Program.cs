@@ -1182,8 +1182,14 @@ static bool TieneCoincidenciaUtil(SolicitudInmobiliaria solicitud)
 static string ClaveEntrega(string messageId, int indice, SolicitudInmobiliaria solicitud) =>
     $"{messageId}:{indice}:{solicitud.IdInmuebleCoincidente?.ToString() ?? "-"}";
 
-static string MarcaEntrega(string claveEntrega) =>
-    $"RADAR-DELIVERY:{claveEntrega}";
+static string MarcaEntrega(string claveEntrega)
+{
+    // Mantener una referencia determinÃ­stica dentro del mensaje permite reconciliar
+    // un envÃ­o incierto despuÃ©s de una caÃ­da, sin exponer la clave durable completa.
+    var hash = System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(claveEntrega));
+    var referencia = Convert.ToHexString(hash.AsSpan(0, 8));
+    return $"Ref. RADAR: {referencia}";
+}
 
 static async Task<(bool Consultada, bool Encontrada)> VerificarEntregaEnDestinoAsync(
     IPage page,
