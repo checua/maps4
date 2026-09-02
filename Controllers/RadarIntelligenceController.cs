@@ -13,6 +13,7 @@ namespace maps4.Controllers;
 public sealed class RadarIntelligenceController : ControllerBase
 {
     private static readonly TimeSpan ProcessingLease = TimeSpan.FromMinutes(2);
+    private static readonly TimeSpan ProcessingBudget = TimeSpan.FromSeconds(75);
     private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(10);
     private static readonly JsonSerializerOptions CacheJsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -116,10 +117,42 @@ public sealed class RadarIntelligenceController : ControllerBase
                     });
             }
 
-            RadarInterpretationResult resultado = await _processing.ProcesarAsync(
-                agent.Correo,
-                mensaje,
-                cancellationToken);
+            using var processingCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            processingCts.CancelAfter(ProcessingBudget);
+
+            RadarInterpretationResult resultado;
+            try
+            {
+                resultado = await _processing.ProcesarAsync(
+                    agent.Correo,
+                    mensaje,
+                    processingCts.Token);
+            }
+            catch (OperationCanceledException) when (
+                !cancellationToken.IsCancellationRequested &&
+                processingCts.IsCancellationRequested)
+            {
+                const string errorTimeout =
+                    "RADAR Intelligence central excedio 75 segundos de procesamiento.";
+
+                await _messageProcessingRepository.MarcarFalloReintentableAsync(
+                    claim.IdRadarMessageProcessing,
+                    claim.LeaseToken.Value,
+                    errorTimeout,
+                    RetryDelay,
+                    CancellationToken.None);
+
+                Response.Headers["Retry-After"] = ((int)RetryDelay.TotalSeconds).ToString();
+                Response.Headers["X-Radar-Processing"] = "timeout";
+
+                return StatusCode(
+                    StatusCodes.Status503ServiceUnavailable,
+                    new
+                    {
+                        mensaje = errorTimeout,
+                        reintentarDespuesUtc = DateTime.UtcNow.Add(RetryDelay)
+                    });
+            }
 
             string resultadoJson = JsonSerializer.Serialize(resultado, CacheJsonOptions);
 
