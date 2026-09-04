@@ -874,8 +874,8 @@ static async Task<bool> AbrirChat(IPage page, string nombreChat)
             Console.WriteLine($"  -> Buscando '{nombreChat}' con: {termino}");
 
             input = await ObtenerInputBusqueda(page) ?? input;
-            await input.ClickAsync(new LocatorClickOptions { Timeout = 2_000 });
-            await input.FillAsync(string.Empty, new LocatorFillOptions { Timeout = 2_000 });
+            // Fill already focuses and replaces the current value. Avoid an explicit ClickAsync:
+            // WhatsApp occasionally leaves the search input visually ready while click dispatch stalls.
             await input.FillAsync(termino, new LocatorFillOptions { Timeout = 2_000 });
 
             var resultadoIdentificado = false;
