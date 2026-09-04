@@ -851,7 +851,7 @@ static async Task<bool> AbrirChat(IPage page, string nombreChat)
 {
     if (await ClickPorTituloVisible(page, nombreChat) && await EsperarChatAbierto(page, nombreChat))
     {
-        Console.WriteLine($"  ↳ {nombreChat}: abierto desde lista visible.");
+        Console.WriteLine($"  -> {nombreChat}: abierto desde lista visible.");
         return true;
     }
 
@@ -871,17 +871,31 @@ static async Task<bool> AbrirChat(IPage page, string nombreChat)
     {
         try
         {
-            Console.WriteLine($"  ↳ Buscando '{nombreChat}' con: {termino}");
+            Console.WriteLine($"  -> Buscando '{nombreChat}' con: {termino}");
 
             input = await ObtenerInputBusqueda(page) ?? input;
-            await input.ClickAsync();
-            await input.FillAsync(string.Empty);
-            await input.FillAsync(termino);
-            await Task.Delay(RadarSettings.EsperaBusquedaMs);
+            await input.ClickAsync(new LocatorClickOptions { Timeout = 2_000 });
+            await input.FillAsync(string.Empty, new LocatorFillOptions { Timeout = 2_000 });
+            await input.FillAsync(termino, new LocatorFillOptions { Timeout = 2_000 });
 
-            if (!await ClickPorTituloVisible(page, nombreChat))
+            var resultadoIdentificado = false;
+            for (var intento = 0; intento < 6; intento++)
             {
-                Console.WriteLine("     resultado visible no identificado.");
+                await Task.Delay(intento == 0
+                    ? RadarSettings.EsperaBusquedaMs
+                    : 250);
+
+                if (!await ClickPorTituloVisible(page, nombreChat))
+                    continue;
+
+                resultadoIdentificado = true;
+                break;
+            }
+
+            if (!resultadoIdentificado)
+            {
+                Console.WriteLine("     resultado visible no identificado tras reintentos.");
+                await LimpiarBusqueda(page);
                 continue;
             }
 
@@ -891,10 +905,14 @@ static async Task<bool> AbrirChat(IPage page, string nombreChat)
                 await LimpiarBusqueda(page);
                 return true;
             }
+
+            Console.WriteLine("     resultado identificado, pero el chat no pudo confirmarse abierto.");
+            await LimpiarBusqueda(page);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"     fallo de navegación: {ex.Message}");
+            Console.WriteLine($"     fallo de navegacion acotado: {ex.Message}");
+            await LimpiarBusqueda(page);
         }
     }
 
