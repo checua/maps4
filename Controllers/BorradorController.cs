@@ -120,11 +120,11 @@ namespace maps4.Controllers
 
                 if (string.Equals(accion, "inventario", StringComparison.OrdinalIgnoreCase))
                 {
-                    TempData["InventarioOk"] = $"Borrador #{modelo.IdInmueble} guardado. Puedes continuar cuando quieras.";
+                    TempData["InventarioOk"] = $"Propiedad #{modelo.IdInmueble} guardada. Puedes continuar cuando quieras.";
                     return RedirectToAction("Index", "Inventario", new { borrador = modelo.IdInmueble });
                 }
 
-                TempData["BorradorOk"] = "Cambios guardados. El inmueble sigue siendo un borrador privado.";
+                TempData["BorradorOk"] = "Cambios guardados correctamente.";
                 return RedirectToAction(nameof(Editar), new { id = modelo.IdInmueble });
             }
             catch (SqlException ex) when (ex.Number == 52924)
@@ -137,6 +137,32 @@ namespace maps4.Controllers
                 await RestaurarContextoPersistidoAsync(correo, modelo);
                 await PrepararModeloAsync(correo, modelo);
                 return View(modelo);
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> GuardarAntesDeFotos(BorradorEdicionViewModel modelo)
+        {
+            string? correo = User.Identity?.Name;
+            if (modelo.IdInmueble <= 0 || string.IsNullOrWhiteSpace(correo))
+                return Unauthorized(new { success = false, message = "Tu sesion termino o la propiedad no es valida." });
+
+            if (!ModelState.IsValid)
+                return BadRequest(new { success = false, message = "Revisa los datos de la propiedad antes de subir las fotos." });
+
+            try
+            {
+                await _borradorRepository.GuardarAsync(correo, modelo);
+                return Ok(new { success = true });
+            }
+            catch (SqlException ex) when (ex.Number == 52924)
+            {
+                return NotFound(new { success = false, message = "La propiedad ya no existe." });
+            }
+            catch (SqlException ex)
+            {
+                return BadRequest(new { success = false, message = MensajeEdicionSeguro(ex.Number) });
             }
         }
 
@@ -185,7 +211,7 @@ namespace maps4.Controllers
                 TempData["BorradorFotoError"] = ex.Number switch
                 {
                     51035 or 52926 => "Solo el asesor responsable puede descartar este borrador.",
-                    52927 => "El inmueble ya no está en estado Borrador y no puede descartarse desde aquí.",
+                52927 => "Esta propiedad ya no est\u00e1 en un estado editable.",
                     _ => "No tienes permiso para descartar este borrador."
                 };
                 return RedirectToAction(nameof(Editar), new { id = idInmueble });
@@ -352,7 +378,7 @@ namespace maps4.Controllers
                     _logger.LogWarning(ex, "La metadata de la foto {IdImagen} fue eliminada, pero el archivo físico quedó pendiente de limpieza.", idImagen);
                 }
 
-                TempData["BorradorOk"] = "Foto eliminada del borrador.";
+                TempData["BorradorOk"] = "Foto eliminada.";
             }
             catch (SqlException ex)
             {
@@ -429,16 +455,19 @@ namespace maps4.Controllers
                 52920 => "No fue posible identificar tu usuario.",
                 52921 => "Tu usuario no pertenece a una cuenta activa.",
                 52922 => "Selecciona una cuenta de trabajo antes de continuar.",
-                52923 => "Tu rol actual no tiene permiso para editar borradores.",
-                52924 => "El borrador ya no existe.",
-                52925 => "El borrador pertenece a otra cuenta.",
-                52926 => "Por ahora solo el asesor responsable puede completar este borrador.",
-                52927 => "Este inmueble ya no está en estado Borrador.",
+                52923 => "Tu rol actual no tiene permiso para editar esta propiedad.",
+                52924 => "La propiedad ya no existe.",
+                52925 => "La propiedad pertenece a otra cuenta.",
+                52926 => "Solo el asesor responsable puede editar esta propiedad.",
+                52927 => "Esta propiedad ya no est\u00e1 en un estado editable.",
                 52930 => "Selecciona un tipo de propiedad válido.",
                 52931 => "El terreno no puede ser negativo.",
                 52932 => "La construcción no puede ser negativa.",
                 52933 => "El precio no puede ser negativo.",
-                _ => "No fue posible guardar el borrador. Intenta nuevamente."
+                52934 => "Una propiedad comercializada debe conservar un precio mayor que cero.",
+                52935 => "Una propiedad comercializada debe conservar al menos una superficie.",
+                52936 => "Una propiedad comercializada debe conservar una descripci\u00f3n.",
+                _ => "No fue posible guardar la propiedad. Intenta nuevamente."
             };
         }
 
@@ -452,14 +481,16 @@ namespace maps4.Controllers
                 53225 => "El inmueble ya no existe.",
                 53226 => "El inmueble pertenece a otra cuenta.",
                 53227 => "Por ahora solo el asesor responsable puede administrar estas fotos.",
-                53228 or 53251 or 53261 => "Estas fotos solo pueden modificarse mientras el inmueble sea borrador.",
-                53229 => "Tu rol actual no puede editar fotos del borrador.",
-                53230 => "El borrador ya tiene el máximo de 20 fotos.",
-                53252 or 53262 => "La foto ya no existe o no pertenece al borrador.",
+                53228 or 53251 or 53261 => "Las fotos no pueden modificarse en el estado actual de la propiedad.",
+                53229 => "Tu rol actual no puede editar fotos de esta propiedad.",
+                53230 => "La propiedad ya tiene el m\u00e1ximo de 20 fotos.",
+                53252 or 53262 => "La foto ya no existe o no pertenece a la propiedad.",
+                53263 => "Una propiedad comercializada debe conservar al menos una foto.",
+                53253 or 53264 or 53324 => "Tu rol actual no puede editar las fotos de esta propiedad.",
                 53310 or 53311 => "No fue posible validar tu sesión de trabajo.",
-                53312 or 53323 => "La foto o el borrador ya no existen.",
+                53312 or 53323 => "La foto o la propiedad ya no existen.",
                 53313 or 53314 or 53321 => "No tienes permiso para operar estas fotos.",
-                53322 => "El orden solo puede cambiarse mientras el inmueble sea borrador.",
+                53322 => "El orden de las fotos no puede cambiarse en el estado actual de la propiedad.",
                 _ => "No fue posible completar la operación con la foto. Intenta nuevamente."
             };
         }

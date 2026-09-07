@@ -73,8 +73,21 @@ BEGIN
     SELECT TOP(1) @cuenta=cu.IdCuenta,@rol=cu.RolCodigo
     FROM dbo.RSMAPS_CuentaUsuario cu
     JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta
-    WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1
-    ORDER BY cu.EsPredeterminada DESC,cu.IdCuenta;
+    WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1 AND cu.EsPredeterminada=1
+    ORDER BY cu.IdCuenta;
+
+    IF @cuenta IS NULL
+       AND (SELECT COUNT(*)
+            FROM dbo.RSMAPS_CuentaUsuario cu
+            JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta
+            WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1)=1
+    BEGIN
+        SELECT TOP(1) @cuenta=cu.IdCuenta,@rol=cu.RolCodigo
+        FROM dbo.RSMAPS_CuentaUsuario cu
+        JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta
+        WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1
+        ORDER BY cu.IdCuenta;
+    END;
 
     SELECT @ci=IdCuenta,@responsable=idAsesor,@estado=EstadoCodigo
     FROM dbo.RSMAPS_Inmueble WHERE idInmueble=@idInmueble;
@@ -132,8 +145,21 @@ BEGIN
     SELECT TOP(1) @cuenta=cu.IdCuenta,@rol=cu.RolCodigo
     FROM dbo.RSMAPS_CuentaUsuario cu
     JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta
-    WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1
-    ORDER BY cu.EsPredeterminada DESC,cu.IdCuenta;
+    WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1 AND cu.EsPredeterminada=1
+    ORDER BY cu.IdCuenta;
+
+    IF @cuenta IS NULL
+       AND (SELECT COUNT(*)
+            FROM dbo.RSMAPS_CuentaUsuario cu
+            JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta
+            WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1)=1
+    BEGIN
+        SELECT TOP(1) @cuenta=cu.IdCuenta,@rol=cu.RolCodigo
+        FROM dbo.RSMAPS_CuentaUsuario cu
+        JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta
+        WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1
+        ORDER BY cu.IdCuenta;
+    END;
 
     SELECT @ci=IdCuenta,@responsable=idAsesor,@estado=EstadoCodigo,@precioAnterior=CONVERT(decimal(18,2),precio)
     FROM dbo.RSMAPS_Inmueble WHERE idInmueble=@idInmueble;
@@ -192,7 +218,24 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @actor INT,@cuenta INT,@rol VARCHAR(30),@ci INT,@responsable INT,@estado VARCHAR(20);
     SELECT @actor=idAsesor FROM dbo.RSMAPS_Usuario WHERE correo=@correo;
-    SELECT TOP(1) @cuenta=cu.IdCuenta,@rol=cu.RolCodigo FROM dbo.RSMAPS_CuentaUsuario cu JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1 ORDER BY cu.EsPredeterminada DESC,cu.IdCuenta;
+    SELECT TOP(1) @cuenta=cu.IdCuenta,@rol=cu.RolCodigo
+    FROM dbo.RSMAPS_CuentaUsuario cu
+    JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta
+    WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1 AND cu.EsPredeterminada=1
+    ORDER BY cu.IdCuenta;
+
+    IF @cuenta IS NULL
+       AND (SELECT COUNT(*)
+            FROM dbo.RSMAPS_CuentaUsuario cu
+            JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta
+            WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1)=1
+    BEGIN
+        SELECT TOP(1) @cuenta=cu.IdCuenta,@rol=cu.RolCodigo
+        FROM dbo.RSMAPS_CuentaUsuario cu
+        JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta
+        WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1
+        ORDER BY cu.IdCuenta;
+    END;
     SELECT @ci=IdCuenta,@responsable=idAsesor,@estado=EstadoCodigo FROM dbo.RSMAPS_Inmueble WHERE idInmueble=@idInmueble;
     IF @actor IS NULL OR @cuenta IS NULL THROW 53520,'Sesion de trabajo invalida.',1;
     IF @ci IS NULL OR @ci<>@cuenta OR @responsable<>@actor OR @estado NOT IN('BORRADOR','PUBLICADO','PAUSADO','RETIRADO') THROW 53521,'No puedes editar las amenidades de este inmueble.',1;
@@ -217,7 +260,24 @@ BEGIN
 
     DECLARE @actor INT,@cuenta INT,@rol VARCHAR(30),@ci INT,@responsable INT,@estado VARCHAR(20);
     SELECT @actor=idAsesor FROM dbo.RSMAPS_Usuario WHERE correo=@correo;
-    SELECT TOP(1) @cuenta=cu.IdCuenta,@rol=cu.RolCodigo FROM dbo.RSMAPS_CuentaUsuario cu JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1 ORDER BY cu.EsPredeterminada DESC,cu.IdCuenta;
+    SELECT TOP(1) @cuenta=cu.IdCuenta,@rol=cu.RolCodigo
+    FROM dbo.RSMAPS_CuentaUsuario cu
+    JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta
+    WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1 AND cu.EsPredeterminada=1
+    ORDER BY cu.IdCuenta;
+
+    IF @cuenta IS NULL
+       AND (SELECT COUNT(*)
+            FROM dbo.RSMAPS_CuentaUsuario cu
+            JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta
+            WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1)=1
+    BEGIN
+        SELECT TOP(1) @cuenta=cu.IdCuenta,@rol=cu.RolCodigo
+        FROM dbo.RSMAPS_CuentaUsuario cu
+        JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta
+        WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1
+        ORDER BY cu.IdCuenta;
+    END;
     SELECT @ci=IdCuenta,@responsable=idAsesor,@estado=EstadoCodigo FROM dbo.RSMAPS_Inmueble WHERE idInmueble=@idInmueble;
     IF @actor IS NULL OR @cuenta IS NULL THROW 53520,'Sesion de trabajo invalida.',1;
     IF @ci IS NULL OR @ci<>@cuenta OR @responsable<>@actor OR @estado NOT IN('BORRADOR','PUBLICADO','PAUSADO','RETIRADO') THROW 53521,'No puedes editar estas caracteristicas.',1;
@@ -250,7 +310,24 @@ BEGIN
     IF @mimeType NOT IN('image/jpeg','image/png','image/webp') THROW 53221,'El formato de imagen no esta permitido.',1;
     IF NULLIF(LTRIM(RTRIM(@claveAlmacenamiento)),N'') IS NULL THROW 53222,'La clave de almacenamiento es obligatoria.',1;
     SELECT @actor=idAsesor FROM dbo.RSMAPS_Usuario WHERE correo=@correo;
-    SELECT TOP(1) @cuenta=cu.IdCuenta,@rol=cu.RolCodigo FROM dbo.RSMAPS_CuentaUsuario cu JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1 ORDER BY cu.EsPredeterminada DESC,cu.IdCuenta;
+    SELECT TOP(1) @cuenta=cu.IdCuenta,@rol=cu.RolCodigo
+    FROM dbo.RSMAPS_CuentaUsuario cu
+    JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta
+    WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1 AND cu.EsPredeterminada=1
+    ORDER BY cu.IdCuenta;
+
+    IF @cuenta IS NULL
+       AND (SELECT COUNT(*)
+            FROM dbo.RSMAPS_CuentaUsuario cu
+            JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta
+            WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1)=1
+    BEGIN
+        SELECT TOP(1) @cuenta=cu.IdCuenta,@rol=cu.RolCodigo
+        FROM dbo.RSMAPS_CuentaUsuario cu
+        JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta
+        WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1
+        ORDER BY cu.IdCuenta;
+    END;
     SELECT @ci=IdCuenta,@responsable=idAsesor,@estado=EstadoCodigo FROM dbo.RSMAPS_Inmueble WHERE idInmueble=@idInmueble;
     IF @actor IS NULL OR @cuenta IS NULL THROW 53224,'Sesion de trabajo invalida.',1;
     IF @ci IS NULL THROW 53225,'El inmueble no existe.',1;
@@ -284,7 +361,24 @@ BEGIN
     SET NOCOUNT ON; SET XACT_ABORT ON;
     DECLARE @actor INT,@cuenta INT,@rol VARCHAR(30),@estado VARCHAR(20);
     SELECT @actor=idAsesor FROM dbo.RSMAPS_Usuario WHERE correo=@correo;
-    SELECT TOP(1) @cuenta=cu.IdCuenta,@rol=cu.RolCodigo FROM dbo.RSMAPS_CuentaUsuario cu JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1 ORDER BY cu.EsPredeterminada DESC,cu.IdCuenta;
+    SELECT TOP(1) @cuenta=cu.IdCuenta,@rol=cu.RolCodigo
+    FROM dbo.RSMAPS_CuentaUsuario cu
+    JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta
+    WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1 AND cu.EsPredeterminada=1
+    ORDER BY cu.IdCuenta;
+
+    IF @cuenta IS NULL
+       AND (SELECT COUNT(*)
+            FROM dbo.RSMAPS_CuentaUsuario cu
+            JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta
+            WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1)=1
+    BEGIN
+        SELECT TOP(1) @cuenta=cu.IdCuenta,@rol=cu.RolCodigo
+        FROM dbo.RSMAPS_CuentaUsuario cu
+        JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta
+        WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1
+        ORDER BY cu.IdCuenta;
+    END;
     SELECT @estado=i.EstadoCodigo FROM dbo.RSMAPS_Inmueble i WHERE i.idInmueble=@idInmueble AND i.IdCuenta=@cuenta AND i.idAsesor=@actor;
     IF @estado IS NULL THROW 53250,'No tienes acceso al inmueble.',1;
     IF @estado NOT IN('BORRADOR','PUBLICADO','PAUSADO','RETIRADO') THROW 53251,'El inmueble no esta en un estado editable.',1;
@@ -305,7 +399,24 @@ BEGIN
     SET NOCOUNT ON; SET XACT_ABORT ON;
     DECLARE @actor INT,@cuenta INT,@rol VARCHAR(30),@estado VARCHAR(20),@clave NVARCHAR(500),@eraPortada BIT,@total INT;
     SELECT @actor=idAsesor FROM dbo.RSMAPS_Usuario WHERE correo=@correo;
-    SELECT TOP(1) @cuenta=cu.IdCuenta,@rol=cu.RolCodigo FROM dbo.RSMAPS_CuentaUsuario cu JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1 ORDER BY cu.EsPredeterminada DESC,cu.IdCuenta;
+    SELECT TOP(1) @cuenta=cu.IdCuenta,@rol=cu.RolCodigo
+    FROM dbo.RSMAPS_CuentaUsuario cu
+    JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta
+    WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1 AND cu.EsPredeterminada=1
+    ORDER BY cu.IdCuenta;
+
+    IF @cuenta IS NULL
+       AND (SELECT COUNT(*)
+            FROM dbo.RSMAPS_CuentaUsuario cu
+            JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta
+            WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1)=1
+    BEGIN
+        SELECT TOP(1) @cuenta=cu.IdCuenta,@rol=cu.RolCodigo
+        FROM dbo.RSMAPS_CuentaUsuario cu
+        JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta
+        WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1
+        ORDER BY cu.IdCuenta;
+    END;
     SELECT @estado=i.EstadoCodigo FROM dbo.RSMAPS_Inmueble i WHERE i.idInmueble=@idInmueble AND i.IdCuenta=@cuenta AND i.idAsesor=@actor;
     IF @estado IS NULL THROW 53260,'No tienes acceso al inmueble.',1;
     IF @estado NOT IN('BORRADOR','PUBLICADO','PAUSADO','RETIRADO') THROW 53261,'El inmueble no esta en un estado editable.',1;
@@ -342,7 +453,24 @@ BEGIN
     DECLARE @actor INT,@cuenta INT,@rol VARCHAR(30),@estado VARCHAR(20),@ordenActual INT,@idDestino BIGINT,@ordenDestino INT;
     IF @direccion NOT IN(-1,1) THROW 53320,'La direccion debe ser -1 o 1.',1;
     SELECT @actor=idAsesor FROM dbo.RSMAPS_Usuario WHERE correo=@correo;
-    SELECT TOP(1) @cuenta=cu.IdCuenta,@rol=cu.RolCodigo FROM dbo.RSMAPS_CuentaUsuario cu JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1 ORDER BY cu.EsPredeterminada DESC,cu.IdCuenta;
+    SELECT TOP(1) @cuenta=cu.IdCuenta,@rol=cu.RolCodigo
+    FROM dbo.RSMAPS_CuentaUsuario cu
+    JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta
+    WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1 AND cu.EsPredeterminada=1
+    ORDER BY cu.IdCuenta;
+
+    IF @cuenta IS NULL
+       AND (SELECT COUNT(*)
+            FROM dbo.RSMAPS_CuentaUsuario cu
+            JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta
+            WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1)=1
+    BEGIN
+        SELECT TOP(1) @cuenta=cu.IdCuenta,@rol=cu.RolCodigo
+        FROM dbo.RSMAPS_CuentaUsuario cu
+        JOIN dbo.RSMAPS_Cuenta c ON c.IdCuenta=cu.IdCuenta
+        WHERE cu.IdAsesor=@actor AND cu.Activo=1 AND c.Activo=1
+        ORDER BY cu.IdCuenta;
+    END;
     SELECT @estado=i.EstadoCodigo FROM dbo.RSMAPS_Inmueble i WHERE i.idInmueble=@idInmueble AND i.IdCuenta=@cuenta AND i.idAsesor=@actor;
     IF @estado IS NULL THROW 53321,'No tienes acceso para ordenar fotos.',1;
     IF @estado NOT IN('BORRADOR','PUBLICADO','PAUSADO','RETIRADO') THROW 53322,'El inmueble no esta en un estado editable.',1;

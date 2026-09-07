@@ -1,7 +1,9 @@
 @model maps4.Models.BorradorEdicionViewModel
 @using System.Globalization
 @{
-    ViewData["Title"] = $"Borrador #{Model.IdInmueble} - RSMaps";
+    var esBorrador = string.Equals(Model.EstadoCodigo, "BORRADOR", StringComparison.OrdinalIgnoreCase);
+    var esPublicado = string.Equals(Model.EstadoCodigo, "PUBLICADO", StringComparison.OrdinalIgnoreCase);
+    ViewData["Title"] = esBorrador ? $"Borrador #{Model.IdInmueble} - RSMaps" : $"Editar propiedad #{Model.IdInmueble} - RSMaps";
     var cultura = CultureInfo.GetCultureInfo("es-MX");
     var precioTexto = Model.TienePrecio ? Model.Precio!.Value.ToString("C0", cultura) : "Pendiente";
 }
@@ -85,16 +87,19 @@
 <div class="draft-shell">
     <div class="draft-top">
         <div>
-            <h1>Completar propiedad</h1>
-            <p>Borrador #@Model.IdInmueble · puedes guardar ahora y continuar después.</p>
+            <h1>@(esBorrador ? "Completar propiedad" : "Editar propiedad")</h1>
+            <p>@(esBorrador ? $"Borrador #{Model.IdInmueble} \u00b7 puedes guardar ahora y continuar despu\u00e9s." : $"Propiedad #{Model.IdInmueble} \u00b7 estado {Model.EstadoCodigo} \u00b7 guardar no cambia su estado comercial.")</p>
         </div>
         <div class="draft-top-actions">
+            @if (esBorrador)
+            {
             <form asp-controller="Borrador" asp-action="Descartar" method="post"
                   onsubmit="return confirm('¿Descartar definitivamente este borrador? Se eliminarán sus datos y fotos y no podrá recuperarse.');">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="idInmueble" value="@Model.IdInmueble" />
                 <button type="submit" class="discard-draft">🗑 Descartar borrador</button>
             </form>
+            }
             <a class="back-link" asp-controller="Inventario" asp-action="Index" asp-route-borrador="@Model.IdInmueble">← Volver a Mi inventario</a>
         </div>
     </div>
@@ -121,7 +126,7 @@
             <div class="muted">@(string.IsNullOrWhiteSpace(Model.Direccion) ? "Ubicación registrada en mapa" : Model.Direccion)</div>
 
             <div class="summary-price @(Model.TienePrecio ? "" : "pending")">@precioTexto</div>
-            <div class="muted">Aún no está publicada.</div>
+            <div class="muted">@(esBorrador ? "A\u00fan no est\u00e1 publicada." : esPublicado ? "Publicada: los cambios guardados se reflejan en la propiedad activa." : $"Estado actual: {Model.EstadoCodigo}.")</div>
 
             <div class="location-box">
                 <strong>Ubicación ✓</strong><br />
@@ -151,7 +156,18 @@
             </div>
 
             <div class="publish-disabled">
-                Publicar será una acción separada. Primero validaremos que la información y las fotos estén listas.
+                @if (esBorrador)
+                {
+                    <span>Publicar sera una accion separada. Primero validaremos que la informacion y las fotos esten listas.</span>
+                }
+                else if (esPublicado)
+                {
+                    <span>Esta propiedad esta publicada. Los cambios guardados se reflejaran en su informacion comercial sin despublicarla.</span>
+                }
+                else
+                {
+                    <span>Los cambios se guardaran sin modificar el estado comercial actual (@Model.EstadoCodigo).</span>
+                }
             </div>
         </aside>
 
@@ -280,7 +296,7 @@
                 </section>
 
                 <div class="save-bar">
-                    <div class="publish-preview">Guardar no hace pública la propiedad. Puedes salir en cualquier momento y continuar desde Mi inventario.</div>
+                    <div class="publish-preview">@(esBorrador ? "Guardar no hace publica la propiedad. Puedes salir en cualquier momento y continuar desde Mi inventario." : "Guardar actualiza la propiedad sin cambiar su estado comercial. Puedes volver a Mi inventario cuando quieras.")</div>
                     <div class="save-actions">
                         <button class="btn-save secondary" type="submit" name="accion" value="inventario">Guardar y salir</button>
                         <button class="btn-save primary" type="submit" name="accion" value="continuar">Guardar cambios</button>
@@ -298,7 +314,8 @@
     const cameraInput = document.getElementById('cameraPhotoInput');
     const galleryInput = document.getElementById('galleryPhotosInput');
     const progress = document.getElementById('photoUploadProgress');
-    const token = document.querySelector('#draftEditForm input[name="__RequestVerificationToken"]')?.value || '';
+    const form = document.getElementById('draftEditForm');
+    const token = form?.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
     const idInmueble = @Model.IdInmueble;
     const currentCount = @Model.Fotos.Count;
     const maxPhotos = 20;
@@ -325,6 +342,9 @@
         setUploadState(true, `Preparando ${files.length} foto${files.length === 1 ? '' : 's'}…`);
 
         try {
+            setUploadState(true, 'Guardando cambios de la propiedad...');
+            await saveDraftBeforePhotoUpload();
+
             for (let i = 0; i < files.length; i++) {
                 const original = files[i];
                 setUploadState(true, `Optimizando foto ${i + 1} de ${files.length}…`);
@@ -342,6 +362,24 @@
             if (cameraInput) cameraInput.value = '';
             if (galleryInput) galleryInput.value = '';
         }
+    }
+
+    async function saveDraftBeforePhotoUpload() {
+        if (!form)
+            throw new Error('No fue posible identificar el formulario de la propiedad.');
+
+        const formData = new FormData(form);
+        const response = await fetch('@Url.Action("GuardarAntesDeFotos", "Borrador")', {
+            method: 'POST',
+            credentials: 'same-origin',
+            body: formData
+        });
+
+        let data = null;
+        try { data = await response.json(); } catch (_) { }
+
+        if (!response.ok || !data?.success)
+            throw new Error(data?.message || 'No fue posible guardar los cambios de la propiedad antes de subir las fotos.');
     }
 
     async function uploadPhoto(file) {
