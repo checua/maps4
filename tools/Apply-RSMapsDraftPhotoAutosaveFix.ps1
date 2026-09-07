@@ -54,7 +54,6 @@ $controllerInsert = @'
 if (-not $controller.Contains($controllerAnchor)) {
     throw 'Controller anchor was not found. No files were changed.'
 }
-
 $controller = $controller.Replace($controllerAnchor, $controllerInsert)
 
 $viewOldToken = @'
@@ -73,24 +72,29 @@ if (-not $view.Contains($viewOldToken)) {
 }
 $view = $view.Replace($viewOldToken, $viewNewToken)
 
+# Keep this anchor ASCII-only so Windows PowerShell 5.1 does not depend on
+# how the UTF-8 ellipsis in the preceding status message is decoded.
 $viewOldStart = @'
-        setUploadState(true, `Preparando ${files.length} foto${files.length === 1 ? '' : 's'}…`);
-
         try {
             for (let i = 0; i < files.length; i++) {
 '@
 
 $viewNewStart = @'
-        setUploadState(true, 'Guardando cambios del borrador...');
-
         try {
+            setUploadState(true, 'Guardando cambios del borrador...');
             await saveDraftBeforePhotoUpload();
 
             for (let i = 0; i < files.length; i++) {
 '@
 
-if (-not $view.Contains($viewOldStart)) {
-    throw 'View upload-start block was not found. No files were changed.'
+$startMatches = 0
+$searchAt = 0
+while (($foundAt = $view.IndexOf($viewOldStart, $searchAt, [System.StringComparison]::Ordinal)) -ge 0) {
+    $startMatches++
+    $searchAt = $foundAt + $viewOldStart.Length
+}
+if ($startMatches -ne 1) {
+    throw "Expected exactly one upload-start block; found $startMatches. No files were changed."
 }
 $view = $view.Replace($viewOldStart, $viewNewStart)
 
