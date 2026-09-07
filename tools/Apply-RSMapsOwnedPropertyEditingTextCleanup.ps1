@@ -11,13 +11,16 @@ foreach ($path in @($controllerPath, $viewPath)) {
 $controller = [System.IO.File]::ReadAllText($controllerPath)
 $view = [System.IO.File]::ReadAllText($viewPath)
 
-$replacementsController = @(
-    @('52927 => "Este inmueble ya no está en estado Borrador.",','52927 => "Esta propiedad ya no está en un estado editable.",'),
-    @('53230 => "El borrador ya tiene el máximo de 20 fotos.",','53230 => "La propiedad ya tiene el máximo de 20 fotos.",')
+# Keep this helper ASCII-only so Windows PowerShell 5.1 does not corrupt source literals.
+# Match the C# switch arms by numeric error code instead of accented text.
+$controllerPatterns = @(
+    @('(?m)^\s*52927\s*=>.*$', '                52927 => "Esta propiedad ya no est\u00e1 en un estado editable.",'),
+    @('(?m)^\s*53230\s*=>.*$', '                53230 => "La propiedad ya tiene el m\u00e1ximo de 20 fotos.",')
 )
-foreach ($pair in $replacementsController) {
-    if (-not $controller.Contains($pair[0])) { throw "Controller text not found: $($pair[0])" }
-    $controller = $controller.Replace($pair[0], $pair[1])
+foreach ($pair in $controllerPatterns) {
+    $matches = [regex]::Matches($controller, $pair[0])
+    if ($matches.Count -ne 1) { throw "Expected exactly one controller match for pattern $($pair[0]); found $($matches.Count). No files were changed." }
+    $controller = [regex]::Replace($controller, $pair[0], $pair[1], 1)
 }
 
 $replacementsView = @(
@@ -26,7 +29,7 @@ $replacementsView = @(
     @("throw new Error(data?.message || 'No fue posible guardar los cambios antes de subir las fotos.');","throw new Error(data?.message || 'No fue posible guardar los cambios de la propiedad antes de subir las fotos.');")
 )
 foreach ($pair in $replacementsView) {
-    if (-not $view.Contains($pair[0])) { throw "View text not found: $($pair[0])" }
+    if (-not $view.Contains($pair[0])) { throw "View text not found: $($pair[0]). No files were changed." }
     $view = $view.Replace($pair[0], $pair[1])
 }
 
