@@ -13,14 +13,17 @@ $view = [System.IO.File]::ReadAllText($viewPath)
 
 # Keep this helper ASCII-only so Windows PowerShell 5.1 does not corrupt source literals.
 # Match the C# switch arms by numeric error code instead of accented text.
+# The same SQL error code can legitimately appear in more than one controller switch,
+# so replace every matching arm instead of requiring exactly one occurrence.
 $controllerPatterns = @(
     @('(?m)^\s*52927\s*=>.*$', '                52927 => "Esta propiedad ya no est\u00e1 en un estado editable.",'),
     @('(?m)^\s*53230\s*=>.*$', '                53230 => "La propiedad ya tiene el m\u00e1ximo de 20 fotos.",')
 )
 foreach ($pair in $controllerPatterns) {
     $matches = [regex]::Matches($controller, $pair[0])
-    if ($matches.Count -ne 1) { throw "Expected exactly one controller match for pattern $($pair[0]); found $($matches.Count). No files were changed." }
-    $controller = [regex]::Replace($controller, $pair[0], $pair[1], 1)
+    if ($matches.Count -lt 1) { throw "Expected at least one controller match for pattern $($pair[0]); found 0. No files were changed." }
+    Write-Host "Controller matches for $($pair[0]): $($matches.Count)"
+    $controller = [regex]::Replace($controller, $pair[0], $pair[1])
 }
 
 $replacementsView = @(
