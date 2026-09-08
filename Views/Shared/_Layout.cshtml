@@ -15,7 +15,7 @@
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
             <div class="container-fluid">
                 <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">maps4</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
@@ -47,9 +47,9 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/lib/sweetalert2/sweetalert2.all.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
-  
-    @* <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAiEPIpKUewZTon1DeYNod3M63NB_HRcU4&callback=initMap"></script> *@
+
     @await RenderSectionAsync("Scripts", required: false)
+    <script src="~/js/map-viewport.js" asp-append-version="true"></script>
     <script src="~/js/auth.js" asp-append-version="true"></script>
 </body>
 </html>
