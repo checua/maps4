@@ -55,9 +55,9 @@ foreach ($row in $rows) {
     if (-not $active.Contains($id)) { throw "Proteccion: inmueble inesperado en manifiesto: $id" }
     $max = [int]$active[$id]
     if ($orden -lt 1 -or $orden -gt $max) { throw "Proteccion: orden invalido $id/$orden." }
-    if ($nombre -ne "${id}_${orden}.jpg") { throw "Proteccion: nombre inesperado para $id/$orden: $nombre" }
-    if ($clave -ne "${id}/${nombre}") { throw "Proteccion: clave inesperada para $id/$orden: $clave" }
-    if ($mime -ne 'image/jpeg') { throw "Proteccion: MimeType inesperado para $nombre: $mime" }
+    if ($nombre -ne "${id}_${orden}.jpg") { throw "Proteccion: nombre inesperado para ${id}/${orden}: $nombre" }
+    if ($clave -ne "${id}/${nombre}") { throw "Proteccion: clave inesperada para ${id}/${orden}: $clave" }
+    if ($mime -ne 'image/jpeg') { throw "Proteccion: MimeType inesperado para ${nombre}: $mime" }
     if ($bytes -le 0) { throw "Proteccion: Bytes invalidos para $nombre." }
     if ($portada -ne $(if ($orden -eq 1) { 1 } else { 0 })) { throw "Proteccion: portada invalida para $nombre." }
     if ($sha -notmatch '^[0-9A-F]{64}$') { throw "Proteccion: SHA-256 invalido para $nombre." }
