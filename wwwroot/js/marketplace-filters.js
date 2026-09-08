@@ -3,34 +3,39 @@
     if (!overMap || document.getElementById('rsmapsAdvancedFilters')) return;
 
     const state = {
-        items: [],
         amenities: [],
-        attached: false
+        truncated: false,
+        activeMarkers: 0
     };
 
     injectStyles();
     renderShell();
     wireBaseFilters();
+    wireViewportEvents();
     initialize();
 
     async function initialize() {
         try {
-            const [itemsResponse, amenitiesResponse] = await Promise.all([
-                fetch('/Home/listaInmuebles', { credentials: 'same-origin' }),
-                fetch('/Home/listaAmenidadesFiltros', { credentials: 'same-origin' })
-            ]);
-
-            if (!itemsResponse.ok) throw new Error('No fue posible cargar los inmuebles para filtros.');
-            state.items = await itemsResponse.json();
+            const amenitiesResponse = await fetch('/Home/listaAmenidadesFiltros', { credentials: 'same-origin' });
             state.amenities = amenitiesResponse.ok ? await amenitiesResponse.json() : [];
             renderAmenities();
-            await waitForMarkers();
-            attachDataToMarkers();
             applyFilters();
         } catch (error) {
             console.warn('Filtros precisos no disponibles:', error);
             setStatus('Filtros avanzados no disponibles por el momento.');
         }
+    }
+
+    function wireViewportEvents() {
+        window.addEventListener('rsmaps:viewport-markers-updated', event => {
+            state.truncated = Boolean(event.detail?.truncated);
+            state.activeMarkers = Number(event.detail?.activeMarkers || 0);
+            applyFilters();
+        });
+
+        window.addEventListener('rsmaps:viewport-markers-error', () => {
+            setStatus('No fue posible actualizar esta zona del mapa.');
+        });
     }
 
     function renderShell() {
@@ -115,39 +120,7 @@
         });
     }
 
-    async function waitForMarkers() {
-        for (let attempt = 0; attempt < 80; attempt++) {
-            if (Array.isArray(window.markersx) && window.markersx.length > 0) return;
-            await delay(100);
-        }
-    }
-
-    function attachDataToMarkers() {
-        if (!Array.isArray(window.markersx) || !window.markersx.length) return;
-
-        const buckets = new Map();
-        state.items.forEach(item => {
-            const key = dataKey(item.lat, item.lng, item.idTipo, item.precio);
-            if (!buckets.has(key)) buckets.set(key, []);
-            buckets.get(key).push(item);
-        });
-
-        window.markersx.forEach(marker => {
-            const position = marker.getPosition?.();
-            if (!position) return;
-            const key = dataKey(position.lat(), position.lng(), Number(marker.title || 0), Number(marker.customInfo || 0));
-            const bucket = buckets.get(key);
-            marker.rsmapsData = bucket?.length ? bucket.shift() : null;
-        });
-        state.attached = true;
-    }
-
     function applyFilters() {
-        if (!state.attached) {
-            attachDataToMarkers();
-            if (!state.attached) return;
-        }
-
         const type = Number(document.getElementById('cboTipoPropiedad')?.value || 1);
         const minPrice = numberValue(document.getElementById('ddlViewBy')?.value, 0);
         const maxPrice = numberValue(document.getElementById('ddlViewBy2')?.value, Number.MAX_SAFE_INTEGER);
@@ -185,16 +158,17 @@
             badge.textContent = advancedCount ? String(advancedCount) : '';
             badge.classList.toggle('visible', advancedCount > 0);
         }
-        setStatus(`${visible} coincidencia${visible === 1 ? '' : 's'}`);
+
+        if (state.truncated) {
+            setStatus(`${visible} visibles · acerca el mapa para cargar más`);
+        } else {
+            setStatus(`${visible} coincidencia${visible === 1 ? '' : 's'} en esta zona`);
+        }
     }
 
     function setStatus(text) {
         const status = document.getElementById('rsmapsFilterStatus');
         if (status) status.textContent = text;
-    }
-
-    function dataKey(lat, lng, type, price) {
-        return `${Number(lat || 0).toFixed(6)}|${Number(lng || 0).toFixed(6)}|${Number(type || 0)}|${Math.round(Number(price || 0) * 100)}`;
     }
 
     function numberValue(value, fallback) {
@@ -205,8 +179,6 @@
     function escapeHtml(value) {
         return String(value ?? '').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
     }
-
-    function delay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
     window.applyMarketplaceFilters = applyFilters;
 
