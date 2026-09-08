@@ -25,7 +25,7 @@ function Update-Utf8File {
 
         $actual = ([regex]::Matches($text, [regex]::Escape($old))).Count
         if ($actual -ne $expected) {
-            throw "Proteccion: '$old' aparece $actual veces en $Path; se esperaban $expected. No se modifica el archivo."
+            throw "Proteccion: el texto esperado aparece $actual veces en $Path; se esperaban $expected. No se modifica el archivo."
         }
 
         $text = $text.Replace($old, $new)
@@ -43,9 +43,16 @@ $controller = Join-Path $RepoRoot 'Controllers\BorradorController.cs'
 $view = Join-Path $RepoRoot 'Views\Borrador\Editar.cshtml'
 $compat = Join-Path $RepoRoot 'Controllers\ModernImageCompatibilityController.cs'
 
+# PowerShell 5.1 interpreta scripts UTF-8 sin BOM usando la pagina de codigos
+# del sistema. Para que este helper sea portable, no contiene caracteres
+# no ASCII en los literales que deben coincidir con archivos UTF-8.
+$aAcute = [char]0x00E1
+$oldLimitMessage = 'return BadRequest(new { success = false, message = "El borrador ya tiene el m' + $aAcute + 'ximo de 20 fotos." });'
+$newLimitMessage = 'return BadRequest(new { success = false, message = "La propiedad ya tiene el m\u00e1ximo de 40 fotos." });'
+
 Update-Utf8File -Path $controller -Replacements @(
     @{ Old = 'if (actuales.Count >= 20)'; New = 'if (actuales.Count >= 40)'; Count = 1 },
-    @{ Old = 'return BadRequest(new { success = false, message = "El borrador ya tiene el máximo de 20 fotos." });'; New = 'return BadRequest(new { success = false, message = "La propiedad ya tiene el máximo de 40 fotos." });'; Count = 1 },
+    @{ Old = $oldLimitMessage; New = $newLimitMessage; Count = 1 },
     @{ Old = '53230 => "La propiedad ya tiene el m\u00e1ximo de 20 fotos.",'; New = '53230 => "La propiedad ya tiene el m\u00e1ximo de 40 fotos.",'; Count = 1 }
 )
 
