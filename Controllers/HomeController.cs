@@ -15,19 +15,22 @@ namespace maps4.Controllers
         private readonly IGenericRepository<Usuario> _usuarioRepository;
         private readonly IGenericRepository<Inmueble> _inmuebleRepository;
         private readonly IMarketplaceFiltroRepository _marketplaceFiltroRepository;
+        private readonly IMapaViewportRepository _mapaViewportRepository;
 
         public HomeController(
             ILogger<HomeController> logger,
             IGenericRepository<TipoPropiedad> tipoPropiedadRepository,
             IGenericRepository<Usuario> usuarioRepository,
             IGenericRepository<Inmueble> inmuebleRepository,
-            IMarketplaceFiltroRepository marketplaceFiltroRepository)
+            IMarketplaceFiltroRepository marketplaceFiltroRepository,
+            IMapaViewportRepository mapaViewportRepository)
         {
             _logger = logger;
             _tipoPropiedadRepository = tipoPropiedadRepository;
             _usuarioRepository = usuarioRepository;
             _inmuebleRepository = inmuebleRepository;
             _marketplaceFiltroRepository = marketplaceFiltroRepository;
+            _mapaViewportRepository = mapaViewportRepository;
         }
 
         public IActionResult Index()
@@ -56,6 +59,47 @@ namespace maps4.Controllers
         {
             List<AmenidadFiltroViewModel> lista = await _marketplaceFiltroRepository.ListarAmenidadesAsync();
             return StatusCode(StatusCodes.Status200OK, lista);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> listaInmueblesViewport(
+            decimal north,
+            decimal south,
+            decimal east,
+            decimal west,
+            int zoom = 12,
+            CancellationToken cancellationToken = default)
+        {
+            if (north is < -90 or > 90 || south is < -90 or > 90 || north <= south)
+                return BadRequest(new { message = "Limites de latitud invalidos." });
+
+            if (east is < -180 or > 180 || west is < -180 or > 180)
+                return BadRequest(new { message = "Limites de longitud invalidos." });
+
+            zoom = Math.Clamp(zoom, 0, 22);
+            int maxResultados = zoom switch
+            {
+                <= 5 => 400,
+                <= 8 => 700,
+                <= 11 => 1200,
+                _ => 2000
+            };
+
+            MapaViewportResultado resultado = await _mapaViewportRepository.ListarAsync(
+                north,
+                south,
+                east,
+                west,
+                maxResultados,
+                cancellationToken);
+
+            return Ok(new
+            {
+                items = resultado.Items,
+                truncated = resultado.Truncated,
+                maxResultados,
+                zoom
+            });
         }
 
         public IActionResult Privacy()
