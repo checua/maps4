@@ -25,6 +25,21 @@ $knownRoots = @(
 Write-Host 'Raices Cargas conocidas:'
 $knownRoots | ForEach-Object { Write-Host "  $_" }
 Write-Host ''
+Write-Host 'Indexando una sola vez los archivos locales bajo RSMaps...'
+
+# Indexar una sola vez para evitar recorrer todo el arbol por cada foto faltante.
+$allFiles = Get-ChildItem -LiteralPath $RsMapsRoot -Recurse -File -ErrorAction SilentlyContinue
+$byBaseName = @{}
+foreach ($file in $allFiles) {
+    $ext = $file.Extension.ToLowerInvariant()
+    if ($ext -notin @('.jpg','.jpeg','.png','.webp')) { continue }
+
+    $key = $file.BaseName.ToLowerInvariant()
+    if (-not $byBaseName.ContainsKey($key)) {
+        $byBaseName[$key] = New-Object System.Collections.Generic.List[object]
+    }
+    $byBaseName[$key].Add($file)
+}
 
 $rows = New-Object System.Collections.Generic.List[object]
 $totalExpected = 0
@@ -58,18 +73,14 @@ foreach ($entry in $expected.GetEnumerator()) {
             continue
         }
 
-        # Broader search only for files that were not found in known Cargas roots.
-        # Includes alternate extensions/nesting anywhere under the local RSMaps root.
-        $matches = Get-ChildItem -LiteralPath $RsMapsRoot -Recurse -File -ErrorAction SilentlyContinue |
-            Where-Object {
-                $_.BaseName -ieq $base -or
-                $_.Name -imatch ('^' + [regex]::Escape($base) + '\.(jpg|jpeg|png|webp)$')
-            }
-
-        if ($matches) {
-            $alternativeForProperty++
-            foreach ($m in $matches) {
-                [void]$locations.Add($m.DirectoryName)
+        $key = $base.ToLowerInvariant()
+        if ($byBaseName.ContainsKey($key)) {
+            $matches = @($byBaseName[$key])
+            if ($matches.Count -gt 0) {
+                $alternativeForProperty++
+                foreach ($m in $matches) {
+                    [void]$locations.Add($m.DirectoryName)
+                }
             }
         }
     }
