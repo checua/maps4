@@ -97,10 +97,10 @@ ORDER BY i.idInmueble;";
             };
 
             cmd.Parameters.Add("@Take", SqlDbType.Int).Value = take;
-            cmd.Parameters.Add("@North", SqlDbType.Decimal).Value = north;
-            cmd.Parameters.Add("@South", SqlDbType.Decimal).Value = south;
-            cmd.Parameters.Add("@East", SqlDbType.Decimal).Value = east;
-            cmd.Parameters.Add("@West", SqlDbType.Decimal).Value = west;
+            AddCoordinateParameter(cmd, "@North", north);
+            AddCoordinateParameter(cmd, "@South", south);
+            AddCoordinateParameter(cmd, "@East", east);
+            AddCoordinateParameter(cmd, "@West", west);
 
             await using SqlDataReader dr = await cmd.ExecuteReaderAsync(cancellationToken);
             while (await dr.ReadAsync(cancellationToken))
@@ -113,6 +113,14 @@ ORDER BY i.idInmueble;";
                 lista.RemoveAt(lista.Count - 1);
 
             return new MapaViewportResultado(lista, truncated);
+        }
+
+        private static void AddCoordinateParameter(SqlCommand cmd, string name, decimal value)
+        {
+            SqlParameter parameter = cmd.Parameters.Add(name, SqlDbType.Decimal);
+            parameter.Precision = 18;
+            parameter.Scale = 7;
+            parameter.Value = value;
         }
 
         private static Inmueble Mapear(SqlDataReader dr)
