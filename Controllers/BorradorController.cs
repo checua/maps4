@@ -251,8 +251,8 @@ namespace maps4.Controllers
                     return NotFound(new { success = false, message = "El borrador no existe o no puedes editarlo." });
 
                 List<InmuebleFotoViewModel> actuales = await _fotoRepository.ListarAsync(correo, idInmueble);
-                if (actuales.Count >= 20)
-                    return BadRequest(new { success = false, message = "El borrador ya tiene el máximo de 20 fotos." });
+                if (actuales.Count >= 40)
+                    return BadRequest(new { success = false, message = "La propiedad ya tiene el m\u00e1ximo de 40 fotos." });
 
                 almacenada = await _fotoStorage.GuardarAsync(idInmueble, foto, cancellationToken);
                 long idImagen = await _fotoRepository.RegistrarAsync(correo, idInmueble, almacenada);
@@ -483,7 +483,7 @@ namespace maps4.Controllers
                 53227 => "Por ahora solo el asesor responsable puede administrar estas fotos.",
                 53228 or 53251 or 53261 => "Las fotos no pueden modificarse en el estado actual de la propiedad.",
                 53229 => "Tu rol actual no puede editar fotos de esta propiedad.",
-                53230 => "La propiedad ya tiene el m\u00e1ximo de 20 fotos.",
+                53230 => "La propiedad ya tiene el m\u00e1ximo de 40 fotos.",
                 53252 or 53262 => "La foto ya no existe o no pertenece a la propiedad.",
                 53263 => "Una propiedad comercializada debe conservar al menos una foto.",
                 53253 or 53264 or 53324 => "Tu rol actual no puede editar las fotos de esta propiedad.",

@@ -239,12 +239,12 @@
                 <section class="section">
                     <div class="photo-head">
                         <div>
-                            <h3>Fotos <span class="muted">@Model.Fotos.Count/20</span></h3>
+                            <h3>Fotos <span class="muted">@Model.Fotos.Count/40</span></h3>
                             <p class="photo-help">Puedes seleccionar varias o abrir la cámara. Antes de subir, RSMaps reduce el tamaño para ahorrar datos y almacenamiento. La primera foto se vuelve portada automáticamente.</p>
                         </div>
                         <div class="photo-actions-top">
-                            <button type="button" class="photo-add" id="btnCameraPhoto" @(Model.Fotos.Count >= 20 ? "disabled" : null)>📷 Tomar foto</button>
-                            <button type="button" class="photo-add primary" id="btnGalleryPhotos" @(Model.Fotos.Count >= 20 ? "disabled" : null)>＋ Seleccionar fotos</button>
+                            <button type="button" class="photo-add" id="btnCameraPhoto" @(Model.Fotos.Count >= 40 ? "disabled" : null)>📷 Tomar foto</button>
+                            <button type="button" class="photo-add primary" id="btnGalleryPhotos" @(Model.Fotos.Count >= 40 ? "disabled" : null)>＋ Seleccionar fotos</button>
                         </div>
                     </div>
 
@@ -318,7 +318,7 @@
     const token = form?.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
     const idInmueble = @Model.IdInmueble;
     const currentCount = @Model.Fotos.Count;
-    const maxPhotos = 20;
+    const maxPhotos = 40;
 
     cameraButton?.addEventListener('click', () => cameraInput?.click());
     galleryButton?.addEventListener('click', () => galleryInput?.click());
@@ -330,7 +330,7 @@
 
         const remaining = maxPhotos - currentCount;
         if (remaining <= 0) {
-            alert('Este borrador ya tiene 20 fotos.');
+            alert('Esta propiedad ya tiene 40 fotos.');
             return;
         }
 

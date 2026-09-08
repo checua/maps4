@@ -32,7 +32,7 @@ namespace maps4.Controllers
         [HttpGet("/cargas/{idInmueble:int}_{orden:int}.jpg")]
         public async Task<IActionResult> Imagen(int idInmueble, int orden, CancellationToken cancellationToken)
         {
-            if (idInmueble <= 0 || orden < 1 || orden > 20)
+            if (idInmueble <= 0 || orden < 1 || orden > 40)
                 return NotFound();
 
             InmuebleFotoViewModel? foto = null;
