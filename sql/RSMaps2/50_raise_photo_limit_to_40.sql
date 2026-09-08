@@ -26,6 +26,7 @@ IF OBJECT_ID(N'dbo.RSMAPS_InmuebleImagen', N'U') IS NULL
     THROW 55002, 'No existe dbo.RSMAPS_InmuebleImagen.', 1;
 IF OBJECT_ID(N'dbo.RSMAPS_InmuebleImagenes', N'U') IS NULL
     THROW 55003, 'No existe dbo.RSMAPS_InmuebleImagenes.', 1;
+GO
 
 CREATE OR ALTER PROCEDURE dbo.RSMAPS_sp_RegistrarFotoBorrador
     @correo VARCHAR(200),
