@@ -6,11 +6,26 @@
     const requestedInmuebleId = Number(query.get('inmuebleId') || 0);
     let explicitFocusMarker = null;
     let focusTimer = null;
+    let handoffTimer = null;
+    let focusedProperty = null;
 
     // El mapa debe iniciar sin filtros de precio implícitos. Históricamente
     // arrancaba en 2,500..1,000,000 y por eso propiedades publicadas como
     // #147/#187 podían existir en el viewport pero quedar invisibles.
     normalizeDefaultPriceFilters();
+
+    // Registrar el destino desde el principio para que cualquier lógica legacy
+    // sepa que la navegación explícita al inmueble tiene prioridad.
+    if (requestedInmuebleId > 0 && typeof selectedInmuebleId !== 'undefined') {
+        selectedInmuebleId = requestedInmuebleId;
+    }
+
+    // Cargar una copia mínima del inmueble enfocado. El flujo legacy guarda
+    // lat/lng/id en currentInmueble, pero no siempre conserva idTipo; sin idTipo
+    // un marker temporal puede caer en el pin genérico o en un icono incorrecto.
+    if (requestedInmuebleId > 0) {
+        loadFocusedProperty(requestedInmuebleId);
+    }
 
     // Si venimos de Inventario con ?inmuebleId=..., conservar la geolocalización
     // del usuario como punto informativo, pero evitar que su callback cambie el
@@ -37,18 +52,29 @@
     }
 
     // map-viewport.js ya envuelve loadInmueble. Esta segunda envoltura añade un
-    // marcador explícito con el icono correcto que no depende de los filtros.
+    // marcador explícito con el icono correcto que no depende de los filtros ni
+    // de que la propiedad sea parte del marketplace público.
     const previousLoadInmueble = window.loadInmueble;
     if (typeof previousLoadInmueble === 'function') {
         window.loadInmueble = function (inmuebleId) {
+            const numericId = Number(inmuebleId);
+            if (numericId > 0 && typeof selectedInmuebleId !== 'undefined') {
+                selectedInmuebleId = numericId;
+            }
+
             const result = previousLoadInmueble.apply(this, arguments);
-            if (Number(inmuebleId) > 0) scheduleExplicitFocus(Number(inmuebleId));
+
+            if (numericId > 0) {
+                loadFocusedProperty(numericId);
+                scheduleExplicitFocus(numericId);
+            }
             return result;
         };
     }
 
     // Sustituimos el comportamiento de "Acercar" para garantizar que siempre
-    // exista un marcador visible, incluso si el marker normal está filtrado.
+    // exista un marcador visible, incluso si el marker normal todavía no está
+    // cargado o si el inmueble no pertenece al marketplace público.
     window.gotoLocation = function () {
         if (typeof currentInmueble === 'undefined' || !currentInmueble) {
             Swal.fire('Error', 'No hay un inmueble seleccionado.', 'error');
@@ -58,7 +84,7 @@
         const lat = Number(currentInmueble.lat);
         const lng = Number(currentInmueble.lng);
         const inmuebleId = Number(currentInmueble.id);
-        const idTipo = resolveCurrentType();
+        const idTipo = resolveCurrentType(inmuebleId);
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         const url = isIOS
             ? `maps://maps.apple.com/?q=${lat},${lng}`
@@ -106,6 +132,29 @@
         }
     }
 
+    async function loadFocusedProperty(inmuebleId) {
+        try {
+            const response = await fetch(`/Inmueble/GetInmuebleById?id=${encodeURIComponent(inmuebleId)}`, {
+                credentials: 'same-origin'
+            });
+            if (!response.ok) return;
+
+            const payload = await response.json();
+            const item = Array.isArray(payload) ? payload[0] : payload;
+            if (!item || Number(item.idInmueble) !== Number(inmuebleId)) return;
+
+            focusedProperty = item;
+
+            if (typeof currentInmueble !== 'undefined' &&
+                currentInmueble &&
+                Number(currentInmueble.id) === Number(inmuebleId)) {
+                currentInmueble.idTipo = item.idTipo;
+            }
+        } catch (error) {
+            console.warn('No fue posible completar los datos del inmueble enfocado:', error);
+        }
+    }
+
     function scheduleExplicitFocus(inmuebleId) {
         clearInterval(focusTimer);
         let attempts = 0;
@@ -124,7 +173,7 @@
                     Number(inmuebleId),
                     Number(currentInmueble.lat),
                     Number(currentInmueble.lng),
-                    resolveCurrentType(),
+                    resolveCurrentType(inmuebleId),
                     true);
             } else if (attempts >= 120) {
                 clearInterval(focusTimer);
@@ -140,7 +189,15 @@
         map.setCenter(position);
         if (zoomIn) map.setZoom(17);
 
-        if (explicitFocusMarker) explicitFocusMarker.setMap(null);
+        // Si el viewport ya creó el marker real, usarlo y no superponer otro.
+        const viewportMarker = findViewportMarker(inmuebleId, lat, lng);
+        if (viewportMarker) {
+            removeExplicitFocusMarker();
+            bounceMarker(viewportMarker);
+            return;
+        }
+
+        removeExplicitFocusMarker();
 
         explicitFocusMarker = new google.maps.Marker({
             position,
@@ -155,19 +212,95 @@
             zIndex: 1000000
         });
 
-        explicitFocusMarker.setAnimation(google.maps.Animation.BOUNCE);
-        window.setTimeout(() => explicitFocusMarker?.setAnimation(null), 1400);
+        bounceMarker(explicitFocusMarker);
+
+        // Si el inmueble es público, el cambio de centro dispara la consulta del
+        // viewport. Cuando aparezca su marker real, retirar el marker temporal.
+        scheduleViewportMarkerHandoff(inmuebleId, lat, lng);
     }
 
-    function resolveCurrentType() {
-        const fromForm = Number(document.getElementById('tipo')?.value || 0);
+    function scheduleViewportMarkerHandoff(inmuebleId, lat, lng) {
+        clearInterval(handoffTimer);
+        let attempts = 0;
+
+        handoffTimer = window.setInterval(() => {
+            attempts++;
+            const viewportMarker = findViewportMarker(inmuebleId, lat, lng);
+            if (viewportMarker) {
+                clearInterval(handoffTimer);
+                removeExplicitFocusMarker();
+                bounceMarker(viewportMarker);
+            } else if (attempts >= 80) {
+                clearInterval(handoffTimer);
+            }
+        }, 100);
+    }
+
+    function findViewportMarker(inmuebleId, lat, lng) {
+        if (typeof markersx === 'undefined' || !Array.isArray(markersx)) return null;
+
+        const numericId = Number(inmuebleId);
+        const tolerance = 0.0000005;
+
+        return markersx.find(marker => {
+            if (!marker || typeof marker.getPosition !== 'function') return false;
+
+            const markerId = Number(
+                marker.rsmapsInmuebleId ??
+                marker.inmuebleId ??
+                marker.rsmapsData?.idInmueble ??
+                0);
+
+            if (markerId > 0 && markerId === numericId) return true;
+
+            const position = marker.getPosition();
+            if (!position) return false;
+
+            return Math.abs(Number(position.lat()) - Number(lat)) <= tolerance &&
+                Math.abs(Number(position.lng()) - Number(lng)) <= tolerance;
+        }) || null;
+    }
+
+    function resolveCurrentType(inmuebleId) {
+        if (focusedProperty &&
+            Number(focusedProperty.idInmueble) === Number(inmuebleId)) {
+            const fromFocused = Number(focusedProperty.idTipo || 0);
+            if (Number.isFinite(fromFocused) && fromFocused > 0) return fromFocused;
+        }
+
+        const fromForm = Number(
+            document.getElementById('tipo')?.value ||
+            document.getElementById('cboTipoPropiedad2')?.value ||
+            0);
         if (Number.isFinite(fromForm) && fromForm > 0) return fromForm;
 
         if (typeof currentInmueble !== 'undefined' && currentInmueble) {
             const fromCurrent = Number(currentInmueble.idTipo || 0);
             if (Number.isFinite(fromCurrent) && fromCurrent > 0) return fromCurrent;
         }
+
+        const viewportMarker = findViewportMarker(
+            inmuebleId,
+            Number(currentInmueble?.lat),
+            Number(currentInmueble?.lng));
+        const fromViewport = Number(
+            viewportMarker?.rsmapsData?.idTipo ||
+            viewportMarker?.getTitle?.() ||
+            0);
+        if (Number.isFinite(fromViewport) && fromViewport > 0) return fromViewport;
+
         return 2;
+    }
+
+    function removeExplicitFocusMarker() {
+        if (!explicitFocusMarker) return;
+        explicitFocusMarker.setMap(null);
+        explicitFocusMarker = null;
+    }
+
+    function bounceMarker(marker) {
+        marker?.setAnimation?.(google.maps.Animation.BOUNCE);
+        window.setTimeout(() => marker?.setAnimation?.(null), 1400);
     }
 
     function iconForType(type) {
