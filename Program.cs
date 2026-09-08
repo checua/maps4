@@ -37,6 +37,7 @@ builder.Services.AddScoped<IPublicacionBorradorRepository, PublicacionBorradorRe
 builder.Services.AddScoped<IInmuebleFotoRepository, InmuebleFotoRepository>();
 builder.Services.AddScoped<IMarketplaceFiltroRepository, MarketplaceFiltroRepository>();
 builder.Services.AddScoped<IZonaRepository, ZonaRepository>();
+builder.Services.AddScoped<IMapaViewportRepository, MapaViewportRepository>();
 string imageStorageProvider = builder.Configuration["RSMaps:ImageStorageProvider"]?.Trim() ?? "Local";
 if (imageStorageProvider.Equals("AzureBlob", StringComparison.OrdinalIgnoreCase))
 {
