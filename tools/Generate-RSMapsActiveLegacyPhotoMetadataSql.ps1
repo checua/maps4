@@ -8,7 +8,7 @@ $manifestPath = Join-Path $RepoRoot 'App_Data\LegacyPhotoMigration\active-photo-
 $modernRoot = Join-Path $RepoRoot 'App_Data\RSMapsImages'
 $outputPath = Join-Path $RepoRoot 'sql\RSMaps2\52_migrate_active_legacy_photo_metadata.generated.sql'
 
-$active = [ordered]@{
+$active = @{
     79=6;80=11;81=15;84=5;85=21;86=25;88=17;89=17;90=13;91=3;92=13;93=22;94=14;95=15;96=29;97=10;98=22;99=21;
     100=7;101=5;102=7;103=7;104=15;105=9;106=11;107=12;108=16;109=6;110=9;111=10;112=7;113=25;114=6;115=10;116=11;117=19;
     118=21;119=20;120=5;121=5;122=6;123=24;124=12;125=12;130=4;132=13;133=12;135=22;138=25;142=33;145=1;146=1;147=1;148=2;
@@ -52,7 +52,7 @@ foreach ($row in $rows) {
     $mime = [string]$row.MimeType
     $sha = ([string]$row.Sha256).ToUpperInvariant()
 
-    if (-not $active.Contains($id)) { throw "Proteccion: inmueble inesperado en manifiesto: $id" }
+    if (-not $active.ContainsKey($id)) { throw "Proteccion: inmueble inesperado en manifiesto: $id" }
     $max = [int]$active[$id]
     if ($orden -lt 1 -or $orden -gt $max) { throw "Proteccion: orden invalido $id/$orden." }
     if ($nombre -ne "${id}_${orden}.jpg") { throw "Proteccion: nombre inesperado para ${id}/${orden}: $nombre" }
