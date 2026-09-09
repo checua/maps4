@@ -88,10 +88,13 @@ Objetivo: una plataforma inmobiliaria estable, escalable y publicable en Azure, 
 
 # 3. Fotografías y medios — 45% — peso 15%
 
-### 3.1 Compatibilidad de fotos legacy en localhost — 80%
+### 3.1 Compatibilidad de fotos legacy en localhost — 85%
 - ✅ Detectado: modal legacy usa rutas `/Cargas/...` locales.
-- 🟢 Fallback localhost → `https://rsmap.azurewebsites.net/Cargas/...` implementado en `map-focus-fix.js`.
-- 🟡 Validar las miniaturas del inmueble #147 en localhost:5103.
+- ✅ Redirección localhost → `https://rsmap.azurewebsites.net/Cargas/...` verificada en el DOM.
+- ✅ `legacy-image-source-fix.js` cambia la fuente de las miniaturas legacy antes de depender del 404 local.
+- 🔴 Diagnóstico 2026-09-08: el inmueble #187 ya intenta cargar desde Azure (`/Cargas/187_3.jpg`) y la imagen sigue rota; el bloqueo está en la fuente remota/archivo físico, no en el fallback de localhost.
+- 🟡 Localizar las fotos físicas de #187 y de propiedades posteriores no cubiertas por el manifiesto legacy actual.
+- 🟡 Validar por separado las miniaturas del inmueble #147 en localhost:5103.
 
 ### 3.2 Azure Blob Storage — 70%
 - ✅ Existe `AzureBlobInmuebleFotoStorage`.
@@ -103,7 +106,9 @@ Objetivo: una plataforma inmobiliaria estable, escalable y publicable en Azure, 
 
 ### 3.3 Migración de fotos legacy — 45%
 - ✅ Existen herramientas/scripts de migración y auditoría.
-- 🟡 Inventariar todas las fotos activas legacy.
+- ✅ El manifiesto generado del Paso 52 cubre 72 inmuebles / 808 fotos y actualmente termina en el inmueble #169.
+- 🔴 El inmueble #187 no forma parte de ese manifiesto y requiere localizar/recuperar sus archivos antes de completar la migración.
+- 🟡 Inventariar todas las fotos activas legacy, incluyendo propiedades creadas después del corte del manifiesto actual.
 - 🟡 Verificar faltantes.
 - 🔵 Migrar archivos físicos a Blob Storage.
 - 🔵 Validar metadatos contra base de datos.
@@ -234,11 +239,11 @@ Ideas ya identificadas:
 
 Ésta es la parte lineal del Árbol de avance. El árbol organiza; la Ruta activa decide qué hacemos primero.
 
-1. **Validar fallback de fotos legacy en localhost:5103.**
+1. **Localizar/recuperar las fotos de #187 y demás propiedades activas que quedaron fuera del manifiesto legacy actual; después validar el fallback en localhost:5103.**
 2. **Terminar prueba del #147:** carga normal, Inventario → Ver en mapa, marker correcto, Acercar y geolocalización.
 3. **Validar viewport:** mover/zoom y confirmar carga sólo del área visible.
 4. **Revisar/aplicar índice SQL 54 en Azure SQL.**
-5. **Cerrar migración de imágenes a Azure Blob Storage.**
+5. **Cerrar migración de imágenes a Azure Blob Storage, incluyendo el inventario posterior al corte original.**
 6. **Configurar Blob en desarrollo y producción.**
 7. **Pruebas completas de inventario y ciclo de propiedad.**
 8. **Corregir `Inventario evaluado: 1` de RADAR.**
@@ -271,3 +276,7 @@ Dirección arquitectónica:
 - Aplicación → Azure App Service
 
 Durante la transición, localhost puede usar como fallback las fotografías legacy que todavía viven en la Web App productiva.
+
+## 2026-09-08 — Diagnóstico de fotos #187
+
+La redirección de localhost hacia Azure sí está funcionando. DevTools mostró una miniatura con `src=https://rsmap.azurewebsites.net/Cargas/187_3.jpg` y las marcas de fallback aplicadas, pero la imagen continuó rota. El siguiente paso deja de ser modificar el fallback: hay que localizar el archivo físico real de #187 y ampliar el inventario/migración de fotos más allá del corte del manifiesto que actualmente llega hasta #169.
