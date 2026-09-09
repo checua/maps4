@@ -9,6 +9,11 @@
     let handoffTimer = null;
     let focusedProperty = null;
 
+    // Mientras las fotos legacy terminan de migrarse a Azure Blob Storage,
+    // localhost puede reutilizar las fotos que ya existen en la Web App.
+    // Esto evita copiar /Cargas al repositorio y mantiene Git dedicado a código.
+    installLegacyImageFallback();
+
     // El mapa debe iniciar sin filtros de precio implícitos. Históricamente
     // arrancaba en 2,500..1,000,000 y por eso propiedades publicadas como
     // #147/#187 podían existir en el viewport pero quedar invisibles.
@@ -109,6 +114,36 @@
 
     if (requestedInmuebleId > 0) {
         scheduleExplicitFocus(requestedInmuebleId);
+    }
+
+    function installLegacyImageFallback() {
+        const localHosts = new Set(['localhost', '127.0.0.1', '::1']);
+        if (!localHosts.has(window.location.hostname.toLowerCase())) return;
+
+        const publicAssetBaseUrl = 'https://rsmap.azurewebsites.net';
+
+        // Los errores de IMG no hacen bubble; el listener en captura permite
+        // cubrir también miniaturas agregadas dinámicamente por index.js.
+        document.addEventListener('error', event => {
+            const image = event.target;
+            if (!(image instanceof HTMLImageElement)) return;
+            if (image.dataset.rsmapsAzureFallbackTried === 'true') return;
+
+            const rawSource = image.getAttribute('src') || '';
+            if (!rawSource) return;
+
+            let sourceUrl;
+            try {
+                sourceUrl = new URL(rawSource, window.location.origin);
+            } catch {
+                return;
+            }
+
+            if (!/^\/cargas\//i.test(sourceUrl.pathname)) return;
+
+            image.dataset.rsmapsAzureFallbackTried = 'true';
+            image.src = `${publicAssetBaseUrl}${sourceUrl.pathname}${sourceUrl.search}${sourceUrl.hash}`;
+        }, true);
     }
 
     function normalizeDefaultPriceFilters() {
