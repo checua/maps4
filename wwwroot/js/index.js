@@ -230,7 +230,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const queryParams = getQueryParams();
     if (queryParams.inmuebleId) {
-        loadInmueble(queryParams.inmuebleId);
+        const preferPrivate =
+            String(queryParams.source || '').toLowerCase() === 'inventory';
+
+        loadInmueble(queryParams.inmuebleId, preferPrivate);
     }
 
     const apiKey = 'AIzaSyAZ7HVHi9uywPRyEgtb9U-0Ul0C_v5zQXg';
@@ -244,8 +247,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 
-function loadInmueble(inmuebleId) {
-    fetch(`/Inmueble/GetInmuebleById?id=${inmuebleId}`)
+function loadInmueble(inmuebleId, preferPrivate = false) {
+    const endpoint = preferPrivate
+        ? '/Inmueble/GetInmueblePrivadoById'
+        : '/Inmueble/GetInmuebleById';
+
+    fetch(`${endpoint}?id=${encodeURIComponent(inmuebleId)}`, {
+        credentials: 'same-origin'
+    })
         .then(response => response.json())
         .then(inmueble => {
             if (inmueble) {
@@ -258,7 +267,8 @@ function loadInmueble(inmuebleId) {
                 currentInmueble = {
                     lat: inmueble[0].lat,
                     lng: inmueble[0].lng,
-                    id: inmueble[0].idInmueble
+                    id: inmueble[0].idInmueble,
+                    idTipo: inmueble[0].idTipo
                 };
 
                 const str = document.getElementById("lnkAcceso").innerText;
