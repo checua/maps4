@@ -195,7 +195,7 @@ RSMaps Web/API/Matching en Azure App Service
 
 ---
 
-# 5. RADAR — 75% — peso 20%
+# 5. RADAR — 78% — peso 20%
 
 ### 5.1 Listener WhatsApp — 85%
 - ✅ Recorrido de chats.
@@ -218,16 +218,25 @@ RSMaps Web/API/Matching en Azure App Service
 - ✅ Recuperación de workflow.
 - 🟡 Pruebas de reinicio/fallo real prolongado.
 
-### 5.4 Matching inventario ↔ solicitudes — 55%
+### 5.4 Matching inventario ↔ solicitudes — 70%
 - ✅ Motor de matching existente.
 - ✅ No enviar alerta cuando no existe coincidencia útil.
-- 🔴 Hallazgo actual: muchas ejecuciones reportan `Inventario evaluado: 1`.
+- ✅ Bug crítico #184 resuelto: un inmueble de $15,000 ya no puede superar una solicitud con máximo $13,000.
+- ✅ `PrecioMaximo` opera como restricción dura estricta.
+- ✅ Si existe máximo de precio y el inmueble no tiene precio verificable, no se genera candidato.
+- ✅ Restricciones duras no verificables operan fail-closed.
+- ✅ `NO ORILLAS` detectado por RuleBased y OpenAI.
+- ✅ `SIN AMUEBLAR` protegido fail-closed mientras el inventario no pueda diferenciar `No amueblado` de `sin dato`.
+- ✅ Regresiones automáticas de matching y E2E incorporadas.
+- ✅ PR #3 fusionado en `feature/rsmap-publication-readiness` (`7113969`).
+- 🔴 Hallazgo activo: muchas ejecuciones reportan `Inventario evaluado: 1`.
 - 🟡 Determinar por qué RADAR sólo está viendo/evaluando un inmueble en esos casos.
 - 🔵 Validar matching con inventario amplio y distintos permisos/visibilidades.
-
-### 5.5 Alertas y experiencia RADAR — 70%
+### 5.5 Alertas y experiencia RADAR — 80%
 - ✅ Política fail-closed para evitar falsos positivos.
 - ✅ Alertas sólo con match útil.
+- ✅ Caso real #184 validado E2E: interpretación → procesamiento central → matching → 0 candidatos → NO ALERT.
+- ✅ Preferencias blandas como `Lo más nuevo posible` no bloquean el matching.
 - 🔵 Afinar ranking de coincidencias.
 - 🔵 Definir formato final de alerta al asesor.
 
@@ -301,7 +310,7 @@ Ideas ya identificadas:
 7. **Crear auditoría metadata → Blob (Missing / SizeMismatch / OK).**
 8. **Localizar configuración del RADAR Listener que apunta a `localhost:5102` y preparar cambio a RSMaps Azure.**
 9. **Prueba de corte: apagar 5102/5103 y confirmar Listener → RSMaps Azure.**
-10. **Corregir `Inventario evaluado: 1` de RADAR.**
+10. **Corregir `Inventario evaluado: 1` de RADAR — siguiente bloqueo activo después del cierre del bug #184.**
 11. **Pruebas integrales RSMaps + RADAR.**
 12. **Revisión de secretos/API keys/seguridad y observabilidad.**
 
