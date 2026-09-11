@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\RSMaps.Radar.Intelligence\RSMaps.Radar.Intelligence.csproj" />
+    <ProjectReference Include="..\maps4.csproj" />
   </ItemGroup>
 
 </Project>

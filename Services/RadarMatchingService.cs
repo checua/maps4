@@ -8,7 +8,6 @@ namespace maps4.Services
     public class RadarMatchingService : IRadarMatchingService
     {
         private const int PuntuacionMinimaCandidato = 55;
-        private const double ExcesoMaximoPrecio = 0.20;
         private const double CoincidenciaMinimaZona = 0.80;
 
         private readonly IInventarioRepository _inventarioRepository;
@@ -66,20 +65,32 @@ namespace maps4.Services
             RadarMatchingRequest solicitud,
             InventarioInmuebleViewModel inmueble)
         {
+            // Una restricción expresamente exigida que RADAR todavía no puede
+            // verificar impide cualquier alerta automática. Mejor no alertar
+            // que sugerir un inmueble que pueda violar una condición dura.
+            if (solicitud.RestriccionesDurasNoVerificables?.Any(
+                x => !string.IsNullOrWhiteSpace(x)) == true)
+            {
+                return false;
+            }
+
             if (solicitud.Zonas.Count > 0 &&
                 CoincidenciaZona(solicitud.Zonas, inmueble) < CoincidenciaMinimaZona)
             {
                 return false;
             }
 
-            if (solicitud.PrecioMaximo.HasValue && inmueble.Precio.HasValue && inmueble.Precio.Value > 0)
+            if (solicitud.PrecioMaximo.HasValue)
             {
-                double maximo = (double)solicitud.PrecioMaximo.Value;
-                double exceso = (inmueble.Precio.Value - maximo) / Math.Max(maximo, 1);
+                // PrecioMaximo es una restricción dura para alertas automáticas.
+                // Si el inmueble no tiene precio verificable, RADAR no debe alertarlo.
+                if (!inmueble.Precio.HasValue || inmueble.Precio.Value <= 0)
+                    return false;
 
-                // Hasta 20% arriba puede conservarse únicamente como alternativa
-                // aproximada. Más que eso ya no es una oportunidad razonable.
-                if (exceso > ExcesoMaximoPrecio)
+                double maximo = (double)solicitud.PrecioMaximo.Value;
+
+                // Nunca superar el máximo expresamente solicitado.
+                if (inmueble.Precio.Value > maximo)
                     return false;
             }
 

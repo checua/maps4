@@ -40,7 +40,8 @@ public static class ExtractorInmobiliario
             UnaPlanta = ExtraerUnaPlanta(normalizado),
             CasetaVigilancia = normalizado.Contains("caseta de vigilancia") ? true : null,
             CocheraMinAutos = ExtraerCochera(normalizado),
-            ModalidadesPago = ExtraerModalidadesPago(normalizado)
+            ModalidadesPago = ExtraerModalidadesPago(normalizado),
+            RestriccionesDurasNoVerificables = ExtraerRestriccionesDurasNoVerificables(normalizado)
         };
 
         (solicitud.RecamarasMin, solicitud.RecamarasMax) =
@@ -295,6 +296,33 @@ public static class ExtractorInmobiliario
                z.StartsWith("minimo ") ||
                z.StartsWith("planta baja") ||
                z.StartsWith("patio ");
+    }
+
+    private static List<string> ExtraerRestriccionesDurasNoVerificables(string texto)
+    {
+        var restricciones = new List<string>();
+
+        // Exclusión geográfica explícita que todavía no puede verificarse
+        // contra una clasificación estructurada de periferia/orillas.
+        if (Regex.IsMatch(
+                texto,
+                @"\b(?:no\s+(?:(?:en|a)\s+las?\s+)?orillas?|sin\s+orillas?|no\s+periferia|sin\s+periferia)\b",
+                RegexOptions.IgnoreCase))
+        {
+            restricciones.Add("NO ORILLAS");
+        }
+
+        // El inventario actual registra AMUEBLADO como amenidad positiva,
+        // pero no distingue de forma estructurada 'No amueblado' de 'sin dato'.
+        // Por seguridad, una solicitud explícita sin amueblar opera fail-closed.
+        if (texto.Contains("sin amueblar") ||
+            texto.Contains("no amueblado") ||
+            texto.Contains("no amueblada"))
+        {
+            restricciones.Add("SIN AMUEBLAR");
+        }
+
+        return restricciones;
     }
 
     private static bool? ExtraerMascotas(string texto)

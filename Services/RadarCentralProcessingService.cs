@@ -79,6 +79,9 @@ public sealed class RadarCentralProcessingService : IRadarCentralProcessingServi
             UnaPlanta = solicitud.UnaPlanta,
             CasetaVigilancia = solicitud.CasetaVigilancia,
             CocheraMinAutos = solicitud.CocheraMinAutos,
+            RestriccionesDurasNoVerificables = solicitud.RestriccionesDurasNoVerificables is { Count: > 0 }
+                ? [.. solicitud.RestriccionesDurasNoVerificables]
+                : [],
             MaxResultados = 5
         };
     }
