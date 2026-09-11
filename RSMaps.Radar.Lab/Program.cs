@@ -2,6 +2,17 @@ using RSMaps.Radar.Listener.Models;
 using RSMaps.Radar.Listener.Services;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
+var labMode = Environment.GetEnvironmentVariable("RADAR_LAB_MODE")?.Trim();
+
+if (string.Equals(
+    labMode,
+    "matching-regression",
+    StringComparison.OrdinalIgnoreCase))
+{
+    await MatchingRegression.RunAsync();
+    return;
+}
+
 
 var engine = (Environment.GetEnvironmentVariable("RADAR_LAB_INTERPRETER") ?? "rules")
     .Trim()
@@ -16,8 +27,21 @@ IRadarInterpreter interpreter = engine switch
         $"RADAR_LAB_INTERPRETER='{engine}' no es válido. Usa 'rules', 'openai', 'radar' u 'openai_raw'.")
 };
 
+if (string.Equals(
+    labMode,
+    "e2e-hard-no-orillas",
+    StringComparison.OrdinalIgnoreCase))
+{
+    await EndToEndHardConstraintsRegression.RunAsync(interpreter);
+    return;
+}
+
 var casos = new (string Id, string Texto)[]
 {
+    (
+        "hard-no-orillas",
+        "BUSCO CASA / DEPARTAMENTO EN RENTA. Máximo $13,000. Sin amueblar. NO orillas. Lo más nuevo posible."
+    ),
     (
         "local-cima-libramiento",
         "Buenos días. Busco local por el CIMA o libramiento para refaccionaria, agradezco sus aportes."
@@ -156,6 +180,7 @@ foreach (var caso in casosEjecutar)
             Console.WriteLine($"    Baños: {MostrarRango(s.BanosMin, s.BanosMax)}");
             Console.WriteLine($"    Una planta: {MostrarBooleano(s.UnaPlanta)}");
             Console.WriteLine($"    Pago: {Mostrar(s.ModalidadesPago)}");
+            Console.WriteLine($"    Restricciones duras: {Mostrar(s.RestriccionesDurasNoVerificables)}");
 
             if (!string.IsNullOrWhiteSpace(s.RequisitosAdicionales))
                 Console.WriteLine($"    Requisitos: {s.RequisitosAdicionales}");

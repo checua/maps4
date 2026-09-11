@@ -26,6 +26,10 @@ namespace maps4.Models
         public bool? CasetaVigilancia { get; set; }
         public int? CocheraMinAutos { get; set; }
 
+        // Restricciones duras detectadas pero que RSMaps todavía
+        // no puede verificar contra datos estructurados del inmueble.
+        public List<string> RestriccionesDurasNoVerificables { get; set; } = new();
+
         public int MaxResultados { get; set; } = 5;
     }
 

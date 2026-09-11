@@ -31,6 +31,9 @@ Reglas:
 - "recámara en planta baja" es un requisito y NO debe llenar recamarasMin/recamarasMax salvo que el mensaje también indique explícitamente el total de recámaras buscado.
 - "recámara en planta baja" tampoco significa necesariamente que toda la casa sea de una planta.
 - En modalidadesPago usa valores canónicos cuando sea posible: Infonavit, Fovissste, Banjercito, Crédito bancario, Crédito hipotecario o Contado. "efectivo" equivale a Contado. Detalles como "Total" o "Conyugal" pueden ir en requisitosAdicionales.
+- Las exclusiones geográficas explícitas de periferia como "NO orillas", "no en las orillas", "sin orillas", "no periferia" o "sin periferia" son restricciones duras que RADAR todavía no puede verificar estructuralmente. No las descartes ni las conviertas en zonas: agrega "NO ORILLAS" en restriccionesDurasNoVerificables.
+- Mientras el inventario sólo permita confirmar la amenidad positiva AMUEBLADO y no pueda distinguir con certeza "No amueblado" de "sin dato", expresiones explícitas como "sin amueblar", "no amueblado" o "no amueblada" deben conservar amueblado=false y además agregar "SIN AMUEBLAR" en restriccionesDurasNoVerificables.
+- No uses restriccionesDurasNoVerificables para preferencias blandas como "lo más nuevo posible". Si no existe una restricción dura no verificable, devuelve una lista vacía.
 - Si no es una solicitud inmobiliaria, devuelve esSolicitudInmobiliaria=false y solicitudes vacías.
 - "con cochera", "con garage" o "con garaje" sin cantidad significa cocheraMinAutos=1; si indica "cochera/garage/garaje para N autos", usa N. No tomes cochera de una respuesta/oferta citada como requisito del solicitante.
 - La confianza debe estar entre 0 y 1.
@@ -69,13 +72,15 @@ Reglas:
           "casetaVigilancia": { "type": ["boolean", "null"] },
           "cocheraMinAutos": { "type": ["integer", "null"] },
           "modalidadesPago": { "type": "array", "items": { "type": "string" } },
-          "requisitosAdicionales": { "type": ["string", "null"] }
+          "requisitosAdicionales": { "type": ["string", "null"] },
+          "restriccionesDurasNoVerificables": { "type": "array", "items": { "type": "string" } }
         },
         "required": [
           "operacion", "tiposPropiedad", "subtiposPropiedad", "zonas", "tipoFraccionamiento",
           "condicionInmueble", "etapaInmueble", "precioMinimo", "precioMaximo", "recamarasMin", "recamarasMax",
           "banosMin", "banosMax", "terrenoMinM2", "construccionMinM2", "aceptaMascotas", "amueblado",
-          "unaPlanta", "casetaVigilancia", "cocheraMinAutos", "modalidadesPago", "requisitosAdicionales"
+          "unaPlanta", "casetaVigilancia", "cocheraMinAutos", "modalidadesPago", "requisitosAdicionales",
+          "restriccionesDurasNoVerificables"
         ],
         "additionalProperties": false
       }
@@ -208,7 +213,8 @@ Reglas:
                 CasetaVigilancia = item.CasetaVigilancia,
                 CocheraMinAutos = item.CocheraMinAutos,
                 ModalidadesPago = item.ModalidadesPago ?? [],
-                RequisitosAdicionales = item.RequisitosAdicionales
+                RequisitosAdicionales = item.RequisitosAdicionales,
+                RestriccionesDurasNoVerificables = item.RestriccionesDurasNoVerificables ?? []
             });
         }
 
@@ -298,5 +304,6 @@ Reglas:
         public int? CocheraMinAutos { get; set; }
         public List<string>? ModalidadesPago { get; set; }
         public string? RequisitosAdicionales { get; set; }
+        public List<string>? RestriccionesDurasNoVerificables { get; set; }
     }
 }

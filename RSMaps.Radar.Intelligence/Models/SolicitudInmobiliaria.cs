@@ -44,6 +44,11 @@ public class SolicitudInmobiliaria
     public List<string> ModalidadesPago { get; set; } = [];
     public string? RequisitosAdicionales { get; set; }
 
+    // Restricciones expresamente exigidas por el solicitante que RADAR
+    // todavía no puede comprobar de forma estructurada.
+    // Mientras existan, el matching automático debe operar fail-closed.
+    public List<string> RestriccionesDurasNoVerificables { get; set; } = [];
+
     public double? MejorCoincidencia { get; set; }
     public int? IdInmuebleCoincidente { get; set; }
 
