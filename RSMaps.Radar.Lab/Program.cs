@@ -14,6 +14,15 @@ if (string.Equals(
 }
 
 
+if (string.Equals(
+    labMode,
+    "payment-hard-constraints-regression",
+    StringComparison.OrdinalIgnoreCase))
+{
+    await PaymentHardConstraintsRegression.RunAsync();
+    return;
+}
+
 var engine = (Environment.GetEnvironmentVariable("RADAR_LAB_INTERPRETER") ?? "rules")
     .Trim()
     .ToLowerInvariant();
