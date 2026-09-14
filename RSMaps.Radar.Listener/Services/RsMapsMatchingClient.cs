@@ -64,55 +64,32 @@ public static class RsMapsMatchingClient
             if (resultado is null)
                 return "COINCIDENCIAS RSMAPS\n⚠ RSMaps respondió sin datos de matching.";
 
-            var mejor = resultado.Resultados
-                .OrderByDescending(x => x.Puntuacion)
-                .FirstOrDefault();
+            var mejorRecomendado =
+                resultado.Resultados
+                    .Where(x => x.EsRecomendacionAutomatica)
+                    .OrderByDescending(x => x.Puntuacion)
+                    .FirstOrDefault();
+
+            var mejor =
+                mejorRecomendado
+                ?? resultado.Resultados
+                    .OrderByDescending(x => x.Puntuacion)
+                    .FirstOrDefault();
+
+            solicitud.TieneRecomendacionAutomatica =
+                mejorRecomendado is not null;
 
             if (mejor is not null)
             {
                 solicitud.MejorCoincidencia = mejor.Puntuacion;
                 solicitud.IdInmuebleCoincidente = mejor.IdInmueble;
             }
-
             if (resultado.TotalCandidatos <= 0 || resultado.Resultados.Count == 0)
             {
                 return $"COINCIDENCIAS RSMAPS\n❌ Sin coincidencias útiles actuales.\nInventario evaluado: {resultado.TotalInventarioEvaluado}.";
             }
 
-            var sb = new StringBuilder();
-            sb.AppendLine("COINCIDENCIAS RSMAPS");
-
-            foreach (var item in resultado.Resultados.Take(3))
-            {
-                var icono = item.Puntuacion >= 85 ? "🟢" : item.Puntuacion >= 70 ? "🟡" : "⚪";
-                sb.AppendLine($"{icono} {item.Puntuacion}% · Inmueble #{item.IdInmueble}");
-
-                var datos = new List<string>();
-                if (!string.IsNullOrWhiteSpace(item.TipoNombre))
-                    datos.Add(item.TipoNombre.Trim());
-                if (item.Precio.HasValue && item.Precio.Value > 0)
-                    datos.Add(item.Precio.Value.ToString("C0", CultureInfo.GetCultureInfo("es-MX")));
-                if (item.Recamaras.HasValue)
-                    datos.Add($"{item.Recamaras} rec");
-                if (item.BanosCompletos.HasValue)
-                    datos.Add($"{item.BanosCompletos} baños");
-
-                if (datos.Count > 0)
-                    sb.AppendLine(string.Join(" · ", datos));
-
-                if (!string.IsNullOrWhiteSpace(item.Direccion))
-                    sb.AppendLine(item.Direccion.Trim());
-
-                foreach (var motivo in item.Coincidencias
-                             .Where(x => !string.IsNullOrWhiteSpace(x))
-                             .Take(3))
-                {
-                    sb.AppendLine($"✓ {motivo}");
-                }
-            }
-
-            sb.Append($"Candidatos: {resultado.TotalCandidatos} de {resultado.TotalInventarioEvaluado} evaluados.");
-            return sb.ToString().Trim();
+            return ConstruirResumen(resultado);
         }
         catch (TaskCanceledException)
         {
@@ -132,6 +109,126 @@ public static class RsMapsMatchingClient
         }
     }
 
+    private static string ConstruirResumen(
+        MatchingResponse resultado)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("COINCIDENCIAS RSMAPS");
+
+        List<MatchingResultado> seleccionados =
+            resultado.Resultados
+                .OrderByDescending(
+                    x => x.EsRecomendacionAutomatica)
+                .ThenByDescending(
+                    x => x.Puntuacion)
+                .Take(3)
+                .ToList();
+
+        List<MatchingResultado> recomendados =
+            seleccionados
+                .Where(x => x.EsRecomendacionAutomatica)
+                .ToList();
+
+        List<MatchingResultado> alternativas =
+            seleccionados
+                .Where(x => !x.EsRecomendacionAutomatica)
+                .ToList();
+
+        if (recomendados.Count > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine("✅ RECOMENDACIONES");
+
+            foreach (MatchingResultado item in recomendados)
+            {
+                AgregarInmuebleResumen(
+                    sb,
+                    item,
+                    esRecomendacion: true);
+            }
+        }
+
+        if (alternativas.Count > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine("⚠ ALTERNATIVAS PARA REVISAR");
+
+            foreach (MatchingResultado item in alternativas)
+            {
+                AgregarInmuebleResumen(
+                    sb,
+                    item,
+                    esRecomendacion: false);
+            }
+        }
+
+        sb.AppendLine();
+        sb.Append(
+            $"Candidatos: {resultado.TotalCandidatos} " +
+            $"de {resultado.TotalInventarioEvaluado} evaluados.");
+
+        return sb.ToString().Trim();
+    }
+
+    private static void AgregarInmuebleResumen(
+        StringBuilder sb,
+        MatchingResultado item,
+        bool esRecomendacion)
+    {
+        sb.AppendLine();
+
+        string icono =
+            esRecomendacion
+                ? "✅"
+                : "⚠";
+
+        sb.AppendLine(
+            $"{icono} {item.Puntuacion}% · " +
+            $"Inmueble #{item.IdInmueble}");
+
+        var datos = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(item.TipoNombre))
+            datos.Add(item.TipoNombre.Trim());
+
+        if (item.Precio.HasValue &&
+            item.Precio.Value > 0)
+        {
+            datos.Add(
+                item.Precio.Value.ToString(
+                    "C0",
+                    System.Globalization.CultureInfo.GetCultureInfo("es-MX")));
+        }
+
+        if (item.Recamaras.HasValue)
+            datos.Add($"{item.Recamaras} rec");
+
+        if (item.BanosCompletos.HasValue)
+            datos.Add($"{item.BanosCompletos} baños");
+
+        if (datos.Count > 0)
+            sb.AppendLine(string.Join(" · ", datos));
+
+        if (!string.IsNullOrWhiteSpace(item.Direccion))
+            sb.AppendLine(item.Direccion.Trim());
+
+        foreach (string motivo in item.Coincidencias
+                     .Where(x => !string.IsNullOrWhiteSpace(x))
+                     .Take(2))
+        {
+            sb.AppendLine($"✓ {motivo}");
+        }
+
+        if (!esRecomendacion)
+        {
+            foreach (string motivo in item.MotivosNoRecomendacion
+                         .Where(x => !string.IsNullOrWhiteSpace(x))
+                         .Take(4))
+            {
+                sb.AppendLine($"⚠ {motivo}");
+            }
+        }
+    }
     private static string Recortar(string texto, int max)
     {
         texto = texto.Replace("\r", " ").Replace("\n", " ").Trim();
@@ -150,6 +247,8 @@ public static class RsMapsMatchingClient
         public int IdInmueble { get; set; }
         public int Puntuacion { get; set; }
         public string Nivel { get; set; } = string.Empty;
+        public bool EsRecomendacionAutomatica { get; set; }
+        public List<string> MotivosNoRecomendacion { get; set; } = [];
         public string? Direccion { get; set; }
         public string? TipoNombre { get; set; }
         public double? Precio { get; set; }

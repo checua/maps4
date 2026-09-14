@@ -11,6 +11,7 @@ namespace maps4.Models
 
         public decimal? PrecioMinimo { get; set; }
         public decimal? PrecioMaximo { get; set; }
+        public decimal? PrecioObjetivo { get; set; }
 
         public int? RecamarasMin { get; set; }
         public int? RecamarasMax { get; set; }
@@ -38,6 +39,13 @@ namespace maps4.Models
         public int IdInmueble { get; set; }
         public int Puntuacion { get; set; }
         public string Nivel { get; set; } = string.Empty;
+
+        // El score mide similitud.
+        // Esta bandera indica si el inmueble cumple lo suficiente
+        // como para recomendarlo automáticamente.
+        public bool EsRecomendacionAutomatica { get; set; }
+
+        public List<string> MotivosNoRecomendacion { get; set; } = new();
 
         public string? Direccion { get; set; }
         public string? TipoNombre { get; set; }

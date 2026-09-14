@@ -51,6 +51,7 @@ public static class RadarInterpretationNormalizer
             solicitud.ModalidadesPago = NormalizarModalidadesPago(solicitud.ModalidadesPago);
 
             NormalizarPrecioExactoComoMaximo(solicitud, mensaje.TextoOriginal);
+            InferirPrecioObjetivo(solicitud, mensaje.TextoOriginal);
             NormalizarRecamaras(solicitud, mensaje.TextoOriginal);
         }
 
@@ -64,6 +65,18 @@ public static class RadarInterpretationNormalizer
             solicitud.ModalidadesPago = FiltrarModalidadesRespaldadas(
                 solicitud.ModalidadesPago,
                 mensaje.TextoOriginal);
+            // Si la inteligencia central no determinó la operación,
+            // una modalidad Contado respaldada por el mensaje es una
+            // señal fuerte de compra/venta.
+            if (string.IsNullOrWhiteSpace(solicitud.Operacion) &&
+                solicitud.ModalidadesPago.Any(
+                    x => string.Equals(
+                        x,
+                        "Contado",
+                        StringComparison.OrdinalIgnoreCase)))
+            {
+                solicitud.Operacion = "Venta";
+            }
         }
 
         // Conservamos la modalidad de pago para estadísticas y presentación,
@@ -404,6 +417,36 @@ public static class RadarInterpretationNormalizer
             solicitud.PrecioMinimo = null;
     }
 
+    private static void InferirPrecioObjetivo(
+        SolicitudInmobiliaria solicitud,
+        string mensajeOriginal)
+    {
+        // PrecioMaximo sigue siendo el techo duro.
+        // PrecioObjetivo representa el segmento comercial buscado
+        // cuando el usuario expresa un monto sin lenguaje de "hasta/máximo".
+        if (solicitud.PrecioObjetivo.HasValue ||
+            !solicitud.PrecioMaximo.HasValue ||
+            solicitud.PrecioMinimo.HasValue)
+        {
+            return;
+        }
+
+        string texto =
+            QuitarDiacriticos(mensajeOriginal)
+                .ToLowerInvariant();
+
+        bool expresaSoloTope =
+            Regex.IsMatch(
+                texto,
+                @"\b(?:hasta|maximo|maxima|tope)\b|\bno\s+mas\s+de\b|\bmenos\s+de\b",
+                RegexOptions.IgnoreCase);
+
+        if (expresaSoloTope)
+            return;
+
+        solicitud.PrecioObjetivo =
+            solicitud.PrecioMaximo;
+    }
     private static void NormalizarRecamaras(
         SolicitudInmobiliaria solicitud,
         string mensajeOriginal)
