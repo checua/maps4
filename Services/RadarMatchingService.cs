@@ -244,16 +244,44 @@ namespace maps4.Services
                     $"Zona no confirmada: {zonaCandidato}");
             }
 
-            if (solicitud.PrecioMinimo.HasValue || solicitud.PrecioMaximo.HasValue)
+            if (solicitud.PrecioMinimo.HasValue ||
+                solicitud.PrecioMaximo.HasValue ||
+                solicitud.PrecioObjetivo.HasValue)
             {
-                var valor = CoincidenciaPrecio(solicitud, inmueble.Precio);
-                string precioTexto = inmueble.Precio.HasValue && inmueble.Precio.Value > 0
-                    ? inmueble.Precio.Value.ToString("C0", CultureInfo.GetCultureInfo("es-MX"))
-                    : "sin precio";
+                var valor =
+                    CoincidenciaPrecio(
+                        solicitud,
+                        inmueble.Precio);
 
-                Agregar(20, valor,
-                    $"Precio compatible: {precioTexto}",
-                    $"Precio fuera de rango o no disponible: {precioTexto}");
+                string precioTexto =
+                    inmueble.Precio.HasValue &&
+                    inmueble.Precio.Value > 0
+                        ? inmueble.Precio.Value.ToString(
+                            "C0",
+                            CultureInfo.GetCultureInfo("es-MX"))
+                        : "sin precio";
+
+                if (solicitud.PrecioObjetivo.HasValue)
+                {
+                    string objetivoTexto =
+                        solicitud.PrecioObjetivo.Value.ToString(
+                            "C0",
+                            CultureInfo.GetCultureInfo("es-MX"));
+
+                    Agregar(
+                        20,
+                        valor,
+                        $"Precio cercano al objetivo: {precioTexto} (objetivo {objetivoTexto})",
+                        $"Precio alejado del objetivo: {precioTexto} (objetivo {objetivoTexto})");
+                }
+                else
+                {
+                    Agregar(
+                        20,
+                        valor,
+                        $"Precio compatible: {precioTexto}",
+                        $"Precio fuera de rango o no disponible: {precioTexto}");
+                }
             }
 
             if (solicitud.RecamarasMin.HasValue)
@@ -340,6 +368,14 @@ namespace maps4.Services
                 ? 0
                 : (int)Math.Round((puntos / pesoTotal) * 100, MidpointRounding.AwayFromZero);
 
+            List<string> motivosNoRecomendacion =
+                EvaluarMotivosNoRecomendacion(
+                    solicitud,
+                    inmueble,
+                    puntuacion);
+
+            bool esRecomendacionAutomatica =
+                motivosNoRecomendacion.Count == 0;
             return new RadarMatchingResultado
             {
                 IdInmueble = inmueble.IdInmueble,
@@ -347,6 +383,11 @@ namespace maps4.Services
                 Nivel = puntuacion >= 85 ? "ALTA"
                     : puntuacion >= 70 ? "MEDIA"
                     : "APROXIMADA",
+                EsRecomendacionAutomatica =
+                    esRecomendacionAutomatica,
+
+                MotivosNoRecomendacion =
+                    motivosNoRecomendacion,
                 Direccion = DireccionUtil(inmueble.Direccion) ? inmueble.Direccion : null,
                 TipoNombre = inmueble.TipoNombre,
                 Precio = inmueble.Precio,
@@ -361,6 +402,146 @@ namespace maps4.Services
             };
         }
 
+        private static List<string> EvaluarMotivosNoRecomendacion(
+            RadarMatchingRequest solicitud,
+            InventarioInmuebleViewModel inmueble,
+            int puntuacion)
+        {
+            var motivos = new List<string>();
+
+            // Venta y renta son dimensiones comerciales incompatibles.
+            // Si RADAR no pudo determinar la operación, el inmueble puede
+            // conservarse como alternativa para revisión, pero nunca debe
+            // presentarse como recomendación automática.
+            if (string.IsNullOrWhiteSpace(solicitud.Operacion))
+            {
+                motivos.Add(
+                    "Operación no determinada; requiere revisión.");
+            }
+
+            // Un inmueble puede permanecer como candidato desde 55%,
+            // pero una recomendación automática exige una coincidencia alta.
+            if (puntuacion < 85)
+            {
+                motivos.Add(
+                    $"Puntuación insuficiente para recomendación automática: {puntuacion}%.");
+            }
+
+            // Para encontrar alternativas toleramos una recámara menos.
+            // Para RECOMENDAR automáticamente, el mínimo debe cumplirse.
+            if (solicitud.RecamarasMin.HasValue)
+            {
+                if (!inmueble.Recamaras.HasValue)
+                {
+                    motivos.Add(
+                        $"Recámaras no confirmadas; se solicitan mínimo {solicitud.RecamarasMin.Value}.");
+                }
+                else if (inmueble.Recamaras.Value < solicitud.RecamarasMin.Value)
+                {
+                    motivos.Add(
+                        $"Tiene {inmueble.Recamaras.Value} recámaras; " +
+                        $"se solicitan mínimo {solicitud.RecamarasMin.Value}.");
+                }
+            }
+
+            // Mismo principio para baños.
+            if (solicitud.BanosMin.HasValue)
+            {
+                if (!inmueble.BanosCompletos.HasValue)
+                {
+                    motivos.Add(
+                        $"Baños no confirmados; se solicitan mínimo {solicitud.BanosMin.Value}.");
+                }
+                else if (inmueble.BanosCompletos.Value < solicitud.BanosMin.Value)
+                {
+                    motivos.Add(
+                        $"Tiene {inmueble.BanosCompletos.Value} baños; " +
+                        $"se solicitan mínimo {solicitud.BanosMin.Value}.");
+                }
+            }
+
+            // Si se pidió explícitamente una planta, para recomendar
+            // necesitamos confirmación positiva del inventario.
+            if (solicitud.UnaPlanta == true)
+            {
+                if (!inmueble.Niveles.HasValue)
+                {
+                    motivos.Add(
+                        "No está confirmado que sea de una planta.");
+                }
+                else if (inmueble.Niveles.Value != 1)
+                {
+                    motivos.Add(
+                        $"Tiene {inmueble.Niveles.Value} niveles; se solicita una planta.");
+                }
+            }
+
+            // Para recomendaciones automáticas no basta con la tolerancia
+            // del 80% usada para descubrir alternativas.
+            if (solicitud.TerrenoMinM2.HasValue)
+            {
+                if (!inmueble.Terreno.HasValue)
+                {
+                    motivos.Add(
+                        $"Terreno no confirmado; se solicitan mínimo {solicitud.TerrenoMinM2.Value:0.#} m².");
+                }
+                else if (inmueble.Terreno.Value <
+                         (double)solicitud.TerrenoMinM2.Value)
+                {
+                    motivos.Add(
+                        $"Terreno de {inmueble.Terreno.Value:0.#} m²; " +
+                        $"se solicitan mínimo {solicitud.TerrenoMinM2.Value:0.#} m².");
+                }
+            }
+
+            if (solicitud.ConstruccionMinM2.HasValue)
+            {
+                if (!inmueble.Construccion.HasValue)
+                {
+                    motivos.Add(
+                        $"Construcción no confirmada; se solicitan mínimo {solicitud.ConstruccionMinM2.Value:0.#} m².");
+                }
+                else if (inmueble.Construccion.Value <
+                         (double)solicitud.ConstruccionMinM2.Value)
+                {
+                    motivos.Add(
+                        $"Construcción de {inmueble.Construccion.Value:0.#} m²; " +
+                        $"se solicitan mínimo {solicitud.ConstruccionMinM2.Value:0.#} m².");
+                }
+            }
+
+            // Una propiedad muy por debajo del precio objetivo puede ser
+            // una oportunidad interesante, pero pertenece a otro segmento.
+            if (solicitud.PrecioObjetivo.HasValue &&
+                solicitud.PrecioObjetivo.Value > 0)
+            {
+                if (!inmueble.Precio.HasValue ||
+                    inmueble.Precio.Value <= 0)
+                {
+                    motivos.Add(
+                        "Precio no confirmado frente al precio objetivo.");
+                }
+                else
+                {
+                    double objetivo =
+                        (double)solicitud.PrecioObjetivo.Value;
+
+                    double desviacion =
+                        Math.Abs(
+                            inmueble.Precio.Value -
+                            objetivo) /
+                        Math.Max(objetivo, 1);
+
+                    if (desviacion > 0.30)
+                    {
+                        motivos.Add(
+                            $"Precio alejado {desviacion:P0} del objetivo comercial.");
+                    }
+                }
+            }
+
+            return motivos;
+        }
         private static bool OperacionIncompatible(string? operacion, InventarioInmuebleViewModel inmueble)
         {
             if (string.IsNullOrWhiteSpace(operacion))
@@ -688,32 +869,91 @@ namespace maps4.Services
                 .Distinct(StringComparer.OrdinalIgnoreCase);
         }
 
-        private static double CoincidenciaPrecio(RadarMatchingRequest solicitud, double? precio)
+        private static double CoincidenciaPrecio(
+            RadarMatchingRequest solicitud,
+            double? precio)
         {
             if (!precio.HasValue || precio.Value <= 0)
                 return 0.10;
 
             double p = precio.Value;
-            double? min = solicitud.PrecioMinimo.HasValue ? (double)solicitud.PrecioMinimo.Value : null;
-            double? max = solicitud.PrecioMaximo.HasValue ? (double)solicitud.PrecioMaximo.Value : null;
 
-            if ((!min.HasValue || p >= min.Value) && (!max.HasValue || p <= max.Value))
+            double? min =
+                solicitud.PrecioMinimo.HasValue
+                    ? (double)solicitud.PrecioMinimo.Value
+                    : null;
+
+            double? max =
+                solicitud.PrecioMaximo.HasValue
+                    ? (double)solicitud.PrecioMaximo.Value
+                    : null;
+
+            double? objetivo =
+                solicitud.PrecioObjetivo.HasValue &&
+                solicitud.PrecioObjetivo.Value > 0
+                    ? (double)solicitud.PrecioObjetivo.Value
+                    : null;
+
+            // PrecioObjetivo es una señal comercial blanda:
+            // mide qué tan cerca está el inmueble del segmento
+            // económico que el prospecto parece estar buscando.
+            //
+            // El PrecioMaximo continúa siendo una restricción dura
+            // y se valida previamente en EsCandidatoViable().
+            if (objetivo.HasValue)
+            {
+                double desviacion =
+                    Math.Abs(p - objetivo.Value) /
+                    Math.Max(objetivo.Value, 1);
+
+                if (desviacion <= 0.10)
+                    return 1.00;
+
+                if (desviacion <= 0.20)
+                    return 0.90;
+
+                if (desviacion <= 0.30)
+                    return 0.75;
+
+                if (desviacion <= 0.40)
+                    return 0.55;
+
+                if (desviacion <= 0.50)
+                    return 0.35;
+
+                return 0.15;
+            }
+
+            // Comportamiento histórico para solicitudes que sólo
+            // expresan un rango o un límite sin PrecioObjetivo.
+            if ((!min.HasValue || p >= min.Value) &&
+                (!max.HasValue || p <= max.Value))
+            {
                 return 1;
+            }
 
             if (max.HasValue && p > max.Value)
             {
-                double exceso = (p - max.Value) / Math.Max(max.Value, 1);
+                double exceso =
+                    (p - max.Value) /
+                    Math.Max(max.Value, 1);
+
                 if (exceso <= 0.05) return 0.85;
                 if (exceso <= 0.10) return 0.70;
                 if (exceso <= 0.20) return 0.45;
+
                 return 0;
             }
 
             if (min.HasValue && p < min.Value)
             {
-                double proporcion = p / Math.Max(min.Value, 1);
+                double proporcion =
+                    p /
+                    Math.Max(min.Value, 1);
+
                 if (proporcion >= 0.90) return 0.90;
                 if (proporcion >= 0.80) return 0.75;
+
                 return 0.50;
             }
 

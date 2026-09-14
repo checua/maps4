@@ -40,10 +40,20 @@ public sealed class RadarCentralProcessingService : IRadarCentralProcessingServi
                 correo,
                 CrearMatchingRequest(solicitud));
 
-            RadarMatchingResultado? mejor = resultado.Resultados
-                .OrderByDescending(x => x.Puntuacion)
-                .FirstOrDefault();
+            RadarMatchingResultado? mejorRecomendado =
+                resultado.Resultados
+                    .Where(x => x.EsRecomendacionAutomatica)
+                    .OrderByDescending(x => x.Puntuacion)
+                    .FirstOrDefault();
 
+            RadarMatchingResultado? mejor =
+                mejorRecomendado
+                ?? resultado.Resultados
+                    .OrderByDescending(x => x.Puntuacion)
+                    .FirstOrDefault();
+
+            solicitud.TieneRecomendacionAutomatica =
+                mejorRecomendado is not null;
             if (mejor is not null)
             {
                 solicitud.MejorCoincidencia = mejor.Puntuacion;
@@ -68,6 +78,7 @@ public sealed class RadarCentralProcessingService : IRadarCentralProcessingServi
             EtapaInmueble = solicitud.EtapaInmueble,
             PrecioMinimo = solicitud.PrecioMinimo,
             PrecioMaximo = solicitud.PrecioMaximo,
+            PrecioObjetivo = solicitud.PrecioObjetivo,
             RecamarasMin = solicitud.RecamarasMin,
             RecamarasMax = solicitud.RecamarasMax,
             BanosMin = solicitud.BanosMin,
@@ -88,45 +99,132 @@ public sealed class RadarCentralProcessingService : IRadarCentralProcessingServi
 
     private static string ConstruirResumen(RadarMatchingResponse resultado)
     {
-        if (resultado.TotalCandidatos <= 0 || resultado.Resultados.Count == 0)
+        if (resultado.TotalCandidatos <= 0 ||
+            resultado.Resultados.Count == 0)
         {
-            return $"COINCIDENCIAS RSMAPS\n❌ Sin coincidencias útiles actuales.\n" +
-                   $"Inventario evaluado: {resultado.TotalInventarioEvaluado}.";
+            return
+                $"COINCIDENCIAS RSMAPS\n" +
+                $"❌ Sin coincidencias útiles actuales.\n" +
+                $"Inventario evaluado: {resultado.TotalInventarioEvaluado}.";
         }
 
         var sb = new StringBuilder();
         sb.AppendLine("COINCIDENCIAS RSMAPS");
 
-        foreach (RadarMatchingResultado item in resultado.Resultados.Take(3))
+        // Máximo tres inmuebles visibles en el mensaje.
+        // Las recomendaciones reales tienen prioridad sobre alternativas.
+        List<RadarMatchingResultado> seleccionados =
+            resultado.Resultados
+                .OrderByDescending(
+                    x => x.EsRecomendacionAutomatica)
+                .ThenByDescending(
+                    x => x.Puntuacion)
+                .Take(3)
+                .ToList();
+
+        List<RadarMatchingResultado> recomendados =
+            seleccionados
+                .Where(x => x.EsRecomendacionAutomatica)
+                .ToList();
+
+        List<RadarMatchingResultado> alternativas =
+            seleccionados
+                .Where(x => !x.EsRecomendacionAutomatica)
+                .ToList();
+
+        if (recomendados.Count > 0)
         {
-            string icono = item.Puntuacion >= 85 ? "🟢" : item.Puntuacion >= 70 ? "🟡" : "⚪";
-            sb.AppendLine($"{icono} {item.Puntuacion}% · Inmueble #{item.IdInmueble}");
+            sb.AppendLine();
+            sb.AppendLine("✅ RECOMENDACIONES");
 
-            var datos = new List<string>();
-            if (!string.IsNullOrWhiteSpace(item.TipoNombre))
-                datos.Add(item.TipoNombre.Trim());
-            if (item.Precio.HasValue && item.Precio.Value > 0)
-                datos.Add(item.Precio.Value.ToString("C0", CultureInfo.GetCultureInfo("es-MX")));
-            if (item.Recamaras.HasValue)
-                datos.Add($"{item.Recamaras} rec");
-            if (item.BanosCompletos.HasValue)
-                datos.Add($"{item.BanosCompletos} baños");
-
-            if (datos.Count > 0)
-                sb.AppendLine(string.Join(" · ", datos));
-
-            if (!string.IsNullOrWhiteSpace(item.Direccion))
-                sb.AppendLine(item.Direccion.Trim());
-
-            foreach (string motivo in item.Coincidencias
-                         .Where(x => !string.IsNullOrWhiteSpace(x))
-                         .Take(3))
+            foreach (RadarMatchingResultado item in recomendados)
             {
-                sb.AppendLine($"✓ {motivo}");
+                AgregarInmuebleResumen(
+                    sb,
+                    item,
+                    esRecomendacion: true);
             }
         }
 
-        sb.Append($"Candidatos: {resultado.TotalCandidatos} de {resultado.TotalInventarioEvaluado} evaluados.");
+        if (alternativas.Count > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine("⚠ ALTERNATIVAS PARA REVISAR");
+
+            foreach (RadarMatchingResultado item in alternativas)
+            {
+                AgregarInmuebleResumen(
+                    sb,
+                    item,
+                    esRecomendacion: false);
+            }
+        }
+
+        sb.AppendLine();
+        sb.Append(
+            $"Candidatos: {resultado.TotalCandidatos} " +
+            $"de {resultado.TotalInventarioEvaluado} evaluados.");
+
         return sb.ToString().Trim();
+    }
+
+    private static void AgregarInmuebleResumen(
+        StringBuilder sb,
+        RadarMatchingResultado item,
+        bool esRecomendacion)
+    {
+        sb.AppendLine();
+
+        string icono =
+            esRecomendacion
+                ? "✅"
+                : "⚠";
+
+        sb.AppendLine(
+            $"{icono} {item.Puntuacion}% · " +
+            $"Inmueble #{item.IdInmueble}");
+
+        var datos = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(item.TipoNombre))
+            datos.Add(item.TipoNombre.Trim());
+
+        if (item.Precio.HasValue &&
+            item.Precio.Value > 0)
+        {
+            datos.Add(
+                item.Precio.Value.ToString(
+                    "C0",
+                    CultureInfo.GetCultureInfo("es-MX")));
+        }
+
+        if (item.Recamaras.HasValue)
+            datos.Add($"{item.Recamaras} rec");
+
+        if (item.BanosCompletos.HasValue)
+            datos.Add($"{item.BanosCompletos} baños");
+
+        if (datos.Count > 0)
+            sb.AppendLine(string.Join(" · ", datos));
+
+        if (!string.IsNullOrWhiteSpace(item.Direccion))
+            sb.AppendLine(item.Direccion.Trim());
+
+        foreach (string motivo in item.Coincidencias
+                     .Where(x => !string.IsNullOrWhiteSpace(x))
+                     .Take(2))
+        {
+            sb.AppendLine($"✓ {motivo}");
+        }
+
+        if (!esRecomendacion)
+        {
+            foreach (string motivo in item.MotivosNoRecomendacion
+                         .Where(x => !string.IsNullOrWhiteSpace(x))
+                         .Take(4))
+            {
+                sb.AppendLine($"⚠ {motivo}");
+            }
+        }
     }
 }

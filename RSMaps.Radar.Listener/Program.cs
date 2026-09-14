@@ -1508,16 +1508,13 @@ static string ConstruirAlerta(SolicitudInmobiliaria s)
 {
     var sb = new StringBuilder();
 
-    string coincidencia = s.MejorCoincidencia.HasValue
-        ? $"{Math.Round(s.MejorCoincidencia.Value, MidpointRounding.AwayFromZero):0}%"
-        : "confirmada";
+    sb.AppendLine(
+        RadarAlertPresentation.ConstruirEncabezado(s));
 
-    sb.AppendLine($"\U0001F525 RSMAPS RADAR \u00B7 COINCIDENCIA {coincidencia}");
     sb.AppendLine();
-
     if (!string.IsNullOrWhiteSpace(s.MatchingResumen))
     {
-        sb.AppendLine("\u2705 MATCH RSMAPS");
+        sb.AppendLine(RadarAlertPresentation.ConstruirTituloResultados(s));
 
         var lineasMatching = s.MatchingResumen
             .Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)

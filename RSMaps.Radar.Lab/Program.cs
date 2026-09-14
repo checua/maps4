@@ -23,6 +23,15 @@ if (string.Equals(
     return;
 }
 
+if (string.Equals(
+    labMode,
+    "cynthia-recommendation-baseline",
+    StringComparison.OrdinalIgnoreCase))
+{
+    await CynthiaRecommendationBaseline.RunAsync();
+    return;
+}
+
 var engine = (Environment.GetEnvironmentVariable("RADAR_LAB_INTERPRETER") ?? "rules")
     .Trim()
     .ToLowerInvariant();

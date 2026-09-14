@@ -26,6 +26,7 @@ public class SolicitudInmobiliaria
 
     public decimal? PrecioMinimo { get; set; }
     public decimal? PrecioMaximo { get; set; }
+    public decimal? PrecioObjetivo { get; set; }
 
     public int? RecamarasMin { get; set; }
     public int? RecamarasMax { get; set; }
@@ -50,6 +51,10 @@ public class SolicitudInmobiliaria
     public List<string> RestriccionesDurasNoVerificables { get; set; } = [];
 
     public double? MejorCoincidencia { get; set; }
+
+    // True cuando al menos un candidato superó tanto el score
+    // como los requisitos comerciales mínimos para recomendarlo.
+    public bool TieneRecomendacionAutomatica { get; set; }
     public int? IdInmuebleCoincidente { get; set; }
 
     // Texto listo para anexar al mensaje que se envía a Propiedades.
