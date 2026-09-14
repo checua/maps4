@@ -66,6 +66,14 @@ public static class RadarInterpretationNormalizer
                 mensaje.TextoOriginal);
         }
 
+        // Conservamos la modalidad de pago para estadísticas y presentación,
+        // pero mientras el inventario no pueda verificar compatibilidad
+        // estructurada con créditos, esas modalidades operan fail-closed.
+        foreach (var solicitud in resultado.Solicitudes)
+        {
+            AplicarRestriccionesDurasModalidadesPago(solicitud);
+        }
+
         return resultado;
     }
 
@@ -332,6 +340,47 @@ public static class RadarInterpretationNormalizer
         }
 
         return resultado;
+    }
+
+    private static void AplicarRestriccionesDurasModalidadesPago(
+        SolicitudInmobiliaria solicitud)
+    {
+        if (solicitud.ModalidadesPago.Count == 0)
+            return;
+
+        foreach (string modalidad in solicitud.ModalidadesPago)
+        {
+            string? restriccion = modalidad switch
+            {
+                "Infonavit" => "PAGO: INFONAVIT",
+                "Fovissste" => "PAGO: FOVISSSTE",
+                "Banjercito" => "PAGO: BANJERCITO",
+                "Crédito bancario" => "PAGO: CRÉDITO BANCARIO",
+                "Crédito hipotecario" => "PAGO: CRÉDITO HIPOTECARIO",
+
+                // Contado no requiere comprobar elegibilidad
+                // frente a una institución financiera.
+                "Contado" => null,
+
+                _ => null
+            };
+
+            if (string.IsNullOrWhiteSpace(restriccion))
+                continue;
+
+            bool yaExiste =
+                solicitud.RestriccionesDurasNoVerificables.Any(
+                    x => string.Equals(
+                        x,
+                        restriccion,
+                        StringComparison.OrdinalIgnoreCase));
+
+            if (!yaExiste)
+            {
+                solicitud.RestriccionesDurasNoVerificables.Add(
+                    restriccion);
+            }
+        }
     }
 
     private static void NormalizarPrecioExactoComoMaximo(
