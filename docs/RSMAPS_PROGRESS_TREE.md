@@ -118,16 +118,19 @@ RSMaps Web/API/Matching en Azure App Service
 
 ---
 
-# 3. Fotografías y medios — 63% — peso 15%
+# 3. Fotografías y medios — 80% — peso 15%
 
-### 3.1 Compatibilidad `/cargas` → storage moderno — 88%
+### 3.1 Compatibilidad `/cargas` → storage moderno — 98%
 - ✅ El modal legacy sigue solicitando rutas `/cargas/{id}_{orden}.jpg`.
 - ✅ Existe `ModernImageCompatibilityController` como puente hacia el storage moderno.
 - ✅ Se retiró el redireccionamiento temporal localhost → Web App productiva.
 - ✅ `localhost:5103/cargas/187_1.jpg` usando Azure Blob devuelve 404 limpio, sin 403/500 ni error de autenticación.
-- 🟡 Validar fotos existentes una vez migrados sus payloads al Blob.
+- ✅ Detectada causa raíz de los 404 legacy después de la foto 20: `RSMAPS_sp_ObtenerFotoPublicaPorOrden` conservaba el límite `@orden > 20`.
+- ✅ Paso 55 alinea la lectura pública con el límite actual de 40 fotos.
+- ✅ Auditoría productiva de 72 fotos legacy con orden > 20: 72 HTTP 200, 72 tamaños coinciden con SQL y 0 problemas.
+- ✅ Validado `150_34.jpg` directamente en producción.
 
-### 3.2 Azure Blob Storage — 90%
+### 3.2 Azure Blob Storage — 95%
 - ✅ Existe `AzureBlobInmuebleFotoStorage`.
 - ✅ Soporta guardar, leer y eliminar JPEG/PNG/WEBP.
 - ✅ Storage Account específico de RSMaps creado.
@@ -136,21 +139,24 @@ RSMaps Web/API/Matching en Azure App Service
 - ✅ Contenedor privado `rsmap-images` creado.
 - ✅ App Service configurado para Azure Blob.
 - ✅ localhost:5103 probado con la misma configuración de Blob.
-- 🟡 Auditar existencia de blobs contra metadata activa.
+- ✅ Confirmado que las 72 fotos legacy aparentemente faltantes ya existían físicamente en Blob.
+- 🟡 Completar auditoría de Blob contra toda la metadata moderna activa.
 
-### 3.3 Migración de fotos legacy — 45%
+### 3.3 Migración de fotos legacy — 95%
 - ✅ Existen herramientas/scripts de migración y auditoría.
 - ✅ El manifiesto generado del Paso 52 cubre 72 inmuebles / 808 fotos y actualmente termina en el inmueble #169.
-- 🟡 Inventariar todas las fotos activas legacy y modernas fuera de Blob.
-- 🟡 Verificar faltantes.
-- 🔵 Migrar archivos físicos a Blob Storage conservando sus claves de metadata.
-- 🔵 Validar tamaños/metadatos contra base de datos.
+- ✅ Las 72 fallas legacy detectadas después de la posición 20 no correspondían a archivos faltantes.
+- ✅ `85/85_21.jpg` ya existía en Blob y coincidía exactamente con SQL.
+- ✅ Causa real corregida mediante Paso 55: límite público de lectura 20 → 40.
+- ✅ Validación final en producción: 72 esperadas, 72 correctas, 0 problemas.
+- ✅ No fue necesaria recuperación física de #150 ni #169.
+- 🟡 Mantener auditoría general metadata → Blob para detectar futuros faltantes reales.
 
 ### 3.4 Fotos modernas fuera de Blob — 35%
-- 🔴 #187 tiene 15 registros modernos: 14 activos + 1 inactivo, pero sus archivos físicos no están en casa.
+- 🔴 #187 tiene 15 registros modernos: 14 activos + 1 inactivo, pero sus archivos físicos no están localizados.
 - ✅ El contador legacy 14 coincide con las 14 fotos modernas activas.
 - ✅ Metadata moderna de #187 es válida y usa claves GUID bajo `187/...jpg`.
-- 🟡 Localizar el equipo origen de los payloads físicos, probablemente oficina.
+- 🟡 Localizar el equipo/origen de los payloads físicos.
 - 🔵 Subirlos a Blob conservando exactamente las claves existentes.
 - 🔵 Preservar inicialmente el archivo inactivo para evitar pérdida de historial.
 
@@ -161,7 +167,6 @@ RSMaps Web/API/Matching en Azure App Service
 - 🔵 Añadir auditoría/guard para advertir si una instalación comparte Azure SQL pero usa `Local` para nuevas fotos.
 
 ---
-
 # 4. Azure y publicación — 78% — peso 15%
 
 ### 4.1 Base de datos Azure SQL — 90%
@@ -301,22 +306,45 @@ Ideas ya identificadas:
 
 Ésta es la parte lineal del Árbol de avance. El árbol organiza; la Ruta activa decide qué hacemos primero.
 
-1. **Smoke test directo en Azure de la versión recién desplegada:** mapa, endpoint viewport, login/inventario y foco de propiedad.
+1. **Smoke test directo en Azure:** mapa, endpoint viewport, login/inventario y foco de propiedad.
 2. **Validar inmueble #147 directamente en Azure:** carga normal, Inventario → Ver en mapa, marker correcto, Acercar y prioridad sobre geolocalización.
 3. **Validar viewport en Azure:** mover/zoom y confirmar carga sólo del área visible.
 4. **Revisar/aplicar índice SQL 54 en Azure SQL.**
-5. **Localizar en oficina los payloads modernos del inmueble #187 y cualquier foto activa fuera de Blob.**
-6. **Migrar fotos legacy y modernas a `rsmap-images` preservando claves existentes.**
-7. **Crear auditoría metadata → Blob (Missing / SizeMismatch / OK).**
-8. **Localizar configuración del RADAR Listener que apunta a `localhost:5102` y preparar cambio a RSMaps Azure.**
-9. **Prueba de corte: apagar 5102/5103 y confirmar Listener → RSMaps Azure.**
-10. **Corregir `Inventario evaluado: 1` de RADAR — siguiente bloqueo activo después del cierre del bug #184.**
-11. **Pruebas integrales RSMaps + RADAR.**
-12. **Revisión de secretos/API keys/seguridad y observabilidad.**
+5. **Localizar los payloads modernos del inmueble #187 y validar sus 14 claves activas GUID.**
+6. **Completar auditoría de fotografías modernas activas contra Blob; mantener #184/#185 separados como cuentas de prueba.**
+7. **Ejecutar regresión directa RADAR contra RSMaps Azure:** hard constraints, modalidades de pago y calidad de recomendaciones.
+8. **Validar configuración del RADAR Listener contra RSMaps Azure y preparar despliegue controlado.**
+9. **Prueba de corte: confirmar operación Listener → RSMaps Azure sin depender de localhost.**
+10. **Pruebas integrales RSMaps + RADAR.**
+11. **Revisión de secretos/API keys/seguridad y observabilidad.**
 
 ---
-
 # Registro de decisiones
+## 2026-09-15 — Causa raíz de fotos legacy >20
+
+La auditoría inicial mostró 72 URLs legacy con HTTP 404, todas correspondientes a posiciones posteriores a la foto 20. Inicialmente parecían blobs faltantes.
+
+La revisión directa confirmó que los blobs sí existían en Azure y coincidían en tamaño con SQL. El problema estaba en `dbo.RSMAPS_sp_ObtenerFotoPublicaPorOrden`, creado originalmente con:
+
+```sql
+IF @orden < 1 OR @orden > 20 RETURN;
+```
+
+El Paso 50 ya había elevado el límite de alta a 40 fotos, pero la lectura pública permanecía limitada a 20.
+
+Se creó y aplicó el **Paso 55**, alineando la lectura pública a 40 fotos.
+
+Validación final en producción:
+
+- 72 fotos legacy con orden > 20 auditadas.
+- 72 devolvieron HTTP 200.
+- 72 coincidieron exactamente en bytes con SQL.
+- 0 problemas.
+- `150_34.jpg` validada directamente como caso de posición alta.
+- No fue necesaria recuperación física de #150 ni #169.
+
+El problema de las fotos modernas del inmueble #187 permanece separado y pendiente.
+
 
 ## 2026-09-08 — Modelo de seguimiento
 
