@@ -22,12 +22,13 @@ public static class RsMapsMatchingClient
         Environment.GetEnvironmentVariable("RSMAPS_AGENT_MATCHING_URL")?.Trim()
         ?? $"{RadarAgentBackendClient.BaseUrl}/api/radar/matching/agent";
 
-    public static async Task<string> ConstruirResumenAsync(SolicitudInmobiliaria solicitud)
+    public static async Task<RadarMatchingClientResult> ConstruirResultadoAsync(
+        SolicitudInmobiliaria solicitud)
     {
         // En modo central, RSMaps ya interpretó y ejecutó matching en una sola
         // operación. Reutilizamos ese resultado y evitamos una segunda llamada.
         if (!string.IsNullOrWhiteSpace(solicitud.MatchingResumen))
-            return solicitud.MatchingResumen;
+            return RadarMatchingClientResult.ResultadoConfirmado(solicitud.MatchingResumen);
 
         string token = string.Empty;
 
@@ -38,8 +39,9 @@ public static class RsMapsMatchingClient
 
             if (config is not null && !tieneCredencial)
             {
-                return "COINCIDENCIAS RSMAPS\n⚠ RADAR Agent está configurado pero no tiene una credencial de dispositivo válida."
-                    + $"\n{Recortar(detalleCredencial, 180)}";
+                return RadarMatchingClientResult.TemporalmenteNoDisponible(
+                    "COINCIDENCIAS RSMAPS\n⚠ RADAR Agent está configurado pero no tiene una credencial de dispositivo válida."
+                    + $"\n{Recortar(detalleCredencial, 180)}");
             }
 
             string endpoint = tieneCredencial ? AgentEndpoint : LegacyEndpoint;
@@ -56,23 +58,32 @@ public static class RsMapsMatchingClient
             if (!response.IsSuccessStatusCode)
             {
                 var detalle = await response.Content.ReadAsStringAsync();
-                return $"COINCIDENCIAS RSMAPS\n⚠ No fue posible comparar ahora ({(int)response.StatusCode})."
-                    + (string.IsNullOrWhiteSpace(detalle) ? string.Empty : $"\n{Recortar(detalle, 180)}");
+                return RadarMatchingClientResult.TemporalmenteNoDisponible(
+                    $"COINCIDENCIAS RSMAPS\n⚠ No fue posible comparar ahora ({(int)response.StatusCode})."
+                    + (string.IsNullOrWhiteSpace(detalle) ? string.Empty : $"\n{Recortar(detalle, 180)}"));
             }
 
             var resultado = await response.Content.ReadFromJsonAsync<MatchingResponse>();
-            if (resultado is null)
-                return "COINCIDENCIAS RSMAPS\n⚠ RSMaps respondió sin datos de matching.";
+            if (resultado is null ||
+                !RadarMatchingResponseValidation.EsValida(
+                    resultado.TotalCandidatos,
+                    resultado.Resultados?.Count))
+            {
+                return RadarMatchingClientResult.TemporalmenteNoDisponible(
+                    "COINCIDENCIAS RSMAPS\n⚠ RSMaps respondió con datos de matching vacíos o inválidos.");
+            }
+
+            List<MatchingResultado> resultados = resultado.Resultados!;
 
             var mejorRecomendado =
-                resultado.Resultados
+                resultados
                     .Where(x => x.EsRecomendacionAutomatica)
                     .OrderByDescending(x => x.Puntuacion)
                     .FirstOrDefault();
 
             var mejor =
                 mejorRecomendado
-                ?? resultado.Resultados
+                ?? resultados
                     .OrderByDescending(x => x.Puntuacion)
                     .FirstOrDefault();
 
@@ -84,24 +95,29 @@ public static class RsMapsMatchingClient
                 solicitud.MejorCoincidencia = mejor.Puntuacion;
                 solicitud.IdInmuebleCoincidente = mejor.IdInmueble;
             }
-            if (resultado.TotalCandidatos <= 0 || resultado.Resultados.Count == 0)
+            if (resultado.TotalCandidatos == 0)
             {
-                return $"COINCIDENCIAS RSMAPS\n❌ Sin coincidencias útiles actuales.\nInventario evaluado: {resultado.TotalInventarioEvaluado}.";
+                return RadarMatchingClientResult.ResultadoConfirmado(
+                    $"COINCIDENCIAS RSMAPS\n❌ Sin coincidencias útiles actuales.\nInventario evaluado: {resultado.TotalInventarioEvaluado}.");
             }
 
-            return ConstruirResumen(resultado);
+            return RadarMatchingClientResult.ResultadoConfirmado(
+                ConstruirResumen(resultado, resultados));
         }
         catch (TaskCanceledException)
         {
-            return "COINCIDENCIAS RSMAPS\n\u26A0 La comparaci\u00F3n excedi\u00F3 el tiempo de espera; no se enviar\u00E1 alerta hasta confirmar matching.";
+            return RadarMatchingClientResult.TemporalmenteNoDisponible(
+                "COINCIDENCIAS RSMAPS\n\u26A0 La comparaci\u00F3n excedi\u00F3 el tiempo de espera; no se enviar\u00E1 alerta hasta confirmar matching.");
         }
         catch (HttpRequestException ex)
         {
-            return $"COINCIDENCIAS RSMAPS\n⚠ No pude conectar con RSMaps: {Recortar(ex.Message, 160)}";
+            return RadarMatchingClientResult.TemporalmenteNoDisponible(
+                $"COINCIDENCIAS RSMAPS\n⚠ No pude conectar con RSMaps: {Recortar(ex.Message, 160)}");
         }
         catch (Exception ex)
         {
-            return $"COINCIDENCIAS RSMAPS\n⚠ Error al comparar: {Recortar(ex.Message, 160)}";
+            return RadarMatchingClientResult.TemporalmenteNoDisponible(
+                $"COINCIDENCIAS RSMAPS\n⚠ Error al comparar: {Recortar(ex.Message, 160)}");
         }
         finally
         {
@@ -110,13 +126,14 @@ public static class RsMapsMatchingClient
     }
 
     private static string ConstruirResumen(
-        MatchingResponse resultado)
+        MatchingResponse resultado,
+        List<MatchingResultado> resultados)
     {
         var sb = new StringBuilder();
         sb.AppendLine("COINCIDENCIAS RSMAPS");
 
         List<MatchingResultado> seleccionados =
-            resultado.Resultados
+            resultados
                 .OrderByDescending(
                     x => x.EsRecomendacionAutomatica)
                 .ThenByDescending(
@@ -239,7 +256,7 @@ public static class RsMapsMatchingClient
     {
         public int TotalInventarioEvaluado { get; set; }
         public int TotalCandidatos { get; set; }
-        public List<MatchingResultado> Resultados { get; set; } = [];
+        public List<MatchingResultado>? Resultados { get; set; }
     }
 
     private sealed class MatchingResultado
@@ -256,5 +273,39 @@ public static class RsMapsMatchingClient
         public int? BanosCompletos { get; set; }
         public List<string> Coincidencias { get; set; } = [];
         public List<string> Diferencias { get; set; } = [];
+    }
+}
+
+public sealed record RadarMatchingClientResult(
+    string Resumen,
+    bool Confirmado)
+{
+    public static RadarMatchingClientResult ResultadoConfirmado(string resumen) =>
+        new(resumen, true);
+
+    public static RadarMatchingClientResult TemporalmenteNoDisponible(string resumen) =>
+        new(resumen, false);
+}
+
+public static class RadarMatchingFlowDecision
+{
+    public static bool RequiereReintento(RadarMatchingClientResult resultado) =>
+        !resultado.Confirmado;
+}
+
+public static class RadarMatchingResponseValidation
+{
+    public static bool EsValida(
+        int totalCandidatos,
+        int? resultadosDevueltos)
+    {
+        if (totalCandidatos < 0 || !resultadosDevueltos.HasValue)
+            return false;
+
+        if (totalCandidatos == 0)
+            return resultadosDevueltos.Value == 0;
+
+        return resultadosDevueltos.Value > 0 &&
+               resultadosDevueltos.Value <= totalCandidatos;
     }
 }

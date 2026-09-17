@@ -264,11 +264,13 @@ static async Task ProcesarDemandasInterpretadasAsync(
                     var solicitud = solicitudesMensaje[indice];
                     MostrarSolicitud(solicitud);
 
-                    solicitud.MatchingResumen = await RsMapsMatchingClient.ConstruirResumenAsync(solicitud);
+                    RadarMatchingClientResult matching =
+                        await RsMapsMatchingClient.ConstruirResultadoAsync(solicitud);
+                    solicitud.MatchingResumen = matching.Resumen;
                     Console.WriteLine(
                         $"  MATCH RSMAPS: {solicitud.MatchingResumen.Replace("\r", " ").Replace("\n", " | ")}");
 
-                    if (MatchingTemporalmenteNoDisponible(solicitud))
+                    if (RadarMatchingFlowDecision.RequiereReintento(matching))
                     {
                         mensajeCompletado = false;
                         Console.WriteLine("  [PENDING] Matching is not confirmed; message will be retried.");
@@ -1178,15 +1180,6 @@ static async Task<(int Revisados, List<SolicitudInmobiliaria> Solicitudes, HashS
     }
 
     return (revisados, solicitudes, demandasInterpretadas);
-}
-
-static bool MatchingTemporalmenteNoDisponible(SolicitudInmobiliaria solicitud)
-{
-    if (string.IsNullOrWhiteSpace(solicitud.MatchingResumen))
-        return true;
-
-    // Warning summaries represent a transient/operational matching failure, not a terminal no-match.
-    return solicitud.MatchingResumen.Contains("\u26A0");
 }
 
 static bool TieneCoincidenciaUtil(SolicitudInmobiliaria solicitud)

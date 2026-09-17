@@ -1,6 +1,8 @@
 using maps4.Models;
 using maps4.Repositorios.Contrato;
 using maps4.Services;
+using RSMaps.Radar.Listener.Models;
+using RSMaps.Radar.Listener.Services;
 
 internal static class MatchingRegression
 {
@@ -119,6 +121,87 @@ internal static class MatchingRegression
         Console.WriteLine("✅ Candidatos: 0");
         Console.WriteLine("✅ NO ALERT");
         Console.WriteLine("✅ REGRESION FAIL-CLOSED SUPERADA");
+
+        await VerificarDisponibilidadMatchingAsync();
+    }
+
+    private static async Task VerificarDisponibilidadMatchingAsync()
+    {
+        Console.WriteLine();
+        Console.WriteLine("----------------------------------------------");
+        Console.WriteLine("REGRESION ESTADO OPERATIVO DE MATCHING");
+        Console.WriteLine("----------------------------------------------");
+
+        string[] resumenesTerminales =
+        [
+            "COINCIDENCIAS RSMAPS\n⚠ ALTERNATIVAS PARA REVISAR\n⚠ 91% · Inmueble #187",
+            "COINCIDENCIAS RSMAPS\n✅ RECOMENDACIONES\n✅ 100% · Inmueble #900",
+            "COINCIDENCIAS RSMAPS\n❌ Sin coincidencias útiles actuales.\nInventario evaluado: 71."
+        ];
+
+        foreach (string resumen in resumenesTerminales)
+        {
+            var solicitud = new SolicitudInmobiliaria
+            {
+                MatchingResumen = resumen
+            };
+
+            RadarMatchingClientResult resultado =
+                await RsMapsMatchingClient.ConstruirResultadoAsync(solicitud);
+
+            Verificar(
+                resultado.Confirmado,
+                $"Un resumen válido debe quedar confirmado: {resumen}");
+
+            Verificar(
+                !RadarMatchingFlowDecision.RequiereReintento(resultado),
+                $"Un resumen válido no debe conservar retry: {resumen}");
+        }
+
+        RadarMatchingClientResult[] estadosTransitorios =
+        [
+            RadarMatchingClientResult.TemporalmenteNoDisponible("Timeout al consultar matching."),
+            RadarMatchingClientResult.TemporalmenteNoDisponible("HTTP 503 al consultar matching."),
+            RadarMatchingClientResult.TemporalmenteNoDisponible("Backend de matching no disponible."),
+            RadarMatchingClientResult.TemporalmenteNoDisponible("Respuesta de matching inválida.")
+        ];
+
+        Verificar(
+            estadosTransitorios.All(RadarMatchingFlowDecision.RequiereReintento),
+            "Timeout/HTTP/backend/respuesta inválida deben conservar retry.");
+
+        var coherenciaEsperada = new (int Total, int? Devueltos, bool Valida)[]
+        {
+            (-1, 0, false),
+            (0, null, false),
+            (0, 1, false),
+            (1, 0, false),
+            (2, 3, false),
+            (0, 0, true),
+            (4, 4, true),
+            (12, 10, true)
+        };
+
+        foreach (var caso in coherenciaEsperada)
+        {
+            bool real = RadarMatchingResponseValidation.EsValida(
+                caso.Total,
+                caso.Devueltos);
+
+            Verificar(
+                real == caso.Valida,
+                $"Coherencia inesperada: TotalCandidatos={caso.Total}, " +
+                $"Resultados={caso.Devueltos?.ToString() ?? "null"}, " +
+                $"esperada={caso.Valida}, real={real}.");
+        }
+
+        Console.WriteLine("✅ Alternativas con ⚠: resultado terminal confirmado");
+        Console.WriteLine("✅ Recomendaciones con ✅: resultado terminal confirmado");
+        Console.WriteLine("✅ Cero candidatos con ❌: resultado terminal confirmado");
+        Console.WriteLine("✅ Timeout/HTTP/backend/respuesta inválida: retry conservado");
+        Console.WriteLine("✅ Respuestas inconsistentes: rechazadas");
+        Console.WriteLine("✅ Total mayor que resultados: válido por MaxResultados");
+        Console.WriteLine("✅ REGRESION DE ESTADO OPERATIVO SUPERADA");
     }
 
     private static void Verificar(bool condicion, string mensaje)
