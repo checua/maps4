@@ -1,394 +1,228 @@
-# RSMaps — Árbol de avance
+# RSMaps + RADAR — Árbol Maestro General
 
-> Documento vivo para registrar lo terminado, lo activo, lo pendiente y las nuevas ideas sin perder el orden de ejecución.
+> Referencia principal del alcance, estado, prioridades y visión de RSMaps, RADAR, RADAR Intelligence y RADAR Agent.
 
-## Cómo leer este árbol
+## Leyenda visual
 
-Estados:
+- 🟢 **80–100%** — sólido, muy avanzado u operativo.
+- 🟡 **60–79%** — avanzado o en desarrollo.
+- 🟠 **30–59%** — parcial o intermedio.
+- 🔴 **0–29%** — inicial o planificado.
 
-- ✅ Terminado y verificado
-- 🟢 Implementado, falta validación final
-- 🟡 En progreso / parcialmente resuelto
-- 🔵 Planificado
-- ⚪ Idea / backlog todavía sin programar
-- 🔴 Bloqueo o problema conocido
+Los porcentajes son estimaciones de gestión del proyecto, no métricas automáticas de cobertura de código.
 
-El porcentaje mide **preparación para producción**, no cantidad de código escrito. Un módulo no llega a 100% hasta tener implementación, prueba y criterio de aceptación cumplido.
+## Dashboard ejecutivo
 
-## Indicador general
+- **Avance simple:** 924 / 19 = **48.63% ≈ 49%**.
+- **Avance general ponderado:** suma de `peso × avance / 100` = **59.89% ≈ 60%**.
+- **Avance del núcleo operativo:** 52.15 / 66 × 100 = **79.02% ≈ 79%**.
+- **Suma de pesos:** **100%**. **Bloques maestros:** **19**.
 
-**Preparación global estimada: 70%**
+| ID | Bloque | Peso | Avance | Indicador | Contribución | Estado | Responsable | Siguiente acción |
+|---:|---|---:|---:|:---:|---:|---|---|---|
+| 0 | Visión del producto | 2% | 40% | 🟠 | 0.80% | Parcial | JJ | Priorizar alcance comercial |
+| 1 | RSMaps — Núcleo | 9% | 78% | 🟡 | 7.02% | Avanzado | JJ + Codex | Cerrar permisos y ciclo completo |
+| 2 | RSMaps — Mapa | 7% | 68% | 🟡 | 4.76% | Avanzado | JJ + Codex | Validar escala y viewport |
+| 3 | Zonas / Geointeligencia | 4% | 18% | 🔴 | 0.72% | Inicial | JJ + Codex | Integrar zonas al matching |
+| 4 | RADAR — Captura | 7% | 82% | 🟢 | 5.74% | Operativo con brechas | JJ + Codex | Capturar reply/quote |
+| 5 | RADAR — Interpretación | 7% | 72% | 🟡 | 5.04% | Avanzado | JJ + Codex | Separar textos y accionabilidad |
+| 6 | RADAR Intelligence | 8% | 86% | 🟢 | 6.88% | Central operativo | JJ + Codex | Fortalecer validación/confianza |
+| 7 | RADAR — Matching | 8% | 84% | 🟢 | 6.72% | Operativo | JJ + Codex | Revisar mínimos y multi-cuenta |
+| 8 | RADAR — Delivery / Alertas | 7% | 80% | 🟢 | 5.60% | Operativo seguro | JJ + Codex, checkpoint humano | Política final de alternativas |
+| 9 | RADAR Agent | 7% | 85% | 🟢 | 5.95% | Productivo | JJ + Codex, checkpoint humano | Health y multi-Agent |
+| 10 | Deduplicación | 6% | 32% | 🟠 | 1.92% | Parcial | JJ + Codex | Deduplicación durable cross-chat |
+| 11 | Estadísticas / Analytics | 4% | 12% | 🔴 | 0.48% | Inicial | JJ + Codex | Definir métricas y dashboard |
+| 12 | Inteligencia de mercado | 3% | 8% | 🔴 | 0.24% | Visión | JJ | Priorizar señales comerciales |
+| 13 | Prospectos / CRM | 3% | 22% | 🔴 | 0.66% | Inicial | JJ | Definir ciclo de lead |
+| 14 | Cuentas / Organizaciones | 4% | 28% | 🔴 | 1.12% | Inicial | JJ + Codex | Validar aislamiento |
+| 15 | Administración / Control | 4% | 35% | 🟠 | 1.40% | Parcial | JJ + Codex | Diseñar panel RADAR |
+| 16 | QA / Observabilidad | 6% | 74% | 🟡 | 4.44% | Avanzado | JJ + Codex | Health y regresión integral |
+| 17 | Expansión | 2% | 15% | 🔴 | 0.30% | Planificada | JJ | Criterios de expansión |
+| 18 | Futuro / I+D | 2% | 5% | 🔴 | 0.10% | Visión | JJ | Mantener backlog priorizado |
+|  | **Total** | **100%** | **48.63% simple** |  | **59.89%** |  |  |  |
 
-- Funcionamiento demostrable actual: ~84%
-- Preparación para producción estable: ~70%
+### Núcleo operativo
 
-Esta cifra es provisional y se recalculará cuando cambien ramas, requisitos o criterios de aceptación.
+Bloques 1, 2, 4, 5, 6, 7, 8, 9 y 16: pesos 66%, contribuciones 52.15; avance normalizado **79.02%**.
 
----
+## Ruta activa
 
-# 0. Objetivo raíz — RSMaps listo para uso real
-
-Objetivo: una plataforma inmobiliaria estable, escalable y publicable en Azure, con mapa, inventario, fotografías centralizadas, flujo de propiedades y RADAR integrado.
-
-## 0.1 Arquitectura operativa definitiva — 78%
-
-- ✅ RSMaps Web/API → Azure App Service (`rsmap.azurewebsites.net`).
-- ✅ Base de datos → Azure SQL `mapsMarkers`.
-- ✅ Fotografías → Azure Blob Storage.
-- ✅ Storage Account específico de RSMaps creado en North Central US.
-- ✅ Contenedor privado `rsmap-images` creado.
-- ✅ App Service configurado con `ImageStorageProvider=AzureBlob`.
-- ✅ Connection string de Blob guardada fuera de Git en configuración de Azure.
-- ✅ Desarrollo `localhost:5103` probado contra el mismo Blob central.
-- 🟡 Intelligence/Matching debe quedar servido por RSMaps Azure para operación normal.
-- 🟡 RADAR Listener debe cambiar su servidor central de localhost a RSMaps Azure.
-- 🔵 Prueba final: apagar `localhost:5102` y `localhost:5103` y confirmar que RADAR Listener sigue operando contra Azure.
-
-Arquitectura objetivo:
-
-```text
-WhatsApp Web
-   ↕
-RADAR Listener en un PC agente
-   │ HTTPS
-   ▼
-RSMaps Web/API/Matching en Azure App Service
-   ├── Azure SQL mapsMarkers
-   └── Azure Blob Storage / rsmap-images
-```
-
-`localhost` queda reservado para desarrollo y diagnóstico, no para operación normal del sistema.
-
----
-
-# 1. Núcleo de producto y experiencia — 78% — peso 20%
-
-### 1.1 Mapa principal — 85%
-- ✅ Google Maps operativo.
-- ✅ Tipos de inmueble con iconos diferenciados.
-- ✅ Apertura de modal de inmueble.
-- 🟢 Navegación Inventario → Ver en mapa con inmueble enfocado.
-- 🟢 Marker temporal con icono correcto cuando el marker normal aún no está cargado.
-- 🟢 Geolocalización no debe robar el centro cuando existe un inmueble solicitado explícitamente.
-- 🟡 Validar inmueble #147 directamente en Azure y en navegación normal.
-- 🔵 Revisar comportamiento móvil/iOS/Android.
-
-### 1.2 Inventario privado — 80%
-- ✅ Vista de inventario.
-- ✅ Estados y visibilidad.
-- ✅ Filtros y búsqueda.
-- ✅ Ver inmueble en mapa.
-- ✅ Edición de inmuebles propios activos.
-- 🟡 Completar pruebas de permisos por usuario/cuenta/equipo.
-- 🔵 Auditoría final de acciones sensibles.
-
-### 1.3 Ciclo de vida del inmueble — 70%
-- ✅ Borrador / publicado / pausado / retirado.
-- ✅ Flujo de cierre de operación.
-- 🟡 Verificar edición, publicación, venta/renta y reingreso en todos los casos legacy.
-- 🔵 Definir pruebas de regresión del ciclo completo.
+1. Reply / Quote.
+2. Captura estructurada.
+3. `TextoPropio` / `TextoCitado`.
+4. Regresiones.
+5. `SolicitudAccionable`.
+6. Deduplicación durable cross-chat.
+7. Política final de alternativas.
+8. Hard constraints comerciales.
+9. Escalabilidad de mapa.
+10. Analytics / Inteligencia de mercado.
 
 ---
 
-# 2. Mapa escalable y rendimiento — 84% — peso 20%
+# Árbol Maestro detallado
 
-### 2.1 Carga por viewport — 92%
-- ✅ Repositorio `IMapaViewportRepository`.
-- ✅ Implementación `MapaViewportRepository`.
-- ✅ `map-viewport.js`.
-- ✅ Endpoint `Home/listaInmueblesViewport`.
-- ✅ Consulta de inmuebles según área visible.
-- ✅ Script SQL `54_map_viewport_index.sql`.
-- 🟡 Verificar endpoint y movimiento/zoom directamente en Azure tras despliegue.
-- 🟡 Verificar índice en la base productiva.
-- 🔵 Prueba de carga con miles / decenas de miles de inmuebles.
+## 0. 🟠 Visión del producto — 40% — peso 2%
+**Estado:** dirección definida parcialmente. **Responsable:** JJ.
+- 🟡 Plataforma e inteligencia inmobiliaria unificadas.
+- 🟠 Automatización comercial y asistencia a asesores.
+- 🔴 Expansión multi-mercado, producto comercial y SaaS.
 
-### 2.2 Foco de inmueble seleccionado — 90%
-- ✅ `map-focus-fix.js`.
-- ✅ prioridad de navegación explícita sobre geolocalización.
-- ✅ icono según tipo de propiedad.
-- ✅ acercamiento garantizado.
-- 🟡 Prueba completa del #147 en Azure.
+## 1. 🟡 RSMaps — Núcleo — 78% — peso 9%
+**Estado:** núcleo web productivo. **Responsable:** JJ + Codex.
+- 🟢 Inventarios, propiedades, usuarios, publicación y APIs.
+- 🟡 Prospectos, cuentas, permisos y ciclo de vida.
+- 🟢 Fotos legacy, límite 40, Azure, SQL y Blob.
+- 🔴 Documentos completos y fotos modernas de #187 no localizadas.
 
-### 2.3 Densidad futura del mapa — 45%
-- ✅ La carga por viewport reduce la necesidad de traer todo el inventario.
-- 🔵 Medir cuántos markers son cómodos por viewport.
-- ⚪ Evaluar clustering sólo si las métricas lo justifican.
-- ⚪ Evaluar paginación espacial / tiles si RSMaps crece a una escala mucho mayor.
+## 2. 🟡 RSMaps — Mapa — 68% — peso 7%
+**Estado:** funcional; escala pendiente. **Responsable:** JJ + Codex.
+- 🟢 Markers, filtros, navegación, property focus y viewport.
+- 🟡 Pan/zoom, cache y medición productiva.
+- 🔴 Clustering, 10,000+ inmuebles y optimización futura.
 
----
+## 3. 🔴 Zonas / Geointeligencia — 18% — peso 4%
+**Estado:** fundamentos existentes. **Responsable:** JJ + Codex.
+- 🟡 Colonias, fraccionamientos, zonas y alias.
+- 🟠 Polígonos y clasificación espacial parcial.
+- 🔴 Distancias, proximidad, preferencias, zonas comerciales/de demanda y métricas geográficas.
+- 🟠 `NO ORILLAS` fail-closed; comprobación geográfica real pendiente.
 
-# 3. Fotografías y medios — 80% — peso 15%
+## 4. 🟢 RADAR — Captura — 82% — peso 7%
+**Estado:** WhatsApp productivo; contexto incompleto. **Responsable:** JJ + Codex.
+- 🟢 WhatsApp, chats, `MessageId`, autor y teléfono.
+- 🔴 Timestamp real, reply, quote, forward, `TextoPropio` y `TextoCitado`.
+- 🔴 Otras fuentes futuras.
 
-### 3.1 Compatibilidad `/cargas` → storage moderno — 98%
-- ✅ El modal legacy sigue solicitando rutas `/cargas/{id}_{orden}.jpg`.
-- ✅ Existe `ModernImageCompatibilityController` como puente hacia el storage moderno.
-- ✅ Se retiró el redireccionamiento temporal localhost → Web App productiva.
-- ✅ `localhost:5103/cargas/187_1.jpg` usando Azure Blob devuelve 404 limpio, sin 403/500 ni error de autenticación.
-- ✅ Detectada causa raíz de los 404 legacy después de la foto 20: `RSMAPS_sp_ObtenerFotoPublicaPorOrden` conservaba el límite `@orden > 20`.
-- ✅ Paso 55 alinea la lectura pública con el límite actual de 40 fotos.
-- ✅ Auditoría productiva de 72 fotos legacy con orden > 20: 72 HTTP 200, 72 tamaños coinciden con SQL y 0 problemas.
-- ✅ Validado `150_34.jpg` directamente en producción.
+## 5. 🟡 RADAR — Interpretación — 72% — peso 7%
+**Estado:** extracción avanzada. **Responsable:** JJ + Codex.
+- 🟡 Solicitud inmobiliaria; demanda/oferta/otro; segmentación múltiple.
+- 🟢 Venta/renta, tipo/subtipo, precio/presupuesto y forma de pago.
+- 🟡 Zona, recámaras, baños, plantas, terreno, construcción, cochera y requisitos.
+- 🟢 Hard constraints interpretados fail-closed.
+- 🔴 `SolicitudAccionable` y protección previa contra texto citado.
 
-### 3.2 Azure Blob Storage — 95%
-- ✅ Existe `AzureBlobInmuebleFotoStorage`.
-- ✅ Soporta guardar, leer y eliminar JPEG/PNG/WEBP.
-- ✅ Storage Account específico de RSMaps creado.
-- ✅ TLS mínimo 1.2.
-- ✅ Acceso público de blobs deshabilitado.
-- ✅ Contenedor privado `rsmap-images` creado.
-- ✅ App Service configurado para Azure Blob.
-- ✅ localhost:5103 probado con la misma configuración de Blob.
-- ✅ Confirmado que las 72 fotos legacy aparentemente faltantes ya existían físicamente en Blob.
-- 🟡 Completar auditoría de Blob contra toda la metadata moderna activa.
+## 6. 🟢 RADAR Intelligence — 86% — peso 8%
+**Estado:** central productivo. **Responsable:** JJ + Codex.
+- 🟢 OpenAI central, interpretación, normalización y validación.
+- 🟢 `ResultadoCentralJson`, persistencia durable y replay.
+- 🟢 Fallback local deshabilitado.
+- 🟡 Confianza, resiliencia, observabilidad y evolución futura.
 
-### 3.3 Migración de fotos legacy — 95%
-- ✅ Existen herramientas/scripts de migración y auditoría.
-- ✅ El manifiesto generado del Paso 52 cubre 72 inmuebles / 808 fotos y actualmente termina en el inmueble #169.
-- ✅ Las 72 fallas legacy detectadas después de la posición 20 no correspondían a archivos faltantes.
-- ✅ `85/85_21.jpg` ya existía en Blob y coincidía exactamente con SQL.
-- ✅ Causa real corregida mediante Paso 55: límite público de lectura 20 → 40.
-- ✅ Validación final en producción: 72 esperadas, 72 correctas, 0 problemas.
-- ✅ No fue necesaria recuperación física de #150 ni #169.
-- 🟡 Mantener auditoría general metadata → Blob para detectar futuros faltantes reales.
+## 7. 🟢 RADAR — Matching — 84% — peso 8%
+**Estado:** operativo con inventario real. **Responsable:** JJ + Codex.
+- 🟢 Inventario, filtros, hard/payment constraints.
+- 🟡 Soft constraints, scoring y ranking.
+- 🟢 Recomendación, alternativa, cero coincidencias y explicación.
+- 🟡 Tolerancias de 80% terreno/construcción y otros mínimos.
+- 🟠 Multi-cuenta; 🔴 aprendizaje futuro.
 
-### 3.4 Fotos modernas fuera de Blob — 35%
-- 🔴 #187 tiene 15 registros modernos: 14 activos + 1 inactivo, pero sus archivos físicos no están localizados.
-- ✅ El contador legacy 14 coincide con las 14 fotos modernas activas.
-- ✅ Metadata moderna de #187 es válida y usa claves GUID bajo `187/...jpg`.
-- 🟡 Localizar el equipo/origen de los payloads físicos.
-- 🔵 Subirlos a Blob conservando exactamente las claves existentes.
-- 🔵 Preservar inicialmente el archivo inactivo para evitar pérdida de historial.
+## 8. 🟢 RADAR — Delivery / Alertas — 80% — peso 7%
+**Estado:** flujo seguro productivo. **Responsable:** JJ + Codex, checkpoint humano.
+- 🟢 Decision flow, durable prepare/complete, idempotencia y Safe Lab.
+- 🟢 Recomendación válida → Delivery.
+- 🟢 Alternativa → `ALTERNATIVA_PARA_REVISION`, sin Delivery por default.
+- 🟢 Cero real → `SIN_COINCIDENCIA_UTIL`; transitorio/incoherente → Retry.
+- 🟢 Terminal ACK y política configurable; definición comercial final pendiente.
 
-### 3.5 Prevención de split-brain — 70%
-- ✅ `AzureBlob` es el proveedor por defecto en la rama de publicación.
-- ✅ Git no almacena inventario fotográfico de usuarios.
-- ✅ Azure SQL + Azure Blob son las fuentes centrales.
-- 🔵 Añadir auditoría/guard para advertir si una instalación comparte Azure SQL pero usa `Local` para nuevas fotos.
+## 9. 🟢 RADAR Agent — 85% — peso 7%
+**Estado:** productivo. **Responsable:** JJ + Codex, checkpoint humano.
+- 🟢 Listener, pairing, bearer/DPAPI y configuración.
+- 🟢 Launcher, Scheduled Task, `WhatsAppProfile` y logs.
+- 🟢 Deployment, backup y rollback.
+- 🟡 Health/actualización; 🔴 multi-Agent a escala.
 
----
-# 4. Azure y publicación — 78% — peso 15%
+## 10. 🟠 Deduplicación — 32% — peso 6%
+**Estado:** retry/durable avanzados; cross-chat pendiente. **Responsable:** JJ + Codex.
+- 🟢 `MessageId`, retry, durable y `ClaveEntrega`.
+- 🔴 Cross-chat, cross-post y fingerprint.
+- 🟠 Autor, teléfono y ventana temporal.
+- 🔴 Similitud semántica futura.
 
-### 4.1 Base de datos Azure SQL — 90%
-- ✅ Aplicación conectada a `mapsMarkers` en Azure.
-- 🟡 Revisar índices nuevos y scripts pendientes.
-- 🔵 Revisión de rendimiento y consultas lentas.
+## 11. 🔴 Estadísticas / Analytics — 12% — peso 4%
+**Estado:** datos base, producto pendiente. **Responsable:** JJ + Codex.
+- 🔴 Solicitudes por fecha, chat, asesor, zona, tipo, operación y precio.
+- 🔴 Requisitos, pagos, demanda sin inventario y match rate.
+- 🔴 Recomendaciones, alternativas, cero match e inmuebles sugeridos.
+- 🔴 Conversión y dashboards.
 
-### 4.2 Azure App Service — 92%
-- ✅ RSMaps publicado en `rsmap.azurewebsites.net`.
-- ✅ App Service confirmado `Running` después del despliegue 2026-09-08/09.
-- ✅ Home verificado con HTTP 200 después del deploy.
-- ✅ Rama `feature/rsmap-publication-readiness` compilada en Release y desplegada por ZIP.
-- 🟡 Smoke tests funcionales de mapa/inventario/login tras el deploy.
+## 12. 🔴 Inteligencia de mercado — 8% — peso 3%
+**Estado:** visión. **Responsable:** JJ.
+- 🔴 Qué busca la gente; oferta vs demanda; demanda no satisfecha.
+- 🔴 Zonas, precios, tipos, características y tendencias.
+- 🔴 Captación, señales comerciales e inventario faltante.
 
-### 4.3 Configuración y secretos — 75%
-- ✅ Configuración separable por entorno.
-- ✅ Connection string de Blob permanece fuera de Git.
-- ✅ App Service configurado con `ConnectionStrings__RSMapsImages`.
-- 🟡 Consolidar restantes variables/secretos de Azure App Service.
-- 🔵 Revisar API keys expuestas en JavaScript legacy.
+## 13. 🔴 Prospectos / CRM — 22% — peso 3%
+**Estado:** inicial. **Responsable:** JJ.
+- 🟠 Lead e identidad básicos.
+- 🔴 Historial, intereses, seguimiento y propiedades sugeridas.
+- 🔴 Contacto, estado, conversaciones, actividad, automatizaciones y conversión.
 
-### 4.4 Publicación segura — 72%
-- ✅ Build Release correcto.
-- ✅ ZIP Release generado (~12.5 MB).
-- ✅ Respaldo previo de `wwwroot` descargado (~126 MB).
-- ✅ Publicación ZIP realizada con limpieza y reinicio.
-- ✅ Estado `Running` y Home HTTP 200 posteriores al despliegue.
-- ✅ `/cargas/187_1.jpg` devuelve 404 esperado porque el blob físico aún no existe.
-- 🟡 Smoke tests de funcionalidades principales.
-- 🔵 Documentar rollback final y conservar respaldo predeploy.
+## 14. 🔴 Cuentas / Organizaciones — 28% — peso 4%
+**Estado:** base existente. **Responsable:** JJ + Codex.
+- 🟠 Multi-cuenta, `IdCuenta`, inventario, permisos y roles.
+- 🔴 Multi-asesor, multi-Agent, aislamiento, organizaciones y SaaS.
 
----
+## 15. 🟠 Administración / Control — 35% — peso 4%
+**Estado:** capacidades distribuidas. **Responsable:** JJ + Codex.
+- 🔴 Panel RADAR.
+- 🟡 Configuración, chats y Agents.
+- 🔴 Thresholds, alternativas, reglas, colas, errores, auditoría y operación.
+- 🟠 Logs y recovery consultables.
 
-# 5. RADAR — 78% — peso 20%
+## 16. 🟡 QA / Observabilidad — 74% — peso 6%
+**Estado:** regresión avanzada; métricas parciales. **Responsable:** JJ + Codex.
+- 🟢 Builds, matching, payment constraints, Cynthia y Delivery regression.
+- 🟢 Intelligence E2E, Listener, recovery y colas.
+- 🟠 Health y métricas; 🟡 logs y alertas técnicas.
+- 🟡 `e2e-hard-no-orillas` / “Lo más nuevo posible” sigue independiente.
 
-### 5.1 Listener WhatsApp — 85%
-- ✅ Recorrido de chats.
-- ✅ Descubrimiento de fuentes.
-- ✅ Resiliencia de navegación.
-- ✅ Evitar bloqueos del input de búsqueda.
-- 🟡 Pruebas prolongadas sin intervención.
-- 🟡 Cambiar endpoint central de localhost a RSMaps Azure cuando el backend Azure quede validado.
+## 17. 🔴 Expansión — 15% — peso 2%
+**Estado:** planificada. **Responsable:** JJ.
+- 🟠 Durango inicial.
+- 🔴 Otras ciudades/estados/inmobiliarias, múltiples Agents/cuentas.
+- 🔴 Gran inventario, alto volumen, otras fuentes, producto comercial y SaaS.
 
-### 5.2 Inteligencia central — 85%
-- ✅ Extracción estructurada de solicitudes.
-- ✅ Motor OpenAI central.
-- ✅ Recuperación después de fallos temporales.
-- 🟡 Confirmar que la operación normal quede centralizada en RSMaps Azure.
-- 🟡 Medir errores 502/timeouts y reducirlos.
-
-### 5.3 Persistencia y recuperación — 85%
-- ✅ Processing durable.
-- ✅ ACK terminal.
-- ✅ Recuperación de workflow.
-- 🟡 Pruebas de reinicio/fallo real prolongado.
-
-### 5.4 Matching inventario ↔ solicitudes — 70%
-- ✅ Motor de matching existente.
-- ✅ No enviar alerta cuando no existe coincidencia útil.
-- ✅ Bug crítico #184 resuelto: un inmueble de $15,000 ya no puede superar una solicitud con máximo $13,000.
-- ✅ `PrecioMaximo` opera como restricción dura estricta.
-- ✅ Si existe máximo de precio y el inmueble no tiene precio verificable, no se genera candidato.
-- ✅ Restricciones duras no verificables operan fail-closed.
-- ✅ `NO ORILLAS` detectado por RuleBased y OpenAI.
-- ✅ `SIN AMUEBLAR` protegido fail-closed mientras el inventario no pueda diferenciar `No amueblado` de `sin dato`.
-- ✅ Regresiones automáticas de matching y E2E incorporadas.
-- ✅ PR #3 fusionado en `feature/rsmap-publication-readiness` (`7113969`).
-- 🔴 Hallazgo activo: muchas ejecuciones reportan `Inventario evaluado: 1`.
-- 🟡 Determinar por qué RADAR sólo está viendo/evaluando un inmueble en esos casos.
-- 🔵 Validar matching con inventario amplio y distintos permisos/visibilidades.
-### 5.5 Alertas y experiencia RADAR — 80%
-- ✅ Política fail-closed para evitar falsos positivos.
-- ✅ Alertas sólo con match útil.
-- ✅ Caso real #184 validado E2E: interpretación → procesamiento central → matching → 0 candidatos → NO ALERT.
-- ✅ Preferencias blandas como `Lo más nuevo posible` no bloquean el matching.
-- 🔵 Afinar ranking de coincidencias.
-- 🔵 Definir formato final de alerta al asesor.
+## 18. 🔴 Futuro / I+D — 5% — peso 2%
+**Estado:** visión. **Responsable:** JJ.
+- 🔴 Preferencias, personalización y ranking adaptativo.
+- 🔴 Aprendizaje, predicción y detección de oportunidades.
+- 🔴 Asistentes, automatización, seguimiento inteligente e IA de mercado.
 
 ---
 
-# 6. Calidad, seguridad y operación — 43% — peso 10%
+# Hitos cerrados
 
-### 6.1 Pruebas — 45%
-- ✅ Build Release correcto de la rama de publicación.
-- 🟡 Smoke test inicial de Azure: App `Running`, Home HTTP 200.
-- 🔵 Suite mínima de smoke tests.
-- 🔵 Regresión mapa/inventario/fotos/login/RADAR.
-- 🔵 Prueba móvil.
+- ✅ Backend Azure, Azure SQL y Blob privado operativos.
+- ✅ Mapa con carga por viewport, property focus y prioridad sobre geolocalización.
+- ✅ Fotos legacy recuperadas/validadas 72/72, límite público de 40 y `150_34.jpg` confirmado.
+- ✅ Metadata moderna de #187 identificada: 14 activas + 1 inactiva; payloads aún pendientes.
+- ✅ Bug #184 corregido: precio máximo estricto y propiedades sin precio verificable descartadas.
+- ✅ Hard constraints, payment constraints y Cynthia baseline.
+- ✅ Intelligence E2E, durable processing, replay y terminal ACK.
+- ✅ Delivery Flow seguro y commit productivo `60a49eb`.
+- ✅ Deploy 2026-09-18 sin rollback; Azure/central/fallback `0`; `WhatsAppProfile` preservado.
+- ✅ Recovery 11/11 con `ALTERNATIVA_PARA_REVISION`, 0 Delivery, 0 WhatsApp.
+- ✅ Colas finales processing/downstream/delivery: 0/0/0.
+- ✅ Backup: `C:\Users\jenny\AppData\Local\RSMaps\RadarAgent\Backups\pre-60a49eb-20260918-002253`.
 
-### 6.2 Seguridad — 40%
-- 🟡 Cookies/auth existentes.
-- ✅ Blob privado y TLS 1.2 mínimo.
-- ✅ Connection string de Blob fuera de Git.
-- 🔴 Revisar secretos y API keys legacy visibles en código cliente.
-- 🔵 Revisión de autorización por endpoints.
-- 🔵 Revisión de subida de archivos.
+# Pendientes conocidos
 
-### 6.3 Observabilidad — 35%
-- 🟡 Logs de RADAR útiles.
-- 🔵 Health checks web/DB/Blob/RADAR.
-- 🔵 Métricas de tiempos de consulta y errores.
-- 🔵 Registro de versión desplegada.
+- 🔴 Reply/quote contaminando solicitudes; `TextoPropio` / `TextoCitado`; timestamp real.
+- 🔴 Deduplicación cross-chat/cross-post y `SolicitudAccionable`.
+- 🟡 Política definitiva de alternativas.
+- 🟡 Tolerancia 80% terreno/construcción y otros mínimos comerciales.
+- 🟠 Multi-cuenta en matching y escalabilidad del mapa.
+- 🟡 Validación productiva de #147, viewport/pan/zoom e índice SQL 54.
+- 🟡 Auditoría general de metadata moderna contra Blob.
+- 🔴 Estadísticas, inteligencia de mercado y CRM.
+- 🔴 Fotos modernas de #187 no localizadas.
+- 🟡 `e2e-hard-no-orillas` / “Lo más nuevo posible”, independiente del Delivery Flow.
 
-### 6.4 Respaldo y recuperación — 60%
-- ✅ Git y ramas de trabajo disponibles.
-- ✅ Respaldo predeploy de `wwwroot` conservado localmente.
-- 🔵 Política de backup de BD/fotos.
-- 🔵 Procedimiento de rollback de Azure documentado.
+# Reglas de actualización
 
----
+Al cerrar un bloque, incorporar una idea, cambiar prioridad, descubrir un bug o completar un deploy, actualizar: subbloque, bloque, avance simple, ponderado, núcleo operativo, Ruta activa, hitos y pendientes. Los pesos deben sumar 100% y los colores derivar del porcentaje.
 
-# 7. Ideas futuras / backlog — sin porcentaje de compromiso
+# Ruta activa — cierre
 
-Este nivel recibe ideas nuevas sin interrumpir automáticamente la ruta activa.
-
-Cada idea nueva debe registrar:
-
-1. **Nombre**
-2. **Ramal del árbol** donde pertenece
-3. **Motivo / valor para el usuario**
-4. **Dependencias**
-5. **Prioridad**: A = necesaria para producción, B = siguiente versión, C = futura
-6. **Criterio de terminado**
-7. **Estado**
-
-Ideas ya identificadas:
-
-- ⚪ Clustering de markers si la densidad del viewport lo exige.
-- ⚪ Escalado espacial adicional si el inventario llega a decenas/cientos de miles.
-- ⚪ Mejoras de UX móvil.
-- ⚪ Ranking avanzado de RADAR.
-- ⚪ Panel de salud/operación de RADAR.
-
----
-
-# Ruta activa recomendada
-
-Ésta es la parte lineal del Árbol de avance. El árbol organiza; la Ruta activa decide qué hacemos primero.
-
-1. **Smoke test directo en Azure:** mapa, endpoint viewport, login/inventario y foco de propiedad.
-2. **Validar inmueble #147 directamente en Azure:** carga normal, Inventario → Ver en mapa, marker correcto, Acercar y prioridad sobre geolocalización.
-3. **Validar viewport en Azure:** mover/zoom y confirmar carga sólo del área visible.
-4. **Revisar/aplicar índice SQL 54 en Azure SQL.**
-5. **Localizar los payloads modernos del inmueble #187 y validar sus 14 claves activas GUID.**
-6. **Completar auditoría de fotografías modernas activas contra Blob; mantener #184/#185 separados como cuentas de prueba.**
-7. **Ejecutar regresión directa RADAR contra RSMaps Azure:** hard constraints, modalidades de pago y calidad de recomendaciones.
-8. **Validar configuración del RADAR Listener contra RSMaps Azure y preparar despliegue controlado.**
-9. **Prueba de corte: confirmar operación Listener → RSMaps Azure sin depender de localhost.**
-10. **Pruebas integrales RSMaps + RADAR.**
-11. **Revisión de secretos/API keys/seguridad y observabilidad.**
-
----
-# Registro de decisiones
-## 2026-09-15 — Causa raíz de fotos legacy >20
-
-La auditoría inicial mostró 72 URLs legacy con HTTP 404, todas correspondientes a posiciones posteriores a la foto 20. Inicialmente parecían blobs faltantes.
-
-La revisión directa confirmó que los blobs sí existían en Azure y coincidían en tamaño con SQL. El problema estaba en `dbo.RSMAPS_sp_ObtenerFotoPublicaPorOrden`, creado originalmente con:
-
-```sql
-IF @orden < 1 OR @orden > 20 RETURN;
-```
-
-El Paso 50 ya había elevado el límite de alta a 40 fotos, pero la lectura pública permanecía limitada a 20.
-
-Se creó y aplicó el **Paso 55**, alineando la lectura pública a 40 fotos.
-
-Validación final en producción:
-
-- 72 fotos legacy con orden > 20 auditadas.
-- 72 devolvieron HTTP 200.
-- 72 coincidieron exactamente en bytes con SQL.
-- 0 problemas.
-- `150_34.jpg` validada directamente como caso de posición alta.
-- No fue necesaria recuperación física de #150 ni #169.
-
-El problema de las fotos modernas del inmueble #187 permanece separado y pendiente.
-
-
-## 2026-09-08 — Modelo de seguimiento
-
-Se adopta **Árbol de avance + Ruta activa** en lugar de un índice puramente lineal.
-
-Motivo:
-
-- El árbol permite agregar ideas sin perderlas ni mezclarlas con el trabajo inmediato.
-- La ruta activa mantiene disciplina de ejecución y evita saltar continuamente entre ramales.
-- Los porcentajes permiten visualizar preparación real para producción.
-
-## 2026-09-08 — Arquitectura definitiva de RSMaps y RADAR
-
-Se fija la arquitectura operativa:
-
-- RSMaps Web/API/Matching → Azure App Service.
-- Datos estructurados → Azure SQL.
-- Fotografías → Azure Blob Storage.
-- RADAR Listener → PC agente local únicamente por necesidad de controlar WhatsApp Web.
-- RADAR Listener se comunicará por HTTPS con RSMaps Azure.
-- `localhost` queda sólo para desarrollo/diagnóstico.
-
-## 2026-09-08/09 — Azure Blob operativo
-
-Se creó un Storage Account dedicado a imágenes de RSMaps en North Central US, con TLS 1.2 mínimo, blobs públicos deshabilitados y contenedor privado `rsmap-images`.
-
-RSMaps App Service quedó configurado con:
-
-- `RSMaps__ImageStorageProvider=AzureBlob`
-- `RSMaps__ImageStorageContainer=rsmap-images`
-- `ConnectionStrings__RSMapsImages` almacenada fuera de Git.
-
-La rama de publicación fue probada primero en `localhost:5103` contra Azure Blob y arrancó correctamente.
-
-## 2026-09-08/09 — Publicación controlada en Azure
-
-- Build Release correcto.
-- Paquete ZIP generado (~12.5 MB).
-- Respaldo predeploy de `wwwroot` descargado (~126 MB).
-- ZIP desplegado a `rsmap.azurewebsites.net` con limpieza/reinicio.
-- App Service confirmado `Running`.
-- Home respondió HTTP 200.
-- `/cargas/187_1.jpg` respondió HTTP 404 esperado: metadata existe, payload físico aún no ha sido migrado al Blob.
-
-## 2026-09-08 — Diagnóstico de fotos #187
-
-El inmueble #187 no es un caso legacy fantasma. Tiene metadata moderna válida: 14 fotos activas + 1 inactiva bajo claves GUID. El contador legacy de 14 coincide exactamente con las 14 activas. Los archivos físicos no están presentes en los worktrees de casa; deben localizarse en el equipo donde se cargaron originalmente y subirse a Blob conservando sus claves actuales.
+1. Reply / Quote. 2. Captura estructurada. 3. `TextoPropio` / `TextoCitado`. 4. Regresiones. 5. `SolicitudAccionable`. 6. Deduplicación durable cross-chat. 7. Política final de alternativas. 8. Hard constraints comerciales. 9. Escalabilidad de mapa. 10. Analytics / Inteligencia de mercado.

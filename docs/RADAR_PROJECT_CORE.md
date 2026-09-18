@@ -1,5 +1,7 @@
 # RADAR Project Core
 
+> El estado, porcentajes, roadmap y Ruta activa se mantienen en `docs/RSMAPS_PROGRESS_TREE.md`, Árbol Maestro General de RSMaps + RADAR.
+
 Este documento es la referencia canónica para continuar el proyecto RADAR entre chats, equipos y etapas de desarrollo.
 
 ## 1. Visión
@@ -95,11 +97,11 @@ El orden puede ajustarse, pero los principios anteriores deben conservarse.
 
 ## 6. Estado de referencia actual
 
-A agosto de 2026 ya existen, entre otros:
+A 2026-09-18 ya existen, entre otros:
 
 - Listener de WhatsApp funcional.
 - Matching contra inventario RSMaps.
-- RADAR Intelligence separada como proyecto, aunque todavía parte de su ejecución ocurre localmente.
+- RADAR Intelligence central ejecutándose en RSMaps Azure para la operación productiva.
 - Agent autenticado y vinculado a RSMaps.
 - Credencial local protegida en Windows.
 - Configuración central de chats, destino e intervalo.
@@ -107,8 +109,14 @@ A agosto de 2026 ya existen, entre otros:
 - Descubrimiento de chats bajo demanda.
 - Modo seguro de laboratorio.
 - Salida temprana de estabilización de historial cuando una ronda agrega 0 mensajes.
+- Processing, resultado central, Delivery y ACK terminal durables.
+- Listener productivo en commit `60a49eb`, con fallback local deshabilitado.
+- Política segura de Delivery: sólo una recomendación automática válida genera Delivery; las alternativas terminan en `ALTERNATIVA_PARA_REVISION` por default.
+- Recovery productivo validado: 11/11 workflows históricos cerrados sin Delivery ni WhatsApp; colas finales en cero.
 
-La siguiente gran dirección arquitectónica es mover la ejecución real de Intelligence al servidor para que el Agent quede ligero y sin `OPENAI_API_KEY`.
+La ruta inmediata es separar estructuradamente reply/quote (`TextoPropio` / `TextoCitado`), protegerlo con regresiones, introducir solicitud accionable explícita y después abordar deduplicación durable cross-chat.
+
+Continúan pendientes la captura del timestamp real, la política definitiva de alternativas y la revisión de tolerancias de requisitos mínimos. Estos puntos no deben considerarse resueltos por el deploy de `60a49eb`.
 
 ## 7. Criterio para decidir qué construir después
 

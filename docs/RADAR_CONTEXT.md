@@ -1,5 +1,7 @@
 # Radar — Contexto canónico del proyecto
 
+> El estado, porcentajes, roadmap y Ruta activa se mantienen en `docs/RSMAPS_PROGRESS_TREE.md`, Árbol Maestro General de RSMaps + RADAR.
+
 ## Propósito
 
 Radar es el proyecto unificado para el desarrollo inmobiliario antes repartido entre Promoinmueble, RSMaps y conversaciones del Asesor Personal.
@@ -165,7 +167,7 @@ Este caso debe repetirse después de integrar Zonas y sirve como prueba de regre
 
 ## Estado técnico conocido
 
-- Radar probado como **v0.8.0-matching**.
+- Listener productivo actual: commit `60a49eb` (`fix: make RADAR delivery flow explicit and safe`), desplegado 2026-09-18 sin rollback.
 - El Listener recorre chats configurados secuencialmente.
 - Chats usados en pruebas:
   - INVENTARIOS Y PROSPECTOS.
@@ -174,9 +176,21 @@ Este caso debe repetirse después de integrar Zonas y sirve como prueba de regre
   - AISE tu socio en el éxito!.
   - José Juan (Tú).
 - Chat de alertas: **Propiedades**.
-- Matching local: `http://localhost:5102/api/radar/matching/local`.
-- `RadarMatching:CorreoInventario` se configura mediante user-secrets.
-- Se comprobó end-to-end: WhatsApp -> Radar -> RSMaps -> BD -> ranking -> Propiedades.
+- Backend productivo: `https://rsmap.azurewebsites.net`.
+- Intelligence productiva: central; fallback local deshabilitado.
+- `RADAR_ALLOW_ALTERNATIVE_DELIVERY` ausente; default efectivo `false`.
+- Política actual: recomendación automática válida genera Delivery; alternativa termina sin Delivery con `ALTERNATIVA_PARA_REVISION`; transitorio/incoherente conserva Retry; cero coincidencias real termina con `SIN_COINCIDENCIA_UTIL`.
+- Recovery productivo validado: 11/11 pending-downstream históricos cerrados, 0 Delivery, 0 WhatsApp y colas finales en cero.
+- `WhatsAppProfile` productivo fue preservado.
+
+Pendientes conocidos:
+
+- separar reply/quote para evitar que el texto citado contamine demandas;
+- deduplicación durable de cross-posts entre chats;
+- capturar el timestamp real del mensaje;
+- decidir la política definitiva de alternativas;
+- revisar la tolerancia de 80% para terreno/construcción;
+- localizar las fotos modernas del inmueble #187.
 
 ## Git y trabajo casa/oficina
 
