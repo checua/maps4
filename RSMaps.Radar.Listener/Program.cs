@@ -256,8 +256,11 @@ static async Task ProcesarDemandasInterpretadasAsync(
                 }
 
                 var mensajeCompletado = true;
-                var tuvoCoincidenciaUtil = false;
+                var decisionesDelivery = new List<RadarDeliveryDecision>();
+                var huboDeliveryCompletado = false;
                 var bloqueoSafeLab = false;
+                bool permitirDeliveryAlternativas =
+                    RadarDeliveryFlowDecision.AlternativasDeliveryHabilitadas();
 
                 for (var indice = 0; indice < solicitudesMensaje.Count; indice++)
                 {
@@ -270,20 +273,26 @@ static async Task ProcesarDemandasInterpretadasAsync(
                     Console.WriteLine(
                         $"  MATCH RSMAPS: {solicitud.MatchingResumen.Replace("\r", " ").Replace("\n", " | ")}");
 
-                    if (RadarMatchingFlowDecision.RequiereReintento(matching))
+                    RadarDeliveryDecision decision =
+                        RadarDeliveryFlowDecision.Evaluar(
+                            solicitud,
+                            matching,
+                            permitirDeliveryAlternativas);
+                    decisionesDelivery.Add(decision);
+
+                    if (decision.Disposicion == RadarDeliveryDisposition.Retry)
                     {
                         mensajeCompletado = false;
-                        Console.WriteLine("  [PENDING] Matching is not confirmed; message will be retried.");
+                        Console.WriteLine($"  [PENDING] {decision.Motivo}");
                         break;
                     }
 
-                    if (!TieneCoincidenciaUtil(solicitud))
+                    if (!decision.DebePrepararDelivery)
                     {
-                        Console.WriteLine("  [NO ALERT] No useful match; WhatsApp alert is not sent.");
+                        Console.WriteLine($"  [NO ALERT] {decision.Motivo}");
                         continue;
                     }
 
-                    tuvoCoincidenciaUtil = true;
                     var claveEntrega = ClaveEntrega(messageId, indice, solicitud);
                     var payloadEntrega = ConstruirAlerta(solicitud) + Environment.NewLine + Environment.NewLine + MarcaEntrega(claveEntrega);
                     var pruebaEntregaLab = Environment.GetEnvironmentVariable("RADAR_SAFE_LAB_DELIVERY_TEST")?.Trim();
@@ -319,6 +328,7 @@ static async Task ProcesarDemandasInterpretadasAsync(
 
                         if (entregaDurable.YaEnviado)
                         {
+                            huboDeliveryCompletado = true;
                             enviosConfirmadosPorSolicitud.Add(claveEntrega);
                             Console.WriteLine(
                                 $"  [DEDUP DURABLE] Delivery #{entregaDurable.IdRadarMessageDelivery} was already confirmed by RSMaps; duplicate WhatsApp send skipped.");
@@ -348,10 +358,12 @@ static async Task ProcesarDemandasInterpretadasAsync(
 
                             Console.WriteLine(
                                 $"  [DEDUP] Previous local delivery confirmed durably as #{entregaDurable.IdRadarMessageDelivery}; duplicate send skipped.");
+                            huboDeliveryCompletado = true;
                             continue;
                         }
 
                         Console.WriteLine("  [DEDUP] This alert was already delivered during a previous retry; skipping duplicate.");
+                        huboDeliveryCompletado = true;
                         continue;
                     }
 
@@ -419,6 +431,8 @@ static async Task ProcesarDemandasInterpretadasAsync(
                             $"  [DELIVERY] Durable delivery #{entregaDurable.IdRadarMessageDelivery} confirmed ENVIADO.");
                     }
 
+                    huboDeliveryCompletado = true;
+
                     if (envio.MarcadoNoLeido)
                     {
                         Console.WriteLine(
@@ -433,11 +447,18 @@ static async Task ProcesarDemandasInterpretadasAsync(
 
                 if (mensajeCompletado)
                 {
-                    string disposicion = bloqueoSafeLab
-                        ? "SAFE_LAB_BLOQUEADO"
-                        : tuvoCoincidenciaUtil
-                            ? "ALERTA_ENTREGADA"
-                            : "SIN_COINCIDENCIA_UTIL";
+                    string? disposicion =
+                        RadarDeliveryFlowDecision.ResolverDisposicionTerminalGlobal(
+                            decisionesDelivery,
+                            bloqueoSafeLab,
+                            huboDeliveryCompletado);
+
+                    if (string.IsNullOrWhiteSpace(disposicion))
+                    {
+                        Console.WriteLine(
+                            $"  [PENDING] {messageId}: no terminal disposition is available; message will be retried.");
+                        continue;
+                    }
 
                     if (!await ConfirmarAckTerminalAsync(chatOrigen, messageId, disposicion))
                     {
@@ -1180,14 +1201,6 @@ static async Task<(int Revisados, List<SolicitudInmobiliaria> Solicitudes, HashS
     }
 
     return (revisados, solicitudes, demandasInterpretadas);
-}
-
-static bool TieneCoincidenciaUtil(SolicitudInmobiliaria solicitud)
-{
-    // Keep this aligned with RadarMatchingService.PuntuacionMinimaCandidato.
-    return solicitud.IdInmuebleCoincidente.HasValue
-        && solicitud.MejorCoincidencia.HasValue
-        && solicitud.MejorCoincidencia.Value >= 55;
 }
 
 static string ClaveEntrega(string messageId, int indice, SolicitudInmobiliaria solicitud) =>

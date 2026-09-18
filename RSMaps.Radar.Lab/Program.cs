@@ -32,6 +32,15 @@ if (string.Equals(
     return;
 }
 
+if (string.Equals(
+    labMode,
+    "delivery-flow-regression",
+    StringComparison.OrdinalIgnoreCase))
+{
+    await DeliveryFlowRegression.RunAsync();
+    return;
+}
+
 var engine = (Environment.GetEnvironmentVariable("RADAR_LAB_INTERPRETER") ?? "rules")
     .Trim()
     .ToLowerInvariant();
