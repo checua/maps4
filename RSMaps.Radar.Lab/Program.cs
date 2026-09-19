@@ -6,6 +6,15 @@ var labMode = Environment.GetEnvironmentVariable("RADAR_LAB_MODE")?.Trim();
 
 if (string.Equals(
     labMode,
+    "whatsapp-dom-lab",
+    StringComparison.OrdinalIgnoreCase))
+{
+    await WhatsAppDomLab.RunAsync();
+    return;
+}
+
+if (string.Equals(
+    labMode,
     "matching-regression",
     StringComparison.OrdinalIgnoreCase))
 {

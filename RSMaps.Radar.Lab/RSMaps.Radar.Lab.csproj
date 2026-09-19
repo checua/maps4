@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Playwright" Version="1.62.0" />
     <ProjectReference Include="..\RSMaps.Radar.Intelligence\RSMaps.Radar.Intelligence.csproj" />
     <ProjectReference Include="..\RSMaps.Radar.Listener\RSMaps.Radar.Listener.csproj" />
     <ProjectReference Include="..\maps4.csproj" />
