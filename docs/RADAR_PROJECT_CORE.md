@@ -97,7 +97,7 @@ El orden puede ajustarse, pero los principios anteriores deben conservarse.
 
 ## 6. Estado de referencia actual
 
-A 2026-09-18 ya existen, entre otros:
+A 2026-09-19 ya existen, entre otros:
 
 - Listener de WhatsApp funcional.
 - Matching contra inventario RSMaps.
@@ -110,13 +110,14 @@ A 2026-09-18 ya existen, entre otros:
 - Modo seguro de laboratorio.
 - Salida temprana de estabilización de historial cuando una ronda agrega 0 mensajes.
 - Processing, resultado central, Delivery y ACK terminal durables.
-- Listener productivo en commit `60a49eb`, con fallback local deshabilitado.
+- Listener productivo estable en commit `92b994e` (`fix: separate WhatsApp reply quote from own message`), con fallback local deshabilitado.
 - Política segura de Delivery: sólo una recomendación automática válida genera Delivery; las alternativas terminan en `ALTERNATIVA_PARA_REVISION` por default.
 - Recovery productivo validado: 11/11 workflows históricos cerrados sin Delivery ni WhatsApp; colas finales en cero.
+- Reply/quote capturado estructuralmente: la clasificación semántica usa exclusivamente `TextoPropio`; `TextoCitado` nunca origina por sí solo una nueva solicitud; forwarded no se descarta automáticamente; una captura no confirmada conserva Retry.
 
-La ruta inmediata es separar estructuradamente reply/quote (`TextoPropio` / `TextoCitado`), protegerlo con regresiones, introducir solicitud accionable explícita y después abordar deduplicación durable cross-chat.
+La ruta inmediata es introducir `SolicitudAccionable` explícita, protegerla con regresiones e integrarla antes de Matching; después se abordará la deduplicación durable cross-chat.
 
-Continúan pendientes la captura del timestamp real, la política definitiva de alternativas y la revisión de tolerancias de requisitos mínimos. Estos puntos no deben considerarse resueltos por el deploy de `60a49eb`.
+Continúan pendientes la captura del timestamp real, la política definitiva de alternativas y la revisión de tolerancias de requisitos mínimos. Estos puntos no deben considerarse resueltos por el deploy de `92b994e`.
 
 ## 7. Criterio para decidir qué construir después
 

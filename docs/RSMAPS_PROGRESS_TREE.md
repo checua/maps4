@@ -13,9 +13,9 @@ Los porcentajes son estimaciones de gestión del proyecto, no métricas automát
 
 ## Dashboard ejecutivo
 
-- **Avance simple:** 924 / 19 = **48.63% ≈ 49%**.
-- **Avance general ponderado:** suma de `peso × avance / 100` = **59.89% ≈ 60%**.
-- **Avance del núcleo operativo:** 52.15 / 66 × 100 = **79.02% ≈ 79%**.
+- **Avance simple:** 932 / 19 = **49.05% ≈ 49%**.
+- **Avance general ponderado:** suma de `peso × avance / 100` = **60.45% ≈ 60%**.
+- **Avance del núcleo operativo:** 52.71 / 66 × 100 = **79.86% ≈ 80%**.
 - **Suma de pesos:** **100%**. **Bloques maestros:** **19**.
 
 | ID | Bloque | Peso | Avance | Indicador | Contribución | Estado | Responsable | Siguiente acción |
@@ -24,8 +24,8 @@ Los porcentajes son estimaciones de gestión del proyecto, no métricas automát
 | 1 | RSMaps — Núcleo | 9% | 78% | 🟡 | 7.02% | Avanzado | JJ + Codex | Cerrar permisos y ciclo completo |
 | 2 | RSMaps — Mapa | 7% | 68% | 🟡 | 4.76% | Avanzado | JJ + Codex | Validar escala y viewport |
 | 3 | Zonas / Geointeligencia | 4% | 18% | 🔴 | 0.72% | Inicial | JJ + Codex | Integrar zonas al matching |
-| 4 | RADAR — Captura | 7% | 82% | 🟢 | 5.74% | Operativo con brechas | JJ + Codex | Capturar reply/quote |
-| 5 | RADAR — Interpretación | 7% | 72% | 🟡 | 5.04% | Avanzado | JJ + Codex | Separar textos y accionabilidad |
+| 4 | RADAR — Captura | 7% | 90% | 🟢 | 6.30% | Reply/quote productivo | JJ + Codex | Capturar timestamp real |
+| 5 | RADAR — Interpretación | 7% | 72% | 🟡 | 5.04% | Avanzado | JJ + Codex | Introducir `SolicitudAccionable` |
 | 6 | RADAR Intelligence | 8% | 86% | 🟢 | 6.88% | Central operativo | JJ + Codex | Fortalecer validación/confianza |
 | 7 | RADAR — Matching | 8% | 84% | 🟢 | 6.72% | Operativo | JJ + Codex | Revisar mínimos y multi-cuenta |
 | 8 | RADAR — Delivery / Alertas | 7% | 80% | 🟢 | 5.60% | Operativo seguro | JJ + Codex, checkpoint humano | Política final de alternativas |
@@ -39,24 +39,22 @@ Los porcentajes son estimaciones de gestión del proyecto, no métricas automát
 | 16 | QA / Observabilidad | 6% | 74% | 🟡 | 4.44% | Avanzado | JJ + Codex | Health y regresión integral |
 | 17 | Expansión | 2% | 15% | 🔴 | 0.30% | Planificada | JJ | Criterios de expansión |
 | 18 | Futuro / I+D | 2% | 5% | 🔴 | 0.10% | Visión | JJ | Mantener backlog priorizado |
-|  | **Total** | **100%** | **48.63% simple** |  | **59.89%** |  |  |  |
+|  | **Total** | **100%** | **49.05% simple** |  | **60.45%** |  |  |  |
 
 ### Núcleo operativo
 
-Bloques 1, 2, 4, 5, 6, 7, 8, 9 y 16: pesos 66%, contribuciones 52.15; avance normalizado **79.02%**.
+Bloques 1, 2, 4, 5, 6, 7, 8, 9 y 16: pesos 66%, contribuciones 52.71; avance normalizado **79.86%**.
 
 ## Ruta activa
 
-1. Reply / Quote.
-2. Captura estructurada.
-3. `TextoPropio` / `TextoCitado`.
-4. Regresiones.
-5. `SolicitudAccionable`.
-6. Deduplicación durable cross-chat.
-7. Política final de alternativas.
-8. Hard constraints comerciales.
-9. Escalabilidad de mapa.
-10. Analytics / Inteligencia de mercado.
+1. `SolicitudAccionable` explícita.
+2. Regresiones de accionabilidad.
+3. Integrar accionabilidad antes de Matching.
+4. Deduplicación durable cross-chat.
+5. Política final de alternativas.
+6. Restricciones comerciales duras.
+7. Escalabilidad del mapa.
+8. Analytics / Inteligencia de mercado.
 
 ---
 
@@ -88,10 +86,11 @@ Bloques 1, 2, 4, 5, 6, 7, 8, 9 y 16: pesos 66%, contribuciones 52.15; avance nor
 - 🔴 Distancias, proximidad, preferencias, zonas comerciales/de demanda y métricas geográficas.
 - 🟠 `NO ORILLAS` fail-closed; comprobación geográfica real pendiente.
 
-## 4. 🟢 RADAR — Captura — 82% — peso 7%
-**Estado:** WhatsApp productivo; contexto incompleto. **Responsable:** JJ + Codex.
+## 4. 🟢 RADAR — Captura — 90% — peso 7%
+**Estado:** WhatsApp y reply/quote productivos; timestamp real pendiente. **Responsable:** JJ + Codex.
 - 🟢 WhatsApp, chats, `MessageId`, autor y teléfono.
-- 🔴 Timestamp real, reply, quote, forward, `TextoPropio` y `TextoCitado`.
+- 🟢 **Reply/Quote — 100% completado:** DOM real validado; `TextoPropio` / `TextoCitado` separados; forwarded estructural; captura `Confirmado` fail-safe; regresiones y QA real WhatsApp aprobados; commit productivo `92b994e`; deploy y post-deploy estables.
+- 🔴 Timestamp real del mensaje.
 - 🔴 Otras fuentes futuras.
 
 ## 5. 🟡 RADAR — Interpretación — 72% — peso 7%
@@ -100,7 +99,8 @@ Bloques 1, 2, 4, 5, 6, 7, 8, 9 y 16: pesos 66%, contribuciones 52.15; avance nor
 - 🟢 Venta/renta, tipo/subtipo, precio/presupuesto y forma de pago.
 - 🟡 Zona, recámaras, baños, plantas, terreno, construcción, cochera y requisitos.
 - 🟢 Hard constraints interpretados fail-closed.
-- 🔴 `SolicitudAccionable` y protección previa contra texto citado.
+- 🟢 La clasificación semántica usa exclusivamente `TextoPropio`; `TextoCitado` no origina por sí solo una solicitud y forwarded no se descarta automáticamente.
+- 🔴 `SolicitudAccionable` explícita antes de Matching.
 
 ## 6. 🟢 RADAR Intelligence — 86% — peso 8%
 **Estado:** central productivo. **Responsable:** JJ + Codex.
@@ -205,11 +205,14 @@ Bloques 1, 2, 4, 5, 6, 7, 8, 9 y 16: pesos 66%, contribuciones 52.15; avance nor
 - ✅ Recovery 11/11 con `ALTERNATIVA_PARA_REVISION`, 0 Delivery, 0 WhatsApp.
 - ✅ Colas finales processing/downstream/delivery: 0/0/0.
 - ✅ Backup: `C:\Users\jenny\AppData\Local\RSMaps\RadarAgent\Backups\pre-60a49eb-20260918-002253`.
+- ✅ Reply/Quote estructurado: captura confirmada/fail-safe, separación `TextoPropio` / `TextoCitado`, forwarded estructural, regresiones y QA real aprobados.
+- ✅ Listener productivo en `92b994e` (`fix: separate WhatsApp reply quote from own message`); deploy y post-deploy estables.
 
 # Pendientes conocidos
 
-- 🔴 Reply/quote contaminando solicitudes; `TextoPropio` / `TextoCitado`; timestamp real.
-- 🔴 Deduplicación cross-chat/cross-post y `SolicitudAccionable`.
+- 🔴 `SolicitudAccionable` explícita y regresiones de accionabilidad antes de Matching.
+- 🔴 Deduplicación durable cross-chat/cross-post.
+- 🔴 Timestamp real del mensaje.
 - 🟡 Política definitiva de alternativas.
 - 🟡 Tolerancia 80% terreno/construcción y otros mínimos comerciales.
 - 🟠 Multi-cuenta en matching y escalabilidad del mapa.
@@ -225,4 +228,4 @@ Al cerrar un bloque, incorporar una idea, cambiar prioridad, descubrir un bug o 
 
 # Ruta activa — cierre
 
-1. Reply / Quote. 2. Captura estructurada. 3. `TextoPropio` / `TextoCitado`. 4. Regresiones. 5. `SolicitudAccionable`. 6. Deduplicación durable cross-chat. 7. Política final de alternativas. 8. Hard constraints comerciales. 9. Escalabilidad de mapa. 10. Analytics / Inteligencia de mercado.
+1. `SolicitudAccionable` explícita. 2. Regresiones de accionabilidad. 3. Integrar accionabilidad antes de Matching. 4. Deduplicación durable cross-chat. 5. Política final de alternativas. 6. Restricciones comerciales duras. 7. Escalabilidad del mapa. 8. Analytics / Inteligencia de mercado.

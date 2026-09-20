@@ -167,7 +167,7 @@ Este caso debe repetirse después de integrar Zonas y sirve como prueba de regre
 
 ## Estado técnico conocido
 
-- Listener productivo actual: commit `60a49eb` (`fix: make RADAR delivery flow explicit and safe`), desplegado 2026-09-18 sin rollback.
+- Listener productivo actual: commit `92b994e` (`fix: separate WhatsApp reply quote from own message`), desplegado y estable post-deploy.
 - El Listener recorre chats configurados secuencialmente.
 - Chats usados en pruebas:
   - INVENTARIOS Y PROSPECTOS.
@@ -182,10 +182,11 @@ Este caso debe repetirse después de integrar Zonas y sirve como prueba de regre
 - Política actual: recomendación automática válida genera Delivery; alternativa termina sin Delivery con `ALTERNATIVA_PARA_REVISION`; transitorio/incoherente conserva Retry; cero coincidencias real termina con `SIN_COINCIDENCIA_UTIL`.
 - Recovery productivo validado: 11/11 pending-downstream históricos cerrados, 0 Delivery, 0 WhatsApp y colas finales en cero.
 - `WhatsAppProfile` productivo fue preservado.
+- Reply/quote validado con DOM real, regresiones y QA real WhatsApp: `TextoPropio` y `TextoCitado` se capturan por separado; la clasificación semántica usa exclusivamente `TextoPropio`; `TextoCitado` no origina por sí solo una solicitud; forwarded no se descarta automáticamente; una captura no confirmada conserva Retry.
 
 Pendientes conocidos:
 
-- separar reply/quote para evitar que el texto citado contamine demandas;
+- introducir `SolicitudAccionable` explícita y sus regresiones antes de Matching;
 - deduplicación durable de cross-posts entre chats;
 - capturar el timestamp real del mensaje;
 - decidir la política definitiva de alternativas;
