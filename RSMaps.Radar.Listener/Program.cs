@@ -1115,31 +1115,6 @@ static async Task AbsorberMensajesActuales(IPage page, HashSet<string> knownIds)
     }
 }
 
-static string LimpiarTextoMensajeWhatsApp(string texto)
-{
-    if (string.IsNullOrWhiteSpace(texto))
-        return texto;
-
-    // WhatsApp Web suele incluir la hora visible como una Ãºltima lÃ­nea independiente
-    // dentro del InnerText del mensaje. Se elimina solo si toda la Ãºltima lÃ­nea es una hora.
-    var lineas = texto
-        .Replace("\r\n", "\n", StringComparison.Ordinal)
-        .Split('\n');
-
-    if (lineas.Length <= 1)
-        return texto.Trim();
-
-    var ultima = lineas[^1].Trim();
-    if (!Regex.IsMatch(
-            ultima,
-            @"^\d{1,2}:\d{2}\s*(?:a\.?\s*m\.?|p\.?\s*m\.?)$",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
-    {
-        return texto.Trim();
-    }
-
-    return string.Join("\n", lineas[..^1]).Trim();
-}
 static async Task<(int Revisados, List<SolicitudInmobiliaria> Solicitudes, HashSet<string> DemandasInterpretadas)> ProcesarMensajesNuevos(
     IPage page,
     string chat,
@@ -1155,29 +1130,44 @@ static async Task<(int Revisados, List<SolicitudInmobiliaria> Solicitudes, HashS
     for (var i = 0; i < count; i++)
     {
         var message = messages.Nth(i);
-        var id = await message.GetAttributeAsync("data-id");
+        var idCandidato = await message.GetAttributeAsync("data-id");
 
-        if (string.IsNullOrWhiteSpace(id) || knownIds.Contains(id))
+        if (string.IsNullOrWhiteSpace(idCandidato) || knownIds.Contains(idCandidato))
             continue;
 
+        RadarWhatsAppMessageCapture capture =
+            await RadarWhatsAppMessageCaptureReader.ReadAsync(message, chat);
 
-        var text = LimpiarTextoMensajeWhatsApp((await message.InnerTextAsync()).Trim());
-        if (string.IsNullOrWhiteSpace(text))
+        if (!capture.Confirmado)
         {
-            knownIds.Add(id);
-            revisados++;
+            Console.WriteLine(
+                $"  [CAPTURE PENDING] {idCandidato}: {capture.MotivoNoConfirmado ?? "UNKNOWN"}; retry enabled.");
             continue;
         }
 
-        var classification = ClasificarMensaje(text);
-        if (classification != TipoMensaje.Demanda)
+        string id = capture.MessageId!;
+        if (knownIds.Contains(id))
+            continue;
+
+        RadarWhatsAppCaptureDecision decision =
+            RadarWhatsAppCaptureFlowDecision.Evaluar(capture);
+
+        if (decision.Disposicion == RadarWhatsAppCaptureDisposition.Retry)
+            continue;
+
+        if (decision.DebeMarcarComoConocido)
         {
             knownIds.Add(id);
             revisados++;
-            Console.WriteLine($"  ↳ Nuevo mensaje ignorado ({classification}) en {chat}.");
+            if (decision.Clasificacion.HasValue)
+            {
+                Console.WriteLine(
+                    $"  ↳ Nuevo mensaje ignorado ({decision.Clasificacion.Value}) en {chat}.");
+            }
             continue;
         }
 
+        string text = capture.TextoPropio;
         var (autor, telefono) = await ExtraerRemitente(message, text);
         var radarMessage = new RadarMessage
         {
@@ -1654,7 +1644,7 @@ static async Task<(string? Autor, string? Telefono)> ExtraerRemitente(
 
 static bool PareceContenidoInmobiliario(string texto)
 {
-    var t = Normalizar(texto);
+    var t = RadarMessageClassifier.Normalizar(texto);
 
     return new[]
     {
@@ -1680,69 +1670,6 @@ static string? ExtraerTelefono(string texto)
         ? Regex.Replace(general.Value, @"\s+", " ").Trim()
         : null;
 }
-
-static TipoMensaje ClasificarMensaje(string texto)
-{
-    var text = Normalizar(texto);
-
-    string[] demandaFuerte =
-    {
-        "busco", "buscando", "buscamos", "ando buscando", "estoy buscando",
-        "estamos buscando", "sigo en busqueda", "aun sigo en busqueda",
-        "solicito para cliente", "solicito renta", "solicito casa",
-        "solicito terreno", "solicito departamento", "necesito", "necesitamos",
-        "requiero", "requerimos", "cliente busca", "mi cliente busca",
-        "para un cliente", "para cliente", "alguien tendra", "alguien traera",
-        "algun compañero tiene", "alguien tiene", "me pudiera compartir",
-        "me pueden compartir opciones", "agradezco sus opciones",
-        "recibo propuesta", "recibo propuestas"
-    };
-
-    string[] ofertaFuerte =
-    {
-        "ofrezco", "vendo", "rento", "se vende", "se renta",
-        "pongo a su disposicion", "pongo a la disposicion",
-        "tenemos a la venta", "tenemos en venta", "tenemos a la renta",
-        "tenemos en renta", "propiedad en preventa", "casa en preventa",
-        "casa en venta", "departamento en renta", "terreno en venta",
-        "local en renta", "bodega en renta", "tenemos disponible", "tengo disponible"
-    };
-
-    string[] exclusionesDemanda =
-    {
-        "solicitar la licencia", "solicitar licencia", "solicitar informacion",
-        "solicitar constancia", "solicitar informes"
-    };
-
-    if (exclusionesDemanda.Any(text.Contains) && !demandaFuerte.Any(text.Contains))
-        return TipoMensaje.Otro;
-
-    if (demandaFuerte.Any(text.Contains))
-        return TipoMensaje.Demanda;
-
-    if (ofertaFuerte.Any(text.Contains))
-        return TipoMensaje.Oferta;
-
-    string[] demandaDebil =
-    {
-        "tendran", "tendras", "alguna propiedad", "alguna casa",
-        "algun terreno", "alguna bodega", "algun local"
-    };
-
-    return demandaDebil.Any(text.Contains)
-        ? TipoMensaje.Demanda
-        : TipoMensaje.Otro;
-}
-
-static string Normalizar(string texto) => texto
-    .ToLowerInvariant()
-    .Replace("á", "a")
-    .Replace("é", "e")
-    .Replace("í", "i")
-    .Replace("ó", "o")
-    .Replace("ú", "u")
-    .Replace("ü", "u")
-    .Replace("ñ", "n");
 
 static void MostrarSolicitud(SolicitudInmobiliaria s)
 {
@@ -1818,10 +1745,3 @@ static string MostrarBooleano(bool? valor) => valor switch
     false => "No",
     null => "-"
 };
-
-enum TipoMensaje
-{
-    Demanda,
-    Oferta,
-    Otro
-}

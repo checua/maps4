@@ -15,6 +15,24 @@ if (string.Equals(
 
 if (string.Equals(
     labMode,
+    "whatsapp-capture-real-qa",
+    StringComparison.OrdinalIgnoreCase))
+{
+    await WhatsAppCaptureRealQa.RunAsync();
+    return;
+}
+
+if (string.Equals(
+    labMode,
+    "whatsapp-capture-regression",
+    StringComparison.OrdinalIgnoreCase))
+{
+    await WhatsAppCaptureRegression.RunAsync();
+    return;
+}
+
+if (string.Equals(
+    labMode,
     "matching-regression",
     StringComparison.OrdinalIgnoreCase))
 {
