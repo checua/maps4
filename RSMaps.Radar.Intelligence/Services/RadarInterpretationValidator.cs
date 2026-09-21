@@ -75,7 +75,7 @@ public static class RadarInterpretationValidator
                 }
             }
 
-            var criterios = ContarCriteriosFuertes(s);
+            var criterios = RadarSolicitudCriteriosFuertes.Contar(s);
             if (criterios < 2)
             {
                 validacion.Advertencias.Add(
@@ -115,23 +115,4 @@ public static class RadarInterpretationValidator
             textoNormalizado.Contains(x, StringComparison.OrdinalIgnoreCase));
     }
 
-    private static int ContarCriteriosFuertes(SolicitudInmobiliaria s)
-    {
-        var total = 0;
-
-        if (!string.IsNullOrWhiteSpace(s.Operacion)) total++;
-        if (s.TiposPropiedad.Count > 0) total++;
-        if (s.SubtiposPropiedad.Count > 0) total++;
-        if (s.Zonas.Count > 0) total++;
-        if (!string.IsNullOrWhiteSpace(s.TipoFraccionamiento)) total++;
-        if (s.PrecioMinimo.HasValue || s.PrecioMaximo.HasValue) total++;
-        if (s.RecamarasMin.HasValue || s.RecamarasMax.HasValue) total++;
-        if (s.BanosMin.HasValue || s.BanosMax.HasValue) total++;
-        if (s.TerrenoMinM2.HasValue || s.ConstruccionMinM2.HasValue) total++;
-        if (s.CocheraMinAutos.HasValue) total++;
-        if (s.AceptaMascotas.HasValue || s.Amueblado.HasValue || s.UnaPlanta.HasValue || s.CasetaVigilancia.HasValue) total++;
-        if (s.ModalidadesPago.Count > 0) total++;
-
-        return total;
-    }
 }
