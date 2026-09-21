@@ -1,5 +1,6 @@
 using maps4.Models;
 using RSMaps.Radar.Listener.Models;
+using RSMaps.Radar.Listener.Services;
 using System.Globalization;
 using System.Text;
 
@@ -34,8 +35,42 @@ public sealed class RadarCentralProcessingService : IRadarCentralProcessingServi
         RadarInterpretationResult interpretacion =
             await _intelligence.InterpretarAsync(mensaje, cancellationToken);
 
+        if (!RadarInterpretationValidator.ValidarCoberturaGlobal(
+                interpretacion,
+                mensaje).EsValida)
+        {
+            throw new InvalidOperationException(
+                "RADAR produjo una interpretación global incompleta; el procesamiento central debe reintentarse.");
+        }
+
+        for (int indice = 0; indice < interpretacion.Solicitudes.Count; indice++)
+        {
+            SolicitudInmobiliaria solicitud = interpretacion.Solicitudes[indice];
+            bool interpretacionValida = RadarInterpretationValidator.InterpretacionEstructuralValida(
+                solicitud,
+                mensaje,
+                indice);
+
+            solicitud.Accionabilidad = RadarSolicitudAccionabilidadEvaluator.Evaluar(
+                solicitud,
+                RadarSolicitudAccionabilidadPolitica.OperacionYTipo,
+                interpretacionValida);
+            LimpiarMatching(solicitud);
+        }
+
+        if (interpretacion.Solicitudes.Any(x =>
+                x.Accionabilidad?.Motivos.Contains(
+                    RadarSolicitudAccionabilidadMotivo.InterpretacionInvalida) == true))
+        {
+            throw new InvalidOperationException(
+                "RADAR produjo una interpretación estructural inválida; el procesamiento central debe reintentarse.");
+        }
+
         foreach (SolicitudInmobiliaria solicitud in interpretacion.Solicitudes)
         {
+            if (solicitud.Accionabilidad?.Estado != RadarSolicitudAccionabilidadEstado.Accionable)
+                continue;
+
             RadarMatchingResponse resultado = await _matching.CompararAsync(
                 correo,
                 CrearMatchingRequest(solicitud));
@@ -64,6 +99,14 @@ public sealed class RadarCentralProcessingService : IRadarCentralProcessingServi
         }
 
         return interpretacion;
+    }
+
+    private static void LimpiarMatching(SolicitudInmobiliaria solicitud)
+    {
+        solicitud.MatchingResumen = null;
+        solicitud.MejorCoincidencia = null;
+        solicitud.IdInmuebleCoincidente = null;
+        solicitud.TieneRecomendacionAutomatica = false;
     }
 
     private static RadarMatchingRequest CrearMatchingRequest(SolicitudInmobiliaria solicitud)

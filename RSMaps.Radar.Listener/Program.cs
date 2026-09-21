@@ -267,6 +267,22 @@ static async Task ProcesarDemandasInterpretadasAsync(
                     var solicitud = solicitudesMensaje[indice];
                     MostrarSolicitud(solicitud);
 
+                    RadarDeliveryDecision? accionabilidadDecision =
+                        RadarDeliveryFlowDecision.EvaluarAntesDeMatching(solicitud);
+                    if (accionabilidadDecision is not null)
+                    {
+                        decisionesDelivery.Add(accionabilidadDecision);
+                        if (accionabilidadDecision.Disposicion == RadarDeliveryDisposition.Retry)
+                        {
+                            mensajeCompletado = false;
+                            Console.WriteLine($"  [PENDING] {accionabilidadDecision.Motivo}");
+                            break;
+                        }
+
+                        Console.WriteLine($"  [NO MATCHING] {accionabilidadDecision.Motivo}");
+                        continue;
+                    }
+
                     RadarMatchingClientResult matching =
                         await RsMapsMatchingClient.ConstruirResultadoAsync(solicitud);
                     solicitud.MatchingResumen = matching.Resumen;

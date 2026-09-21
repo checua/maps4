@@ -21,65 +21,114 @@ public static class RadarInterpretationValidator
         RadarMessage mensaje)
     {
         var validacion = new RadarValidationResult();
-        var texto = RadarInterpretationNormalizer.NormalizarTexto(mensaje.TextoOriginal);
+        RadarValidationResult global = ValidarCoberturaGlobal(resultado, mensaje);
+        validacion.Problemas.AddRange(global.Problemas);
 
-        var solicitudesEsperadas = EstimarSolicitudesExplicitas(texto);
+        for (var i = 0; i < resultado.Solicitudes.Count; i++)
+        {
+            RadarValidationResult individual = ValidarSolicitud(
+                resultado.Solicitudes[i],
+                mensaje,
+                i);
+            validacion.Problemas.AddRange(individual.Problemas);
+            validacion.Advertencias.AddRange(individual.Advertencias);
+        }
+
+        return validacion;
+    }
+
+    public static RadarValidationResult ValidarCoberturaGlobal(
+        RadarInterpretationResult resultado,
+        RadarMessage mensaje)
+    {
+        ArgumentNullException.ThrowIfNull(resultado);
+        ArgumentNullException.ThrowIfNull(mensaje);
+
+        var validacion = new RadarValidationResult();
+        string texto = RadarInterpretationNormalizer.NormalizarTexto(mensaje.TextoOriginal);
+        int solicitudesEsperadas = EstimarSolicitudesExplicitas(texto);
         if (solicitudesEsperadas >= 2 && resultado.Solicitudes.Count < solicitudesEsperadas)
         {
             validacion.Problemas.Add(
                 $"El mensaje parece contener {solicitudesEsperadas} solicitudes explícitas y sólo se extrajeron {resultado.Solicitudes.Count}.");
         }
 
-        for (var i = 0; i < resultado.Solicitudes.Count; i++)
+        return validacion;
+    }
+
+    public static RadarValidationResult ValidarSolicitud(
+        SolicitudInmobiliaria solicitud,
+        RadarMessage mensaje,
+        int indice = 0)
+    {
+        ArgumentNullException.ThrowIfNull(solicitud);
+        ArgumentNullException.ThrowIfNull(mensaje);
+
+        var validacion = new RadarValidationResult();
+        string prefijo = $"Solicitud #{indice + 1}";
+
+        if (solicitud.PrecioMinimo.HasValue && solicitud.PrecioMaximo.HasValue &&
+            solicitud.PrecioMinimo.Value > solicitud.PrecioMaximo.Value)
+            validacion.Problemas.Add($"{prefijo}: precio mínimo mayor que precio máximo.");
+
+        if (solicitud.RecamarasMin.HasValue && solicitud.RecamarasMax.HasValue &&
+            solicitud.RecamarasMin.Value > solicitud.RecamarasMax.Value)
+            validacion.Problemas.Add($"{prefijo}: rango de recámaras inválido.");
+
+        if (solicitud.BanosMin.HasValue && solicitud.BanosMax.HasValue &&
+            solicitud.BanosMin.Value > solicitud.BanosMax.Value)
+            validacion.Problemas.Add($"{prefijo}: rango de baños inválido.");
+
+        RadarValidationResult estructural = ValidarEstructuraSolicitud(
+            solicitud,
+            mensaje,
+            indice);
+        validacion.Problemas.AddRange(estructural.Problemas);
+
+        int criterios = RadarSolicitudCriteriosFuertes.Contar(solicitud);
+        if (criterios < 2)
         {
-            var s = resultado.Solicitudes[i];
-            var prefijo = $"Solicitud #{i + 1}";
+            validacion.Advertencias.Add(
+                $"{prefijo}: DATOS_INSUFICIENTES para un matching confiable ({criterios} criterio(s) fuerte(s)).");
+        }
 
-            if (s.PrecioMinimo.HasValue && s.PrecioMaximo.HasValue &&
-                s.PrecioMinimo.Value > s.PrecioMaximo.Value)
-            {
-                validacion.Problemas.Add($"{prefijo}: precio mínimo mayor que precio máximo.");
-            }
+        return validacion;
+    }
 
-            if (s.RecamarasMin.HasValue && s.RecamarasMax.HasValue &&
-                s.RecamarasMin.Value > s.RecamarasMax.Value)
-            {
-                validacion.Problemas.Add($"{prefijo}: rango de recámaras inválido.");
-            }
+    public static bool InterpretacionEstructuralValida(
+        SolicitudInmobiliaria solicitud,
+        RadarMessage mensaje,
+        int indice = 0) =>
+        ValidarEstructuraSolicitud(solicitud, mensaje, indice).EsValida;
 
-            if (s.BanosMin.HasValue && s.BanosMax.HasValue &&
-                s.BanosMin.Value > s.BanosMax.Value)
-            {
-                validacion.Problemas.Add($"{prefijo}: rango de baños inválido.");
-            }
+    private static RadarValidationResult ValidarEstructuraSolicitud(
+        SolicitudInmobiliaria solicitud,
+        RadarMessage mensaje,
+        int indice)
+    {
+        var validacion = new RadarValidationResult();
+        string texto = RadarInterpretationNormalizer.NormalizarTexto(mensaje.TextoOriginal);
+        string prefijo = $"Solicitud #{indice + 1}";
 
-            foreach (var tipo in s.TiposPropiedad)
-            {
-                if (!TiposCanonicos.Contains(tipo))
-                    validacion.Problemas.Add($"{prefijo}: tipo de propiedad no canónico '{tipo}'.");
-            }
+        foreach (string tipo in solicitud.TiposPropiedad)
+        {
+            if (!TiposCanonicos.Contains(tipo))
+                validacion.Problemas.Add($"{prefijo}: tipo de propiedad no canónico '{tipo}'.");
+        }
 
-            if (!string.IsNullOrWhiteSpace(s.TipoFraccionamiento) &&
-                !string.Equals(s.TipoFraccionamiento, "Privado", StringComparison.OrdinalIgnoreCase))
+        if (!string.IsNullOrWhiteSpace(solicitud.TipoFraccionamiento) &&
+            !string.Equals(solicitud.TipoFraccionamiento, "Privado", StringComparison.OrdinalIgnoreCase))
+        {
+            validacion.Problemas.Add(
+                $"{prefijo}: tipo de fraccionamiento no canónico '{solicitud.TipoFraccionamiento}'.");
+        }
+
+        foreach (string zona in solicitud.Zonas)
+        {
+            if (!ZonaRespaldadaPorMensaje(zona, texto))
             {
                 validacion.Problemas.Add(
-                    $"{prefijo}: tipo de fraccionamiento no canónico '{s.TipoFraccionamiento}'.");
-            }
-
-            foreach (var zona in s.Zonas)
-            {
-                if (!ZonaRespaldadaPorMensaje(zona, texto))
-                {
-                    validacion.Problemas.Add(
-                        $"{prefijo}: la zona '{zona}' no está suficientemente respaldada por el mensaje original.");
-                }
-            }
-
-            var criterios = RadarSolicitudCriteriosFuertes.Contar(s);
-            if (criterios < 2)
-            {
-                validacion.Advertencias.Add(
-                    $"{prefijo}: DATOS_INSUFICIENTES para un matching confiable ({criterios} criterio(s) fuerte(s)).");
+                    $"{prefijo}: la zona '{zona}' no está suficientemente respaldada por el mensaje original.");
             }
         }
 

@@ -7,7 +7,9 @@ public enum RadarDeliveryDisposition
     Retry,
     SinCoincidencia,
     Recomendacion,
-    AlternativaRevision
+    AlternativaRevision,
+    NecesitaMasDatos,
+    DatosContradictorios
 }
 
 public sealed record RadarDeliveryDecision(
@@ -108,6 +110,48 @@ public static class RadarDeliveryFlowDecision
             Motivo: "Alternativa útil conservada sin Delivery por política segura.");
     }
 
+    public static RadarDeliveryDecision? EvaluarAntesDeMatching(
+        SolicitudInmobiliaria solicitud)
+    {
+        ArgumentNullException.ThrowIfNull(solicitud);
+
+        RadarSolicitudAccionabilidadDecision? accionabilidad = solicitud.Accionabilidad;
+        if (accionabilidad is null)
+            return null;
+
+        if (accionabilidad.Estado == RadarSolicitudAccionabilidadEstado.Accionable)
+        {
+            return string.IsNullOrWhiteSpace(solicitud.MatchingResumen)
+                ? EstadoIncoherente("Solicitud accionable sin resultado durable de Matching.")
+                : null;
+        }
+
+        if (accionabilidad.Estado == RadarSolicitudAccionabilidadEstado.NecesitaMasDatos)
+        {
+            return new RadarDeliveryDecision(
+                RadarDeliveryDisposition.NecesitaMasDatos,
+                DebePrepararDelivery: false,
+                DebeTerminalAck: true,
+                DisposicionTerminal: "NECESITA_MAS_DATOS",
+                Motivo: "Solicitud confirmada pero requiere operación y/o tipo antes de Matching.");
+        }
+
+        if (accionabilidad.Motivos.Contains(RadarSolicitudAccionabilidadMotivo.InterpretacionInvalida))
+            return EstadoIncoherente("Interpretación inválida llegó al downstream; se conserva retry.");
+
+        if (accionabilidad.Motivos.Contains(RadarSolicitudAccionabilidadMotivo.DatosContradictorios))
+        {
+            return new RadarDeliveryDecision(
+                RadarDeliveryDisposition.DatosContradictorios,
+                DebePrepararDelivery: false,
+                DebeTerminalAck: true,
+                DisposicionTerminal: "DATOS_CONTRADICTORIOS",
+                Motivo: "La solicitud contiene datos contradictorios; Matching no fue ejecutado.");
+        }
+
+        return EstadoIncoherente("Estado de accionabilidad inconsistente sin motivo reconocido.");
+    }
+
     public static string? ResolverDisposicionTerminalGlobal(
         IEnumerable<RadarDeliveryDecision> decisiones,
         bool bloqueoSafeLab,
@@ -124,6 +168,20 @@ public static class RadarDeliveryFlowDecision
 
         if (huboDeliveryCompletado)
             return "ALERTA_ENTREGADA";
+
+        if (materializadas.Any(x =>
+                x.DebeTerminalAck &&
+                x.Disposicion == RadarDeliveryDisposition.DatosContradictorios))
+        {
+            return "DATOS_CONTRADICTORIOS";
+        }
+
+        if (materializadas.Any(x =>
+                x.DebeTerminalAck &&
+                x.Disposicion == RadarDeliveryDisposition.NecesitaMasDatos))
+        {
+            return "NECESITA_MAS_DATOS";
+        }
 
         if (materializadas.Any(x =>
                 x.DebeTerminalAck &&

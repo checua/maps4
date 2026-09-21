@@ -50,6 +50,11 @@ public class SolicitudInmobiliaria
     // Mientras existan, el matching automático debe operar fail-closed.
     public List<string> RestriccionesDurasNoVerificables { get; set; } = [];
 
+    // Null identifica resultados legacy, anteriores al contrato durable de
+    // accionabilidad. Para resultados nuevos, el backend central es la única
+    // autoridad que calcula y persiste esta decisión.
+    public RadarSolicitudAccionabilidadDecision? Accionabilidad { get; set; }
+
     public double? MejorCoincidencia { get; set; }
 
     // True cuando al menos un candidato superó tanto el score

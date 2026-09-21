@@ -77,6 +77,15 @@ if (string.Equals(
     return;
 }
 
+if (string.Equals(
+    labMode,
+    "solicitud-accionable-integration-regression",
+    StringComparison.OrdinalIgnoreCase))
+{
+    await SolicitudAccionableIntegrationRegression.RunAsync();
+    return;
+}
+
 var engine = (Environment.GetEnvironmentVariable("RADAR_LAB_INTERPRETER") ?? "rules")
     .Trim()
     .ToLowerInvariant();
