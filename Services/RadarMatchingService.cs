@@ -409,6 +409,9 @@ namespace maps4.Services
         {
             var motivos = new List<string>();
 
+            if (!EspecificidadSuficienteParaAutoRecomendar(solicitud))
+                motivos.Add("ESPECIFICIDAD_INSUFICIENTE");
+
             // Venta y renta son dimensiones comerciales incompatibles.
             // Si RADAR no pudo determinar la operación, el inmueble puede
             // conservarse como alternativa para revisión, pero nunca debe
@@ -541,6 +544,32 @@ namespace maps4.Services
             }
 
             return motivos;
+        }
+
+        private static bool EspecificidadSuficienteParaAutoRecomendar(
+            RadarMatchingRequest solicitud)
+        {
+            if (string.IsNullOrWhiteSpace(solicitud.Operacion) ||
+                !solicitud.TiposPropiedad.Any(x => !string.IsNullOrWhiteSpace(x)))
+            {
+                return false;
+            }
+
+            bool tieneZona = solicitud.Zonas.Any(x => !string.IsNullOrWhiteSpace(x));
+            bool tienePrecio = solicitud.PrecioMinimo.HasValue ||
+                solicitud.PrecioMaximo.HasValue ||
+                solicitud.PrecioObjetivo.HasValue;
+
+            int categoriasAdicionales = 0;
+            if (tieneZona) categoriasAdicionales++;
+            if (tienePrecio) categoriasAdicionales++;
+            if (solicitud.SubtiposPropiedad.Any(x => !string.IsNullOrWhiteSpace(x))) categoriasAdicionales++;
+            if (solicitud.RecamarasMin.HasValue) categoriasAdicionales++;
+            if (solicitud.BanosMin.HasValue) categoriasAdicionales++;
+            if (solicitud.TerrenoMinM2.HasValue || solicitud.ConstruccionMinM2.HasValue) categoriasAdicionales++;
+            if (solicitud.CocheraMinAutos.HasValue) categoriasAdicionales++;
+
+            return categoriasAdicionales >= 2 && (tieneZona || tienePrecio);
         }
         private static bool OperacionIncompatible(string? operacion, InventarioInmuebleViewModel inmueble)
         {

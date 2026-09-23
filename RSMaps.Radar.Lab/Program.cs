@@ -86,6 +86,15 @@ if (string.Equals(
     return;
 }
 
+if (string.Equals(
+    labMode,
+    "auto-recomendacion-especificidad-regression",
+    StringComparison.OrdinalIgnoreCase))
+{
+    await AutoRecomendacionEspecificidadRegression.RunAsync();
+    return;
+}
+
 var engine = (Environment.GetEnvironmentVariable("RADAR_LAB_INTERPRETER") ?? "rules")
     .Trim()
     .ToLowerInvariant();

@@ -159,13 +159,16 @@ internal static class SolicitudAccionableRegression
         Exigir(resultado.TotalCandidatos == 3, "Matching sintético no filtró la renta incompatible.");
         Exigir(resultado.Resultados.Count == 3, "Matching sintético devolvió una cantidad inesperada.");
         Exigir(resultado.Resultados.All(x => x.Puntuacion == 100), "Operación + tipo no produjo el score esperado.");
-        Exigir(resultado.Resultados.All(x => x.EsRecomendacionAutomatica), "Operación + tipo no produjo recomendaciones automáticas.");
+        Exigir(resultado.Resultados.All(x => !x.EsRecomendacionAutomatica), "Operación + tipo produjo una recomendación automática sin especificidad suficiente.");
+        Exigir(resultado.Resultados.All(x => x.MotivosNoRecomendacion.Contains("ESPECIFICIDAD_INSUFICIENTE")),
+            "Operación + tipo no conservó el motivo de especificidad insuficiente.");
         Exigir(resultado.Resultados.Select(x => x.IdInmueble).SequenceEqual(new[] { 302, 303, 301 }),
             "El desempate no ordenó por precio ascendente.");
 
         Console.WriteLine(
             "MATCHING_OPERACION_TIPO: evaluados=4; candidatos=3; resultados=3; " +
-            "scores=100,100,100; automaticas=3; desempate=precio_ascendente; mejor=302");
+            "scores=100,100,100; automaticas=0; alternativas=3; desempate=precio_ascendente; mejor=302");
+        Console.WriteLine("OPERACION_TIPO_ACCIONABLE_PERO_NO_AUTORECOMENDABLE");
     }
 
     private static InventarioInmuebleViewModel Inmueble(int id, double precio, string observaciones) =>
