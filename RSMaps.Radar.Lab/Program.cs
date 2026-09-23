@@ -95,6 +95,15 @@ if (string.Equals(
     return;
 }
 
+if (string.Equals(
+    labMode,
+    "deep-links-regression",
+    StringComparison.OrdinalIgnoreCase))
+{
+    DeepLinksRegression.Run();
+    return;
+}
+
 var engine = (Environment.GetEnvironmentVariable("RADAR_LAB_INTERPRETER") ?? "rules")
     .Trim()
     .ToLowerInvariant();

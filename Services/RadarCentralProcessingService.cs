@@ -18,13 +18,19 @@ public sealed class RadarCentralProcessingService : IRadarCentralProcessingServi
 {
     private readonly IRadarCentralIntelligenceService _intelligence;
     private readonly IRadarMatchingService _matching;
+    private readonly string _publicBaseUrl;
 
     public RadarCentralProcessingService(
         IRadarCentralIntelligenceService intelligence,
-        IRadarMatchingService matching)
+        IRadarMatchingService matching,
+        IConfiguration? configuration = null)
     {
         _intelligence = intelligence;
         _matching = matching;
+        _publicBaseUrl = RadarPropertyDeepLinks.NormalizarBaseUrl(
+            Environment.GetEnvironmentVariable("RSMAPS_PUBLIC_BASE_URL")
+                ?? configuration?["RSMaps:PublicBaseUrl"],
+            "https://rsmap.azurewebsites.net");
     }
 
     public async Task<RadarInterpretationResult> ProcesarAsync(
@@ -140,7 +146,7 @@ public sealed class RadarCentralProcessingService : IRadarCentralProcessingServi
         };
     }
 
-    private static string ConstruirResumen(RadarMatchingResponse resultado)
+    private string ConstruirResumen(RadarMatchingResponse resultado)
     {
         if (resultado.TotalCandidatos <= 0 ||
             resultado.Resultados.Count == 0)
@@ -185,7 +191,8 @@ public sealed class RadarCentralProcessingService : IRadarCentralProcessingServi
                 AgregarInmuebleResumen(
                     sb,
                     item,
-                    esRecomendacion: true);
+                    esRecomendacion: true,
+                    _publicBaseUrl);
             }
         }
 
@@ -199,7 +206,8 @@ public sealed class RadarCentralProcessingService : IRadarCentralProcessingServi
                 AgregarInmuebleResumen(
                     sb,
                     item,
-                    esRecomendacion: false);
+                    esRecomendacion: false,
+                    _publicBaseUrl);
             }
         }
 
@@ -214,7 +222,8 @@ public sealed class RadarCentralProcessingService : IRadarCentralProcessingServi
     private static void AgregarInmuebleResumen(
         StringBuilder sb,
         RadarMatchingResultado item,
-        bool esRecomendacion)
+        bool esRecomendacion,
+        string publicBaseUrl)
     {
         sb.AppendLine();
 
@@ -252,6 +261,8 @@ public sealed class RadarCentralProcessingService : IRadarCentralProcessingServi
 
         if (!string.IsNullOrWhiteSpace(item.Direccion))
             sb.AppendLine(item.Direccion.Trim());
+
+        RadarPropertyDeepLinks.Agregar(sb, item.IdInmueble, publicBaseUrl);
 
         foreach (string motivo in item.Coincidencias
                      .Where(x => !string.IsNullOrWhiteSpace(x))

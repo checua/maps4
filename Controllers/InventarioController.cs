@@ -38,6 +38,7 @@ namespace maps4.Controllers
         }
 
         [HttpGet]
+        [HttpGet("/i/{inmuebleId:int:min(1)}", Name = "InventarioDeepLink")]
         public async Task<IActionResult> Index(int? inmuebleId = null)
         {
             string? correo = User.Identity?.Name;
@@ -80,6 +81,78 @@ namespace maps4.Controllers
                 };
 
                 return View(modelo);
+            }
+            catch (SqlException ex) when (ex.Number is 52120 or 52121 or 52122 or 52123 or 52520 or 52521 or 52522)
+            {
+                return Forbid();
+            }
+        }
+
+        [HttpGet("/Inventario/GetInmuebleAutorizadoById")]
+        public async Task<IActionResult> GetInmuebleAutorizadoById(int id)
+        {
+            string? correo = User.Identity?.Name;
+            if (id <= 0)
+                return BadRequest(new { success = false, message = "ID de inmueble inválido." });
+            if (string.IsNullOrWhiteSpace(correo))
+                return Unauthorized(new { success = false, message = "Se requiere iniciar sesión." });
+
+            try
+            {
+                InventarioInmuebleViewModel? inmueble = (await _inventarioRepository.ListarAutorizadosAsync(correo))
+                    .FirstOrDefault(x => x.IdInmueble == id);
+
+                if (inmueble == null)
+                    return NotFound(new { success = false, message = "Inmueble no encontrado o no autorizado." });
+
+                return Ok(new[]
+                {
+                    new
+                    {
+                        inmueble.IdInmueble,
+                        inmueble.Lat,
+                        inmueble.Lng,
+                        inmueble.IdTipo,
+                        inmueble.Telefono,
+                        inmueble.Terreno,
+                        inmueble.Construccion,
+                        inmueble.Precio,
+                        inmueble.Observaciones,
+                        Contacto = inmueble.AsesorNombre,
+                        inmueble.Imagenes,
+                        RefUsuario = new
+                        {
+                            Correo = inmueble.CorreoAsesor ?? string.Empty,
+                            Nombres = inmueble.AsesorNombre ?? string.Empty,
+                            APaterno = string.Empty
+                        }
+                    }
+                });
+            }
+            catch (SqlException ex) when (ex.Number is 52120 or 52121 or 52122 or 52123 or 52520 or 52521 or 52522)
+            {
+                return Forbid();
+            }
+        }
+
+        [HttpGet("/m/{inmuebleId:int:min(1)}", Name = "MapaDeepLink")]
+        public async Task<IActionResult> Mapa(int inmuebleId)
+        {
+            string? correo = User.Identity?.Name;
+            if (string.IsNullOrWhiteSpace(correo))
+                return Challenge();
+
+            try
+            {
+                bool autorizado = (await _inventarioRepository.ListarAutorizadosAsync(correo))
+                    .Any(x => x.IdInmueble == inmuebleId);
+                if (!autorizado)
+                    return NotFound();
+
+                ViewData["CorreoUsuario"] = correo;
+                ViewData["MapaObjetivoId"] = inmuebleId;
+                ViewData["MapaObjetivoEndpoint"] = "/Inventario/GetInmuebleAutorizadoById";
+                return View("~/Views/Home/Index.cshtml");
             }
             catch (SqlException ex) when (ex.Number is 52120 or 52121 or 52122 or 52123 or 52520 or 52521 or 52522)
             {

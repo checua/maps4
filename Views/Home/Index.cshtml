@@ -9,6 +9,11 @@
 <link href="~/css/map.css" rel="stylesheet" />
 <link href="~/css/modalInmueble.css" rel="stylesheet" />
 <link href="~/css/comentariosindex.css" rel="stylesheet" />
+@if (ViewData["MapaObjetivoId"] is int mapaObjetivoId)
+{
+    <meta name="rsmaps-focused-property-id" content="@mapaObjetivoId" />
+    <meta name="rsmaps-focused-property-endpoint" content="@(ViewData["MapaObjetivoEndpoint"])" />
+}
 <div id="map_canvas" style="width: 100%; height: 100vh;"></div>
 
 <div id="toggle-satellite-btn" onclick="toggleSatellite()">

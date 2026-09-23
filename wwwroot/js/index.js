@@ -229,7 +229,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     const queryParams = getQueryParams();
-    if (queryParams.inmuebleId) {
+    const focusedPropertyId = document.querySelector('meta[name="rsmaps-focused-property-id"]')?.content;
+    const focusedPropertyEndpoint = document.querySelector('meta[name="rsmaps-focused-property-endpoint"]')?.content;
+    if (focusedPropertyId) {
+        loadInmueble(focusedPropertyId, false, focusedPropertyEndpoint);
+    } else if (queryParams.inmuebleId) {
         const preferPrivate =
             String(queryParams.source || '').toLowerCase() === 'inventory';
 
@@ -247,10 +251,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 
-function loadInmueble(inmuebleId, preferPrivate = false) {
-    const endpoint = preferPrivate
+function loadInmueble(inmuebleId, preferPrivate = false, explicitEndpoint = null) {
+    const endpoint = explicitEndpoint || (preferPrivate
         ? '/Inmueble/GetInmueblePrivadoById'
-        : '/Inmueble/GetInmuebleById';
+        : '/Inmueble/GetInmuebleById');
 
     fetch(`${endpoint}?id=${encodeURIComponent(inmuebleId)}`, {
         credentials: 'same-origin'
@@ -272,7 +276,7 @@ function loadInmueble(inmuebleId, preferPrivate = false) {
                 };
 
                 const str = document.getElementById("lnkAcceso").innerText;
-                const str2 = inmueble[0].refUsuario.correo.toString();
+                const str2 = (inmueble[0].refUsuario?.correo || '').toString();
 
                 const res = str.toUpperCase();
                 const res2 = str2.toUpperCase();
@@ -305,7 +309,7 @@ function loadInmueble(inmuebleId, preferPrivate = false) {
                 //onMarkerClick(inmueble);
                 selectedInmuebleId = inmuebleId;
                 
-                var nom_tel = inmueble[0].refUsuario.nombres + " " + inmueble[0].refUsuario.aPaterno;
+                var nom_tel = `${inmueble[0].refUsuario?.nombres || ''} ${inmueble[0].refUsuario?.aPaterno || ''}`.trim();
                 GetCode1(inmueble[0].idTipo, inmueble[0].idInmueble, nom_tel, inmueble[0].telefono, inmueble[0].terreno, inmueble[0].construccion, inmueble[0].precio, inmueble[0].observaciones, inmueble[0].contacto, inmueble[0].imagenes);
 
             } else {

@@ -1,9 +1,12 @@
 (() => {
     const path = window.location.pathname.toLowerCase();
-    if (path !== '/' && path !== '/home' && path !== '/home/index') return;
+    const isMapDeepLink = /^\/m\/\d+\/?$/.test(path);
+    if (path !== '/' && path !== '/home' && path !== '/home/index' && !isMapDeepLink) return;
 
     const query = new URLSearchParams(window.location.search);
-    const requestedInmuebleId = Number(query.get('inmuebleId') || 0);
+    const focusedPropertyMeta = document.querySelector('meta[name="rsmaps-focused-property-id"]');
+    const focusedPropertyEndpoint = document.querySelector('meta[name="rsmaps-focused-property-endpoint"]')?.content;
+    const requestedInmuebleId = Number(focusedPropertyMeta?.content || query.get('inmuebleId') || 0);
     let explicitFocusMarker = null;
     let focusTimer = null;
     let handoffTimer = null;
@@ -169,7 +172,8 @@
 
     async function loadFocusedProperty(inmuebleId) {
         try {
-            const response = await fetch(`/Inmueble/GetInmuebleById?id=${encodeURIComponent(inmuebleId)}`, {
+            const endpoint = focusedPropertyEndpoint || '/Inmueble/GetInmuebleById';
+            const response = await fetch(`${endpoint}?id=${encodeURIComponent(inmuebleId)}`, {
                 credentials: 'same-origin'
             });
             if (!response.ok) return;

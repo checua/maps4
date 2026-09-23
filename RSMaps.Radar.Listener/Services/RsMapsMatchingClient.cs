@@ -161,7 +161,8 @@ public static class RsMapsMatchingClient
                 AgregarInmuebleResumen(
                     sb,
                     item,
-                    esRecomendacion: true);
+                    esRecomendacion: true,
+                    RadarAgentBackendClient.BaseUrl);
             }
         }
 
@@ -175,7 +176,8 @@ public static class RsMapsMatchingClient
                 AgregarInmuebleResumen(
                     sb,
                     item,
-                    esRecomendacion: false);
+                    esRecomendacion: false,
+                    RadarAgentBackendClient.BaseUrl);
             }
         }
 
@@ -190,7 +192,8 @@ public static class RsMapsMatchingClient
     private static void AgregarInmuebleResumen(
         StringBuilder sb,
         MatchingResultado item,
-        bool esRecomendacion)
+        bool esRecomendacion,
+        string publicBaseUrl)
     {
         sb.AppendLine();
 
@@ -228,6 +231,8 @@ public static class RsMapsMatchingClient
 
         if (!string.IsNullOrWhiteSpace(item.Direccion))
             sb.AppendLine(item.Direccion.Trim());
+
+        RadarPropertyDeepLinks.Agregar(sb, item.IdInmueble, publicBaseUrl);
 
         foreach (string motivo in item.Coincidencias
                      .Where(x => !string.IsNullOrWhiteSpace(x))
