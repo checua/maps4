@@ -97,7 +97,7 @@ El orden puede ajustarse, pero los principios anteriores deben conservarse.
 
 ## 6. Estado de referencia actual
 
-A 2026-09-19 ya existen, entre otros:
+A 2026-09-22 ya existen, entre otros:
 
 - Listener de WhatsApp funcional.
 - Matching contra inventario RSMaps.
@@ -114,8 +114,14 @@ A 2026-09-19 ya existen, entre otros:
 - Política segura de Delivery: sólo una recomendación automática válida genera Delivery; las alternativas terminan en `ALTERNATIVA_PARA_REVISION` por default.
 - Recovery productivo validado: 11/11 workflows históricos cerrados sin Delivery ni WhatsApp; colas finales en cero.
 - Reply/quote capturado estructuralmente: la clasificación semántica usa exclusivamente `TextoPropio`; `TextoCitado` nunca origina por sí solo una nueva solicitud; forwarded no se descarta automáticamente; una captura no confirmada conserva Retry.
+- `SolicitudAccionable` implementada y validada localmente: `EsDemanda → Intelligence → SolicitudInmobiliaria → Accionabilidad → Matching sólo si Accionable`. El backend central es autoridad y el Listener consumidor; `Accionabilidad = null` conserva compatibilidad legacy.
+- Estados de accionabilidad: `Accionable`, `NecesitaMasDatos` e `Inconsistente`. Falta de datos o contradicción termina sin Matching/Delivery mediante ACK específico; interpretación inválida conserva retry/fallo central.
+- Auto-B implementado y validado localmente: ser accionable no implica ser auto-recomendable. Exige Operación + Tipo + dos categorías comerciales adicionales, incluyendo Zona o Precio; conserva score, pesos y umbrales, y degrada a alternativa con `ESPECIFICIDAD_INSUFICIENTE`.
+- Deep Links implementados y validados localmente: `/i/{id}` y `/m/{id}` autenticados/autorizados por cuenta y equipo; RADAR agrega links estructurados de Inventario y Mapa a recomendaciones y alternativas.
 
-La ruta inmediata es introducir `SolicitudAccionable` explícita, protegerla con regresiones e integrarla antes de Matching; después se abordará la deduplicación durable cross-chat.
+Commits versionados pendientes de deploy productivo: `d5f1d43` (evaluador de accionabilidad), `d333b92` (integración durable), `28c1daa` (Auto-B) y `451c3d9` (Deep Links). Producción permanece en el último Listener estable desplegado: `92b994e`.
+
+La ruta inmediata es desplegar y ejecutar QA productivo de los cambios acumulados; después se abordará la deduplicación durable cross-chat.
 
 Continúan pendientes la captura del timestamp real, la política definitiva de alternativas y la revisión de tolerancias de requisitos mínimos. Estos puntos no deben considerarse resueltos por el deploy de `92b994e`.
 

@@ -13,22 +13,22 @@ Los porcentajes son estimaciones de gestión del proyecto, no métricas automát
 
 ## Dashboard ejecutivo
 
-- **Avance simple:** 932 / 19 = **49.05% ≈ 49%**.
-- **Avance general ponderado:** suma de `peso × avance / 100` = **60.45% ≈ 60%**.
-- **Avance del núcleo operativo:** 52.71 / 66 × 100 = **79.86% ≈ 80%**.
+- **Avance simple:** 971 / 19 = **51.11% ≈ 51%**.
+- **Avance general ponderado:** suma de `peso × avance / 100` = **63.23% ≈ 63%**.
+- **Avance del núcleo operativo:** 55.49 / 66 × 100 = **84.08% ≈ 84%**.
 - **Suma de pesos:** **100%**. **Bloques maestros:** **19**.
 
 | ID | Bloque | Peso | Avance | Indicador | Contribución | Estado | Responsable | Siguiente acción |
 |---:|---|---:|---:|:---:|---:|---|---|---|
 | 0 | Visión del producto | 2% | 40% | 🟠 | 0.80% | Parcial | JJ | Priorizar alcance comercial |
 | 1 | RSMaps — Núcleo | 9% | 78% | 🟡 | 7.02% | Avanzado | JJ + Codex | Cerrar permisos y ciclo completo |
-| 2 | RSMaps — Mapa | 7% | 68% | 🟡 | 4.76% | Avanzado | JJ + Codex | Validar escala y viewport |
+| 2 | RSMaps — Mapa | 7% | 74% | 🟡 | 5.18% | Deep Links validados localmente | JJ + Codex | Deploy/QA de `/m/{id}` y validar escala |
 | 3 | Zonas / Geointeligencia | 4% | 18% | 🔴 | 0.72% | Inicial | JJ + Codex | Integrar zonas al matching |
 | 4 | RADAR — Captura | 7% | 90% | 🟢 | 6.30% | Reply/quote productivo | JJ + Codex | Capturar timestamp real |
-| 5 | RADAR — Interpretación | 7% | 72% | 🟡 | 5.04% | Avanzado | JJ + Codex | Introducir `SolicitudAccionable` |
-| 6 | RADAR Intelligence | 8% | 86% | 🟢 | 6.88% | Central operativo | JJ + Codex | Fortalecer validación/confianza |
-| 7 | RADAR — Matching | 8% | 84% | 🟢 | 6.72% | Operativo | JJ + Codex | Revisar mínimos y multi-cuenta |
-| 8 | RADAR — Delivery / Alertas | 7% | 80% | 🟢 | 5.60% | Operativo seguro | JJ + Codex, checkpoint humano | Política final de alternativas |
+| 5 | RADAR — Interpretación | 7% | 86% | 🟢 | 6.02% | Accionabilidad integrada localmente | JJ + Codex | Deploy/QA productivo |
+| 6 | RADAR Intelligence | 8% | 91% | 🟢 | 7.28% | Central + accionabilidad versionada | JJ + Codex | Deploy/QA y fortalecer confianza |
+| 7 | RADAR — Matching | 8% | 89% | 🟢 | 7.12% | Auto-B validado localmente | JJ + Codex | Deploy/QA y revisar mínimos |
+| 8 | RADAR — Delivery / Alertas | 7% | 84% | 🟢 | 5.88% | Flujo seguro + links versionados | JJ + Codex, checkpoint humano | Deploy/QA y política final de alternativas |
 | 9 | RADAR Agent | 7% | 85% | 🟢 | 5.95% | Productivo | JJ + Codex, checkpoint humano | Health y multi-Agent |
 | 10 | Deduplicación | 6% | 32% | 🟠 | 1.92% | Parcial | JJ + Codex | Deduplicación durable cross-chat |
 | 11 | Estadísticas / Analytics | 4% | 12% | 🔴 | 0.48% | Inicial | JJ + Codex | Definir métricas y dashboard |
@@ -36,25 +36,25 @@ Los porcentajes son estimaciones de gestión del proyecto, no métricas automát
 | 13 | Prospectos / CRM | 3% | 22% | 🔴 | 0.66% | Inicial | JJ | Definir ciclo de lead |
 | 14 | Cuentas / Organizaciones | 4% | 28% | 🔴 | 1.12% | Inicial | JJ + Codex | Validar aislamiento |
 | 15 | Administración / Control | 4% | 35% | 🟠 | 1.40% | Parcial | JJ + Codex | Diseñar panel RADAR |
-| 16 | QA / Observabilidad | 6% | 74% | 🟡 | 4.44% | Avanzado | JJ + Codex | Health y regresión integral |
+| 16 | QA / Observabilidad | 6% | 79% | 🟡 | 4.74% | Regresiones de accionabilidad/links | JJ + Codex | QA productivo y health integral |
 | 17 | Expansión | 2% | 15% | 🔴 | 0.30% | Planificada | JJ | Criterios de expansión |
 | 18 | Futuro / I+D | 2% | 5% | 🔴 | 0.10% | Visión | JJ | Mantener backlog priorizado |
-|  | **Total** | **100%** | **49.05% simple** |  | **60.45%** |  |  |  |
+|  | **Total** | **100%** | **51.11% simple** |  | **63.23%** |  |  |  |
 
 ### Núcleo operativo
 
-Bloques 1, 2, 4, 5, 6, 7, 8, 9 y 16: pesos 66%, contribuciones 52.71; avance normalizado **79.86%**.
+Bloques 1, 2, 4, 5, 6, 7, 8, 9 y 16: pesos 66%, contribuciones 55.49; avance normalizado **84.08%**.
+
+Cambios de avance con evidencia directa: Mapa **68→74** por Deep Links autorizados y enfoque estructurado; Interpretación **72→86** por `SolicitudAccionable`; Intelligence **86→91** por integración durable y autoridad central; Matching **84→89** por Auto-B; Delivery/UX **80→84** por enlaces por resultado y disposiciones seguras; QA **74→79** por las nuevas matrices de regresión. Estos frentes están implementados, validados localmente y versionados, pero aún no desplegados en producción.
 
 ## Ruta activa
 
-1. `SolicitudAccionable` explícita.
-2. Regresiones de accionabilidad.
-3. Integrar accionabilidad antes de Matching.
-4. Deduplicación durable cross-chat.
-5. Política final de alternativas.
-6. Restricciones comerciales duras.
-7. Escalabilidad del mapa.
-8. Analytics / Inteligencia de mercado.
+1. Deploy y QA productivo de los cambios acumulados.
+2. Deduplicación durable cross-chat.
+3. Política final de alternativas.
+4. Restricciones comerciales duras.
+5. Escalabilidad del mapa.
+6. Analytics / Inteligencia de mercado.
 
 ---
 
@@ -73,9 +73,11 @@ Bloques 1, 2, 4, 5, 6, 7, 8, 9 y 16: pesos 66%, contribuciones 52.71; avance nor
 - 🟢 Fotos legacy, límite 40, Azure, SQL y Blob.
 - 🔴 Documentos completos y fotos modernas de #187 no localizadas.
 
-## 2. 🟡 RSMaps — Mapa — 68% — peso 7%
-**Estado:** funcional; escala pendiente. **Responsable:** JJ + Codex.
+## 2. 🟡 RSMaps — Mapa — 74% — peso 7%
+**Estado:** Deep Links implementados y validados localmente; deploy pendiente. **Responsable:** JJ + Codex.
 - 🟢 Markers, filtros, navegación, property focus y viewport.
+- 🟢 `/m/{id}` autenticado y autorizado por cuenta/equipo: ID estructurado, icono por `idTipo`, modal, centro, zoom, protección contra recenter y handoff de marker.
+- 🟢 `/i/{id}` abre Inventario autorizado; URLs legacy conservadas.
 - 🟡 Pan/zoom, cache y medición productiva.
 - 🔴 Clustering, 10,000+ inmuebles y optimización futura.
 
@@ -93,37 +95,45 @@ Bloques 1, 2, 4, 5, 6, 7, 8, 9 y 16: pesos 66%, contribuciones 52.71; avance nor
 - 🔴 Timestamp real del mensaje.
 - 🔴 Otras fuentes futuras.
 
-## 5. 🟡 RADAR — Interpretación — 72% — peso 7%
-**Estado:** extracción avanzada. **Responsable:** JJ + Codex.
+## 5. 🟢 RADAR — Interpretación — 86% — peso 7%
+**Estado:** `SolicitudAccionable` integrada y versionada; deploy pendiente. **Responsable:** JJ + Codex.
 - 🟡 Solicitud inmobiliaria; demanda/oferta/otro; segmentación múltiple.
 - 🟢 Venta/renta, tipo/subtipo, precio/presupuesto y forma de pago.
 - 🟡 Zona, recámaras, baños, plantas, terreno, construcción, cochera y requisitos.
 - 🟢 Hard constraints interpretados fail-closed.
 - 🟢 La clasificación semántica usa exclusivamente `TextoPropio`; `TextoCitado` no origina por sí solo una solicitud y forwarded no se descarta automáticamente.
-- 🔴 `SolicitudAccionable` explícita antes de Matching.
+- 🟢 Flujo: `EsDemanda → Intelligence → SolicitudInmobiliaria → Accionabilidad → Matching sólo si Accionable`.
+- 🟢 Estados `Accionable`, `NecesitaMasDatos` e `Inconsistente`; política candidata `Operacion + Tipo + consistencia`.
+- 🟢 `Accionabilidad` nullable mantiene compatibilidad: `null` identifica resultados legacy/históricos.
+- 🟢 `NecesitaMasDatos` y `DatosContradictorios`: sin Matching ni Delivery, con ACK específico; `InterpretacionInvalida`: retry/fallo central.
 
-## 6. 🟢 RADAR Intelligence — 86% — peso 8%
-**Estado:** central productivo. **Responsable:** JJ + Codex.
+## 6. 🟢 RADAR Intelligence — 91% — peso 8%
+**Estado:** central productivo; accionabilidad durable implementada localmente, pendiente de deploy. **Responsable:** JJ + Codex.
 - 🟢 OpenAI central, interpretación, normalización y validación.
 - 🟢 `ResultadoCentralJson`, persistencia durable y replay.
 - 🟢 Fallback local deshabilitado.
+- 🟢 Backend central como autoridad de accionabilidad; Listener como consumidor del resultado durable.
 - 🟡 Confianza, resiliencia, observabilidad y evolución futura.
 
-## 7. 🟢 RADAR — Matching — 84% — peso 8%
-**Estado:** operativo con inventario real. **Responsable:** JJ + Codex.
+## 7. 🟢 RADAR — Matching — 89% — peso 8%
+**Estado:** operativo; Auto-B implementado/validado y pendiente de deploy. **Responsable:** JJ + Codex.
 - 🟢 Inventario, filtros, hard/payment constraints.
 - 🟡 Soft constraints, scoring y ranking.
 - 🟢 Recomendación, alternativa, cero coincidencias y explicación.
+- 🟢 `Accionable != AutoRecomendable`: Auto-B exige Operación + Tipo + dos categorías adicionales, incluyendo Zona o Precio.
+- 🟢 Categorías adicionales: Zona, Precio, Subtipo, Recámaras, Baños, Superficie y Cochera. No cuentan booleanos secundarios, requisitos libres, modalidades no verificables ni tipo de fraccionamiento no evaluado.
+- 🟢 Score, pesos y umbrales 55/85 sin cambios; `ESPECIFICIDAD_INSUFICIENTE` conserva el candidato como alternativa.
 - 🟡 Tolerancias de 80% terreno/construcción y otros mínimos.
 - 🟠 Multi-cuenta; 🔴 aprendizaje futuro.
 
-## 8. 🟢 RADAR — Delivery / Alertas — 80% — peso 7%
-**Estado:** flujo seguro productivo. **Responsable:** JJ + Codex, checkpoint humano.
+## 8. 🟢 RADAR — Delivery / Alertas — 84% — peso 7%
+**Estado:** flujo seguro productivo; Deep Links versionados pendientes de deploy. **Responsable:** JJ + Codex, checkpoint humano.
 - 🟢 Decision flow, durable prepare/complete, idempotencia y Safe Lab.
 - 🟢 Recomendación válida → Delivery.
 - 🟢 Alternativa → `ALTERNATIVA_PARA_REVISION`, sin Delivery por default.
 - 🟢 Cero real → `SIN_COINCIDENCIA_UTIL`; transitorio/incoherente → Retry.
 - 🟢 Terminal ACK y política configurable; definición comercial final pendiente.
+- 🟢 Cada recomendación y alternativa genera links desde `IdInmueble`: `📋 /i/{id}` y `📍 /m/{id}`; paridad central/fallback.
 
 ## 9. 🟢 RADAR Agent — 85% — peso 7%
 **Estado:** productivo. **Responsable:** JJ + Codex, checkpoint humano.
@@ -170,10 +180,11 @@ Bloques 1, 2, 4, 5, 6, 7, 8, 9 y 16: pesos 66%, contribuciones 52.71; avance nor
 - 🔴 Thresholds, alternativas, reglas, colas, errores, auditoría y operación.
 - 🟠 Logs y recovery consultables.
 
-## 16. 🟡 QA / Observabilidad — 74% — peso 6%
+## 16. 🟡 QA / Observabilidad — 79% — peso 6%
 **Estado:** regresión avanzada; métricas parciales. **Responsable:** JJ + Codex.
 - 🟢 Builds, matching, payment constraints, Cynthia y Delivery regression.
 - 🟢 Intelligence E2E, Listener, recovery y colas.
+- 🟢 Regresiones de `SolicitudAccionable`, integración durable, Auto-B y Deep Links (incluidos múltiples resultados y normalización de URL).
 - 🟠 Health y métricas; 🟡 logs y alertas técnicas.
 - 🟡 `e2e-hard-no-orillas` / “Lo más nuevo posible” sigue independiente.
 
@@ -207,10 +218,12 @@ Bloques 1, 2, 4, 5, 6, 7, 8, 9 y 16: pesos 66%, contribuciones 52.71; avance nor
 - ✅ Backup: `C:\Users\jenny\AppData\Local\RSMaps\RadarAgent\Backups\pre-60a49eb-20260918-002253`.
 - ✅ Reply/Quote estructurado: captura confirmada/fail-safe, separación `TextoPropio` / `TextoCitado`, forwarded estructural, regresiones y QA real aprobados.
 - ✅ Listener productivo en `92b994e` (`fix: separate WhatsApp reply quote from own message`); deploy y post-deploy estables.
+- ✅ `SolicitudAccionable` implementada y validada: evaluador `d5f1d43` e integración durable `d333b92`; pendiente de deploy productivo.
+- ✅ Auto-B de especificidad implementada y validada en `28c1daa`; pendiente de deploy productivo.
+- ✅ Deep Links `/i/{id}` y `/m/{id}`, autorización cuenta/equipo y links RADAR por resultado implementados y validados en `451c3d9`; pendiente de deploy productivo.
 
 # Pendientes conocidos
 
-- 🔴 `SolicitudAccionable` explícita y regresiones de accionabilidad antes de Matching.
 - 🔴 Deduplicación durable cross-chat/cross-post.
 - 🔴 Timestamp real del mensaje.
 - 🟡 Política definitiva de alternativas.
@@ -228,4 +241,4 @@ Al cerrar un bloque, incorporar una idea, cambiar prioridad, descubrir un bug o 
 
 # Ruta activa — cierre
 
-1. `SolicitudAccionable` explícita. 2. Regresiones de accionabilidad. 3. Integrar accionabilidad antes de Matching. 4. Deduplicación durable cross-chat. 5. Política final de alternativas. 6. Restricciones comerciales duras. 7. Escalabilidad del mapa. 8. Analytics / Inteligencia de mercado.
+1. Deploy / QA productivo de `SolicitudAccionable` + Auto-B + Deep Links. 2. Deduplicación durable cross-chat. 3. Política final de alternativas. 4. Restricciones comerciales duras. 5. Escalabilidad del mapa. 6. Analytics / Inteligencia de mercado.

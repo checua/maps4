@@ -77,12 +77,13 @@ Conservar, cuando existan:
 4. Si contiene varias solicitudes, segmentarlas.
 5. Extraer campos de cada solicitud.
 6. Validar coherencia y confianza.
-7. Deduplicar publicaciones repetidas entre grupos.
-8. Consultar RSMaps.
-9. Comparar primero con operación, tipo, zonas, precio y requisitos duros.
-10. Clasificar resultado como coincidencia alta, media, aproximada o datos insuficientes.
-11. Decidir si vale la pena notificar.
-12. Enviar a **Propiedades** y volver al chat origen.
+7. Evaluar `Accionabilidad`; sólo una solicitud `Accionable` continúa a Matching.
+8. Deduplicar publicaciones repetidas entre grupos.
+9. Consultar RSMaps.
+10. Comparar primero con operación, tipo, zonas, precio y requisitos duros.
+11. Clasificar resultado como coincidencia alta, media, aproximada o datos insuficientes.
+12. Decidir si vale la pena notificar.
+13. Enviar a **Propiedades** y volver al chat origen.
 
 ## Principios de matching
 
@@ -183,10 +184,14 @@ Este caso debe repetirse después de integrar Zonas y sirve como prueba de regre
 - Recovery productivo validado: 11/11 pending-downstream históricos cerrados, 0 Delivery, 0 WhatsApp y colas finales en cero.
 - `WhatsAppProfile` productivo fue preservado.
 - Reply/quote validado con DOM real, regresiones y QA real WhatsApp: `TextoPropio` y `TextoCitado` se capturan por separado; la clasificación semántica usa exclusivamente `TextoPropio`; `TextoCitado` no origina por sí solo una solicitud; forwarded no se descarta automáticamente; una captura no confirmada conserva Retry.
+- `SolicitudAccionable` está implementada, validada localmente y versionada (`d5f1d43`, `d333b92`), todavía no desplegada. Estados: `Accionable`, `NecesitaMasDatos`, `Inconsistente`; política candidata: Operación + Tipo + consistencia. `null` conserva compatibilidad legacy.
+- Auto-B está implementado, validado y versionado (`28c1daa`), todavía no desplegado: Operación + Tipo + dos categorías adicionales, una de ellas Zona o Precio. No cambia score, pesos ni umbrales; `ESPECIFICIDAD_INSUFICIENTE` conserva alternativa y Delivery seguro termina en `ALTERNATIVA_PARA_REVISION`.
+- Deep Links están implementados, validados y versionados (`451c3d9`), todavía no desplegados: `/i/{id}` para Inventario autorizado y `/m/{id}` para mapa autorizado; ambos admiten propiedad propia/equipo y RADAR los agrega por `IdInmueble` a recomendaciones y alternativas.
+- Base URL de Deep Links: web `RSMAPS_PUBLIC_BASE_URL → RSMaps:PublicBaseUrl → fallback configurado`; fallback del Listener mediante `RSMAPS_BASE_URL`.
 
 Pendientes conocidos:
 
-- introducir `SolicitudAccionable` explícita y sus regresiones antes de Matching;
+- deploy y QA productivo de `SolicitudAccionable`, Auto-B y Deep Links;
 - deduplicación durable de cross-posts entre chats;
 - capturar el timestamp real del mensaje;
 - decidir la política definitiva de alternativas;
