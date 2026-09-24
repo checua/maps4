@@ -38,8 +38,14 @@ namespace maps4.Controllers
         }
 
         [HttpGet]
+        public Task<IActionResult> Index(int? inmuebleId = null) =>
+            ConstruirInventarioAsync(inmuebleId);
+
         [HttpGet("/i/{inmuebleId:int:min(1)}", Name = "InventarioDeepLink")]
-        public async Task<IActionResult> Index(int? inmuebleId = null)
+        public Task<IActionResult> InventarioDeepLink(int inmuebleId) =>
+            ConstruirInventarioAsync(inmuebleId);
+
+        private async Task<IActionResult> ConstruirInventarioAsync(int? inmuebleId)
         {
             string? correo = User.Identity?.Name;
             if (string.IsNullOrWhiteSpace(correo))
