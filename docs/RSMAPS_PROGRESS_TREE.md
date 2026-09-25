@@ -13,22 +13,22 @@ Los porcentajes son estimaciones de gestión del proyecto, no métricas automát
 
 ## Dashboard ejecutivo
 
-- **Avance simple:** 971 / 19 = **51.11% ≈ 51%**.
-- **Avance general ponderado:** suma de `peso × avance / 100` = **63.23% ≈ 63%**.
-- **Avance del núcleo operativo:** 55.49 / 66 × 100 = **84.08% ≈ 84%**.
+- **Avance simple:** 997 / 19 = **52.47% ≈ 52%**.
+- **Avance general ponderado:** suma de `peso × avance / 100` = **65.05% ≈ 65%**.
+- **Avance del núcleo operativo:** 57.31 / 66 × 100 = **86.83% ≈ 87%**.
 - **Suma de pesos:** **100%**. **Bloques maestros:** **19**.
 
 | ID | Bloque | Peso | Avance | Indicador | Contribución | Estado | Responsable | Siguiente acción |
 |---:|---|---:|---:|:---:|---:|---|---|---|
 | 0 | Visión del producto | 2% | 40% | 🟠 | 0.80% | Parcial | JJ | Priorizar alcance comercial |
 | 1 | RSMaps — Núcleo | 9% | 78% | 🟡 | 7.02% | Avanzado | JJ + Codex | Cerrar permisos y ciclo completo |
-| 2 | RSMaps — Mapa | 7% | 74% | 🟡 | 5.18% | Deep Links validados localmente | JJ + Codex | Deploy/QA de `/m/{id}` y validar escala |
+| 2 | RSMaps — Mapa | 7% | 80% | 🟢 | 5.60% | Deep Links productivos | JJ + Codex | Escalabilidad, viewport y clustering |
 | 3 | Zonas / Geointeligencia | 4% | 18% | 🔴 | 0.72% | Inicial | JJ + Codex | Integrar zonas al matching |
 | 4 | RADAR — Captura | 7% | 90% | 🟢 | 6.30% | Reply/quote productivo | JJ + Codex | Capturar timestamp real |
-| 5 | RADAR — Interpretación | 7% | 86% | 🟢 | 6.02% | Accionabilidad integrada localmente | JJ + Codex | Deploy/QA productivo |
-| 6 | RADAR Intelligence | 8% | 91% | 🟢 | 7.28% | Central + accionabilidad versionada | JJ + Codex | Deploy/QA y fortalecer confianza |
-| 7 | RADAR — Matching | 8% | 89% | 🟢 | 7.12% | Auto-B validado localmente | JJ + Codex | Deploy/QA y revisar mínimos |
-| 8 | RADAR — Delivery / Alertas | 7% | 84% | 🟢 | 5.88% | Flujo seguro + links versionados | JJ + Codex, checkpoint humano | Deploy/QA y política final de alternativas |
+| 5 | RADAR — Interpretación | 7% | 90% | 🟢 | 6.30% | Accionabilidad productiva | JJ + Codex | Fortalecer confianza y casos límite |
+| 6 | RADAR Intelligence | 8% | 94% | 🟢 | 7.52% | Central + accionabilidad productiva | JJ + Codex | Confianza y observabilidad |
+| 7 | RADAR — Matching | 8% | 92% | 🟢 | 7.36% | Auto-B productivo | JJ + Codex | Revisar mínimos y multi-cuenta |
+| 8 | RADAR — Delivery / Alertas | 7% | 88% | 🟢 | 6.16% | Flujo seguro + Deep Links productivos | JJ + Codex, checkpoint humano | Política final de alternativas |
 | 9 | RADAR Agent | 7% | 85% | 🟢 | 5.95% | Productivo | JJ + Codex, checkpoint humano | Health y multi-Agent |
 | 10 | Deduplicación | 6% | 32% | 🟠 | 1.92% | Parcial | JJ + Codex | Deduplicación durable cross-chat |
 | 11 | Estadísticas / Analytics | 4% | 12% | 🔴 | 0.48% | Inicial | JJ + Codex | Definir métricas y dashboard |
@@ -36,25 +36,24 @@ Los porcentajes son estimaciones de gestión del proyecto, no métricas automát
 | 13 | Prospectos / CRM | 3% | 22% | 🔴 | 0.66% | Inicial | JJ | Definir ciclo de lead |
 | 14 | Cuentas / Organizaciones | 4% | 28% | 🔴 | 1.12% | Inicial | JJ + Codex | Validar aislamiento |
 | 15 | Administración / Control | 4% | 35% | 🟠 | 1.40% | Parcial | JJ + Codex | Diseñar panel RADAR |
-| 16 | QA / Observabilidad | 6% | 79% | 🟡 | 4.74% | Regresiones de accionabilidad/links | JJ + Codex | QA productivo y health integral |
+| 16 | QA / Observabilidad | 6% | 85% | 🟢 | 5.10% | QA productivo aprobado | JJ + Codex | Health integral y métricas |
 | 17 | Expansión | 2% | 15% | 🔴 | 0.30% | Planificada | JJ | Criterios de expansión |
 | 18 | Futuro / I+D | 2% | 5% | 🔴 | 0.10% | Visión | JJ | Mantener backlog priorizado |
-|  | **Total** | **100%** | **51.11% simple** |  | **63.23%** |  |  |  |
+|  | **Total** | **100%** | **52.47% simple** |  | **65.05%** |  |  |  |
 
 ### Núcleo operativo
 
-Bloques 1, 2, 4, 5, 6, 7, 8, 9 y 16: pesos 66%, contribuciones 55.49; avance normalizado **84.08%**.
+Bloques 1, 2, 4, 5, 6, 7, 8, 9 y 16: pesos 66%, contribuciones 57.31; avance normalizado **86.83%**.
 
-Cambios de avance con evidencia directa: Mapa **68→74** por Deep Links autorizados y enfoque estructurado; Interpretación **72→86** por `SolicitudAccionable`; Intelligence **86→91** por integración durable y autoridad central; Matching **84→89** por Auto-B; Delivery/UX **80→84** por enlaces por resultado y disposiciones seguras; QA **74→79** por las nuevas matrices de regresión. Estos frentes están implementados, validados localmente y versionados, pero aún no desplegados en producción.
+Cambios de avance con evidencia directa: Mapa **74→80** por Deep Links y cache busting desplegados con QA productivo; Interpretación **86→90** por `SolicitudAccionable` productiva; Intelligence **91→94** por accionabilidad durable central desplegada; Matching **89→92** por Auto-B productivo; Delivery/UX **84→88** por Deep Links productivos y flujo seguro; QA **79→85** por regresiones, deploy y postcheck productivos aprobados. El acumulado fue desplegado sin rollback y el Listener permaneció estable.
 
 ## Ruta activa
 
-1. Deploy y QA productivo de los cambios acumulados.
-2. Deduplicación durable cross-chat.
-3. Política final de alternativas.
-4. Restricciones comerciales duras.
-5. Escalabilidad del mapa.
-6. Analytics / Inteligencia de mercado.
+1. Deduplicación durable cross-chat.
+2. Política final de alternativas.
+3. Restricciones comerciales duras.
+4. Escalabilidad del mapa.
+5. Analytics / Inteligencia de mercado.
 
 ---
 
@@ -73,8 +72,8 @@ Cambios de avance con evidencia directa: Mapa **68→74** por Deep Links autoriz
 - 🟢 Fotos legacy, límite 40, Azure, SQL y Blob.
 - 🔴 Documentos completos y fotos modernas de #187 no localizadas.
 
-## 2. 🟡 RSMaps — Mapa — 74% — peso 7%
-**Estado:** Deep Links implementados y validados localmente; deploy pendiente. **Responsable:** JJ + Codex.
+## 2. 🟢 RSMaps — Mapa — 80% — peso 7%
+**Estado:** Deep Links desplegados y QA productivo aprobado. **Responsable:** JJ + Codex.
 - 🟢 Markers, filtros, navegación, property focus y viewport.
 - 🟢 `/m/{id}` autenticado y autorizado por cuenta/equipo: ID estructurado, icono por `idTipo`, modal, centro, zoom, protección contra recenter y handoff de marker.
 - 🟢 `/i/{id}` abre Inventario autorizado; URLs legacy conservadas.
@@ -95,8 +94,8 @@ Cambios de avance con evidencia directa: Mapa **68→74** por Deep Links autoriz
 - 🔴 Timestamp real del mensaje.
 - 🔴 Otras fuentes futuras.
 
-## 5. 🟢 RADAR — Interpretación — 86% — peso 7%
-**Estado:** `SolicitudAccionable` integrada y versionada; deploy pendiente. **Responsable:** JJ + Codex.
+## 5. 🟢 RADAR — Interpretación — 90% — peso 7%
+**Estado:** `SolicitudAccionable` integrada, desplegada y validada productivamente. **Responsable:** JJ + Codex.
 - 🟡 Solicitud inmobiliaria; demanda/oferta/otro; segmentación múltiple.
 - 🟢 Venta/renta, tipo/subtipo, precio/presupuesto y forma de pago.
 - 🟡 Zona, recámaras, baños, plantas, terreno, construcción, cochera y requisitos.
@@ -107,16 +106,16 @@ Cambios de avance con evidencia directa: Mapa **68→74** por Deep Links autoriz
 - 🟢 `Accionabilidad` nullable mantiene compatibilidad: `null` identifica resultados legacy/históricos.
 - 🟢 `NecesitaMasDatos` y `DatosContradictorios`: sin Matching ni Delivery, con ACK específico; `InterpretacionInvalida`: retry/fallo central.
 
-## 6. 🟢 RADAR Intelligence — 91% — peso 8%
-**Estado:** central productivo; accionabilidad durable implementada localmente, pendiente de deploy. **Responsable:** JJ + Codex.
+## 6. 🟢 RADAR Intelligence — 94% — peso 8%
+**Estado:** central productivo; accionabilidad durable desplegada y validada productivamente. **Responsable:** JJ + Codex.
 - 🟢 OpenAI central, interpretación, normalización y validación.
 - 🟢 `ResultadoCentralJson`, persistencia durable y replay.
 - 🟢 Fallback local deshabilitado.
 - 🟢 Backend central como autoridad de accionabilidad; Listener como consumidor del resultado durable.
 - 🟡 Confianza, resiliencia, observabilidad y evolución futura.
 
-## 7. 🟢 RADAR — Matching — 89% — peso 8%
-**Estado:** operativo; Auto-B implementado/validado y pendiente de deploy. **Responsable:** JJ + Codex.
+## 7. 🟢 RADAR — Matching — 92% — peso 8%
+**Estado:** operativo; Auto-B desplegado y validado productivamente. **Responsable:** JJ + Codex.
 - 🟢 Inventario, filtros, hard/payment constraints.
 - 🟡 Soft constraints, scoring y ranking.
 - 🟢 Recomendación, alternativa, cero coincidencias y explicación.
@@ -126,8 +125,8 @@ Cambios de avance con evidencia directa: Mapa **68→74** por Deep Links autoriz
 - 🟡 Tolerancias de 80% terreno/construcción y otros mínimos.
 - 🟠 Multi-cuenta; 🔴 aprendizaje futuro.
 
-## 8. 🟢 RADAR — Delivery / Alertas — 84% — peso 7%
-**Estado:** flujo seguro productivo; Deep Links versionados pendientes de deploy. **Responsable:** JJ + Codex, checkpoint humano.
+## 8. 🟢 RADAR — Delivery / Alertas — 88% — peso 7%
+**Estado:** flujo seguro productivo; Deep Links desplegados y QA aprobado. **Responsable:** JJ + Codex, checkpoint humano.
 - 🟢 Decision flow, durable prepare/complete, idempotencia y Safe Lab.
 - 🟢 Recomendación válida → Delivery.
 - 🟢 Alternativa → `ALTERNATIVA_PARA_REVISION`, sin Delivery por default.
@@ -180,8 +179,8 @@ Cambios de avance con evidencia directa: Mapa **68→74** por Deep Links autoriz
 - 🔴 Thresholds, alternativas, reglas, colas, errores, auditoría y operación.
 - 🟠 Logs y recovery consultables.
 
-## 16. 🟡 QA / Observabilidad — 79% — peso 6%
-**Estado:** regresión avanzada; métricas parciales. **Responsable:** JJ + Codex.
+## 16. 🟢 QA / Observabilidad — 85% — peso 6%
+**Estado:** regresión avanzada y QA productivo aprobado; métricas parciales. **Responsable:** JJ + Codex.
 - 🟢 Builds, matching, payment constraints, Cynthia y Delivery regression.
 - 🟢 Intelligence E2E, Listener, recovery y colas.
 - 🟢 Regresiones de `SolicitudAccionable`, integración durable, Auto-B y Deep Links (incluidos múltiples resultados y normalización de URL).
@@ -218,9 +217,11 @@ Cambios de avance con evidencia directa: Mapa **68→74** por Deep Links autoriz
 - ✅ Backup: `C:\Users\jenny\AppData\Local\RSMaps\RadarAgent\Backups\pre-60a49eb-20260918-002253`.
 - ✅ Reply/Quote estructurado: captura confirmada/fail-safe, separación `TextoPropio` / `TextoCitado`, forwarded estructural, regresiones y QA real aprobados.
 - ✅ Listener productivo en `92b994e` (`fix: separate WhatsApp reply quote from own message`); deploy y post-deploy estables.
-- ✅ `SolicitudAccionable` implementada y validada: evaluador `d5f1d43` e integración durable `d333b92`; pendiente de deploy productivo.
-- ✅ Auto-B de especificidad implementada y validada en `28c1daa`; pendiente de deploy productivo.
-- ✅ Deep Links `/i/{id}` y `/m/{id}`, autorización cuenta/equipo y links RADAR por resultado implementados y validados en `451c3d9`; pendiente de deploy productivo.
+- ✅ `SolicitudAccionable` implementada, desplegada y validada productivamente: evaluador `d5f1d43` e integración durable `d333b92`.
+- ✅ Auto-B de especificidad implementada, desplegada y validada productivamente desde `28c1daa`.
+- ✅ Deep Links `/i/{id}` y `/m/{id}`, autorización cuenta/equipo y links RADAR por resultado desplegados y validados productivamente.
+- ✅ Cache busting del mapa cerrado en `1df55b0`: `index.js` servido con fingerprint remoto; Legacy Map, `/m/109` y `/i/109` aprobados; marker, modal, centro y zoom preservados; sin recenter observado; rollback no requerido.
+- ✅ Deploy / QA productivo del acumulado cerrado el 2026-09-24; Listener estable y colas productivas conservadas en estado sano.
 
 # Pendientes conocidos
 
@@ -241,4 +242,4 @@ Al cerrar un bloque, incorporar una idea, cambiar prioridad, descubrir un bug o 
 
 # Ruta activa — cierre
 
-1. Deploy / QA productivo de `SolicitudAccionable` + Auto-B + Deep Links. 2. Deduplicación durable cross-chat. 3. Política final de alternativas. 4. Restricciones comerciales duras. 5. Escalabilidad del mapa. 6. Analytics / Inteligencia de mercado.
+1. Deduplicación durable cross-chat. 2. Política final de alternativas. 3. Restricciones comerciales duras. 4. Escalabilidad del mapa. 5. Analytics / Inteligencia de mercado.
