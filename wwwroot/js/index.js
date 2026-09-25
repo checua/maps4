@@ -232,12 +232,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const focusedPropertyId = document.querySelector('meta[name="rsmaps-focused-property-id"]')?.content;
     const focusedPropertyEndpoint = document.querySelector('meta[name="rsmaps-focused-property-endpoint"]')?.content;
     if (focusedPropertyId) {
-        loadInmueble(focusedPropertyId, false, focusedPropertyEndpoint);
+        loadInmueble(focusedPropertyId, focusedPropertyEndpoint);
     } else if (queryParams.inmuebleId) {
-        const preferPrivate =
-            String(queryParams.source || '').toLowerCase() === 'inventory';
+        const inventoryEndpoint = String(queryParams.source || '').toLowerCase() === 'inventory'
+            ? '/Inventario/GetInmuebleAutorizadoById'
+            : null;
 
-        loadInmueble(queryParams.inmuebleId, preferPrivate);
+        loadInmueble(queryParams.inmuebleId, inventoryEndpoint);
     }
 
     const apiKey = 'AIzaSyAZ7HVHi9uywPRyEgtb9U-0Ul0C_v5zQXg';
@@ -251,17 +252,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 
-function loadInmueble(inmuebleId, preferPrivate = false, explicitEndpoint = null) {
-    const endpoint = explicitEndpoint || (preferPrivate
-        ? '/Inmueble/GetInmueblePrivadoById'
-        : '/Inmueble/GetInmuebleById');
+function loadInmueble(inmuebleId, explicitEndpoint = null) {
+    const endpoint = explicitEndpoint || '/Inmueble/GetInmuebleById';
 
     fetch(`${endpoint}?id=${encodeURIComponent(inmuebleId)}`, {
         credentials: 'same-origin'
     })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`No fue posible cargar el inmueble (${response.status}).`);
+            }
+
+            return response.json();
+        })
         .then(inmueble => {
-            if (inmueble) {
+            if (Array.isArray(inmueble) && inmueble.length > 0) {
                 //const latLng = new google.maps.LatLng(clat, inmueble[0].lng);
                 //map.setCenter(latLng);
                 //const marker = createMarker(inmueble, latLng);
@@ -313,7 +318,7 @@ function loadInmueble(inmuebleId, preferPrivate = false, explicitEndpoint = null
                 GetCode1(inmueble[0].idTipo, inmueble[0].idInmueble, nom_tel, inmueble[0].telefono, inmueble[0].terreno, inmueble[0].construccion, inmueble[0].precio, inmueble[0].observaciones, inmueble[0].contacto, inmueble[0].imagenes);
 
             } else {
-                alert('Inmueble no encontrado');
+                throw new Error('La respuesta del inmueble no contiene una colección válida.');
             }
         })
         .catch(error => console.error('Error al cargar el inmueble:', error));

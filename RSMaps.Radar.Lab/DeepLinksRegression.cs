@@ -12,6 +12,7 @@ using RSMaps.Radar.Listener.Services;
 using System.Reflection;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 
 internal static class DeepLinksRegression
 {
@@ -20,6 +21,7 @@ internal static class DeepLinksRegression
         VerificarRutas();
         VerificarMaterializacionEndpoints();
         VerificarVistaInventario().GetAwaiter().GetResult();
+        VerificarFocoMapaLegacy().GetAwaiter().GetResult();
         VerificarFormatoRadar();
         Console.WriteLine("DEEP_LINKS_REGRESSION_OK");
     }
@@ -124,6 +126,80 @@ internal static class DeepLinksRegression
         modelo.Inmuebles.Count == 1 &&
         modelo.Inmuebles[0].IdInmueble == idInmueble;
 
+    private static async Task VerificarFocoMapaLegacy()
+    {
+        const int idInmueble = 109;
+        var controller = new InventarioController(new InventarioRepositoryControlado(idInmueble))
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(
+                        new ClaimsIdentity(
+                            [new Claim(ClaimTypes.Name, "qa@ejemplo.test")],
+                            "regression"))
+                }
+            }
+        };
+
+        OkObjectResult endpoint = await controller.GetInmuebleAutorizadoById(idInmueble) as OkObjectResult ??
+            throw new InvalidOperationException("El endpoint autorizado no devolvió HTTP 200.");
+        JsonElement payload = JsonSerializer.SerializeToElement(endpoint.Value);
+        Exigir(payload.ValueKind == JsonValueKind.Array && payload.GetArrayLength() == 1,
+            "El endpoint autorizado no devolvió una colección de un inmueble.");
+
+        JsonElement inmueble = payload[0];
+        Exigir(inmueble.GetProperty("IdInmueble").GetInt32() == idInmueble,
+            "El endpoint autorizado no conservó el inmueble objetivo.");
+        Exigir(inmueble.GetProperty("Lat").GetDecimal() == 20.187357m &&
+               inmueble.GetProperty("Lng").GetDecimal() == -87.468782m,
+            "El endpoint autorizado no devolvió coordenadas utilizables.");
+        Exigir(inmueble.GetProperty("IdTipo").GetInt32() == 2,
+            "El endpoint autorizado no devolvió el tipo requerido para el marker.");
+
+        string raiz = EncontrarRaizRepositorio();
+        string indexJs = File.ReadAllText(Path.Combine(raiz, "wwwroot", "js", "index.js"));
+        string mapFocusJs = File.ReadAllText(Path.Combine(raiz, "wwwroot", "js", "map-focus-fix.js"));
+
+        Exigir(indexJs.Contains(
+                "? '/Inventario/GetInmuebleAutorizadoById'",
+                StringComparison.Ordinal),
+            "La URL legacy de Inventario no reutiliza el endpoint autorizado de /m/{id}.");
+        Exigir(indexJs.Contains(
+                "loadInmueble(queryParams.inmuebleId, inventoryEndpoint);",
+                StringComparison.Ordinal),
+            "La URL legacy no entrega explícitamente el endpoint autorizado a loadInmueble.");
+        Exigir(!indexJs.Contains("/Inmueble/GetInmueblePrivadoById", StringComparison.Ordinal),
+            "El mapa legacy todavía depende del endpoint antiguo limitado al propietario.");
+        Exigir(indexJs.Contains(
+                "Array.isArray(inmueble) && inmueble.length > 0",
+                StringComparison.Ordinal),
+            "loadInmueble vuelve a permitir acceso a inmueble[0] sin validar la colección.");
+        Exigir(mapFocusJs.Contains("map.setZoom(17);", StringComparison.Ordinal),
+            "El foco explícito dejó de aplicar zoom 17.");
+        Exigir(mapFocusJs.Contains(
+                "currentMap.setCenter = function () { };",
+                StringComparison.Ordinal),
+            "El foco explícito dejó de protegerse contra recenter tardío por geolocalización.");
+
+        Console.WriteLine("LEGACY_MAP_FOCUS_REGRESSION_OK");
+    }
+
+    private static string EncontrarRaizRepositorio()
+    {
+        DirectoryInfo? directorio = new(Directory.GetCurrentDirectory());
+        while (directorio != null)
+        {
+            if (File.Exists(Path.Combine(directorio.FullName, "maps4.csproj")))
+                return directorio.FullName;
+
+            directorio = directorio.Parent;
+        }
+
+        throw new InvalidOperationException("No se encontró la raíz del repositorio RSMaps.");
+    }
+
     private static void VerificarFormatoRadar()
     {
         string baseUrl = RadarPropertyDeepLinks.NormalizarBaseUrl(
@@ -190,7 +266,10 @@ internal static class DeepLinksRegression
                 IdInmueble = idInmueble,
                 IdCuenta = 1,
                 IdAsesor = 7,
-                TipoNombre = "Casa en Venta"
+                TipoNombre = "Casa en Venta",
+                Lat = 20.187357m,
+                Lng = -87.468782m,
+                IdTipo = 2
             },
             new()
             {
