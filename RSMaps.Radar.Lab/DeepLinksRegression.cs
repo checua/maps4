@@ -1,5 +1,8 @@
 using maps4.Controllers;
+using maps4.Models;
+using maps4.Repositorios.Contrato;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.Controllers;
@@ -7,6 +10,7 @@ using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using RSMaps.Radar.Listener.Services;
 using System.Reflection;
+using System.Security.Claims;
 using System.Text;
 
 internal static class DeepLinksRegression
@@ -15,6 +19,7 @@ internal static class DeepLinksRegression
     {
         VerificarRutas();
         VerificarMaterializacionEndpoints();
+        VerificarVistaInventario().GetAwaiter().GetResult();
         VerificarFormatoRadar();
         Console.WriteLine("DEEP_LINKS_REGRESSION_OK");
     }
@@ -78,6 +83,47 @@ internal static class DeepLinksRegression
         Console.WriteLine("MVC_ENDPOINT_MATERIALIZATION_REGRESSION_OK");
     }
 
+    private static async Task VerificarVistaInventario()
+    {
+        const int idInmueble = 109;
+        var controller = new InventarioController(new InventarioRepositoryControlado(idInmueble))
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(
+                        new ClaimsIdentity(
+                            [new Claim(ClaimTypes.Name, "qa@ejemplo.test")],
+                            "regression"))
+                }
+            }
+        };
+
+        ViewResult index = ExigirVista(await controller.Index(idInmueble), "Inventario.Index");
+        ViewResult deepLink = ExigirVista(
+            await controller.InventarioDeepLink(idInmueble),
+            "Inventario.InventarioDeepLink");
+
+        Exigir(string.Equals(index.ViewName, "Index", StringComparison.Ordinal),
+            "Inventario.Index debe resolver explícitamente la vista Index.");
+        Exigir(string.Equals(deepLink.ViewName, "Index", StringComparison.Ordinal),
+            "InventarioDeepLink debe resolver explícitamente la vista Index.");
+        Exigir(ContieneSoloInmueble(index, idInmueble) && ContieneSoloInmueble(deepLink, idInmueble),
+            "Ambas acciones deben reutilizar la lógica que filtra el inventario autorizado.");
+
+        Console.WriteLine("INVENTARIO_DEEP_LINK_VIEW_REGRESSION_OK");
+    }
+
+    private static ViewResult ExigirVista(IActionResult resultado, string accion) =>
+        resultado as ViewResult ??
+        throw new InvalidOperationException($"{accion} no produjo un ViewResult.");
+
+    private static bool ContieneSoloInmueble(ViewResult vista, int idInmueble) =>
+        vista.Model is InventarioIndexViewModel modelo &&
+        modelo.Inmuebles.Count == 1 &&
+        modelo.Inmuebles[0].IdInmueble == idInmueble;
+
     private static void VerificarFormatoRadar()
     {
         string baseUrl = RadarPropertyDeepLinks.NormalizarBaseUrl(
@@ -133,5 +179,56 @@ internal static class DeepLinksRegression
     {
         if (!condicion)
             throw new InvalidOperationException(mensaje);
+    }
+
+    private sealed class InventarioRepositoryControlado(int idInmueble) : IInventarioRepository
+    {
+        private readonly List<InventarioInmuebleViewModel> _inmuebles =
+        [
+            new()
+            {
+                IdInmueble = idInmueble,
+                IdCuenta = 1,
+                IdAsesor = 7,
+                TipoNombre = "Casa en Venta"
+            },
+            new()
+            {
+                IdInmueble = idInmueble + 1,
+                IdCuenta = 1,
+                IdAsesor = 7,
+                TipoNombre = "Casa en Venta"
+            }
+        ];
+
+        public Task<List<InventarioInmuebleViewModel>> ListarAsync(int idCuenta, int idAsesor) =>
+            Task.FromResult(_inmuebles);
+
+        public Task<List<InventarioInmuebleViewModel>> ListarAutorizadosAsync(string correo) =>
+            Task.FromResult(_inmuebles);
+
+        public Task<InventarioAutorizacionContexto?> ObtenerContextoAutorizacionAsync(string correo) =>
+            Task.FromResult<InventarioAutorizacionContexto?>(new()
+            {
+                IdCuenta = 1,
+                CuentaNombre = "Cuenta QA",
+                IdAsesor = 7,
+                RolCodigo = "PROPIETARIO"
+            });
+
+        public Task CambiarEstadoOVisibilidadAsync(
+            int idInmueble,
+            string correo,
+            string? estadoNuevo,
+            string? visibilidadNueva,
+            string? motivo) => throw new NotSupportedException();
+
+        public Task CerrarOperacionAsync(
+            int idInmueble,
+            string correo,
+            string tipoOperacion,
+            decimal precioCierre,
+            DateTime fechaCierreUtc,
+            string? notasCierre) => throw new NotSupportedException();
     }
 }

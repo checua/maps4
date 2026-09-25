@@ -86,7 +86,7 @@ namespace maps4.Controllers
                     Inmuebles = inmuebles
                 };
 
-                return View(modelo);
+                return View("Index", modelo);
             }
             catch (SqlException ex) when (ex.Number is 52120 or 52121 or 52122 or 52123 or 52520 or 52521 or 52522)
             {
