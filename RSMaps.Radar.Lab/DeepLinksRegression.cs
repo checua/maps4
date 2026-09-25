@@ -22,6 +22,7 @@ internal static class DeepLinksRegression
         VerificarMaterializacionEndpoints();
         VerificarVistaInventario().GetAwaiter().GetResult();
         VerificarFocoMapaLegacy().GetAwaiter().GetResult();
+        VerificarVersionadoJavascriptMapa();
         VerificarFormatoRadar();
         Console.WriteLine("DEEP_LINKS_REGRESSION_OK");
     }
@@ -184,6 +185,28 @@ internal static class DeepLinksRegression
             "El foco explícito dejó de protegerse contra recenter tardío por geolocalización.");
 
         Console.WriteLine("LEGACY_MAP_FOCUS_REGRESSION_OK");
+    }
+
+    private static void VerificarVersionadoJavascriptMapa()
+    {
+        string raiz = EncontrarRaizRepositorio();
+        string home = File.ReadAllText(Path.Combine(raiz, "Views", "Home", "Index.cshtml"));
+        string layout = File.ReadAllText(Path.Combine(raiz, "Views", "Shared", "_Layout.cshtml"));
+
+        Exigir(home.Contains(
+                "<script src=\"~/js/index.js\" asp-append-version=\"true\"></script>",
+                StringComparison.Ordinal),
+            "Home debe versionar index.js mediante el fingerprint de contenido de ASP.NET Core.");
+        Exigir(!home.Contains("<script src=\"~/js/index.js\"></script>", StringComparison.Ordinal),
+            "Home conserva una referencia crítica sin versionar a index.js.");
+        Exigir(!home.Contains("~/js/index.js?v=", StringComparison.Ordinal),
+            "index.js no debe usar una versión fija manual.");
+        Exigir(layout.Contains(
+                "<script src=\"~/js/map-focus-fix.js\" asp-append-version=\"true\"></script>",
+                StringComparison.Ordinal),
+            "El script de foco del mapa debe conservar versionado por contenido.");
+
+        Console.WriteLine("MAP_JS_CACHE_BUSTING_REGRESSION_OK");
     }
 
     private static string EncontrarRaizRepositorio()
