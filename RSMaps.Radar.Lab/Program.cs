@@ -115,6 +115,15 @@ if (string.Equals(
 
 if (string.Equals(
     labMode,
+    "tipo-fraccionamiento-integration-regression",
+    StringComparison.OrdinalIgnoreCase))
+{
+    await TipoFraccionamientoIntegrationRegression.RunAsync();
+    return;
+}
+
+if (string.Equals(
+    labMode,
     "deep-links-regression",
     StringComparison.OrdinalIgnoreCase))
 {

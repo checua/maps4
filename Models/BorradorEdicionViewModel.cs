@@ -107,5 +107,12 @@ namespace maps4.Models
                 _ => throw new ArgumentException("El tipo de fraccionamiento no es valido.", nameof(valor))
             };
         }
+
+        public static string? MapearAContratoRadar(string? codigo) => codigo switch
+        {
+            Privado => "Privado",
+            Abierto => "NoPrivado",
+            _ => null
+        };
     }
 }

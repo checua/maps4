@@ -215,6 +215,16 @@
                             <input asp-for="Construccion" type="number" min="0" step="0.01" placeholder="Ej. 340" />
                             <span asp-validation-for="Construccion" class="validation"></span>
                         </div>
+
+                        <div class="field">
+                            <label asp-for="TipoFraccionamientoCodigo">Tipo de fraccionamiento</label>
+                            <select asp-for="TipoFraccionamientoCodigo">
+                                <option value="">Sin especificar</option>
+                                <option value="PRIVADO">Privado / cerrado</option>
+                                <option value="ABIERTO">No privado / abierto</option>
+                            </select>
+                            <span asp-validation-for="TipoFraccionamientoCodigo" class="validation"></span>
+                        </div>
                     </div>
                 </section>
 

@@ -154,6 +154,7 @@ SELECT
     i.Estacionamientos,
     i.Niveles,
     i.AntiguedadAnos,
+    i.TipoFraccionamientoCodigo,
     a.AmenidadesCsv
 FROM dbo.RSMAPS_Inmueble i
 OUTER APPLY
@@ -182,6 +183,10 @@ WHERE i.idInmueble IN ({string.Join(",", nombresParametros)});";
                 inmueble.Niveles = dr["Niveles"] == DBNull.Value ? null : Convert.ToInt32(dr["Niveles"]);
                 inmueble.AntiguedadAnos = dr["AntiguedadAnos"] == DBNull.Value ? null : Convert.ToInt32(dr["AntiguedadAnos"]);
                 inmueble.AmenidadesCsv = dr["AmenidadesCsv"] == DBNull.Value ? null : dr["AmenidadesCsv"].ToString();
+                string? tipoFraccionamientoCodigo = dr["TipoFraccionamientoCodigo"] == DBNull.Value
+                    ? null
+                    : dr["TipoFraccionamientoCodigo"].ToString();
+                inmueble.TipoFraccionamiento = TipoFraccionamientoCodigos.MapearAContratoRadar(tipoFraccionamientoCodigo);
             }
         }
 
