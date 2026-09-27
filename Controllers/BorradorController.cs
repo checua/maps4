@@ -103,6 +103,11 @@ namespace maps4.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Editar(BorradorEdicionViewModel modelo, string accion = "continuar")
         {
+            modelo.TipoFraccionamientoCodigoIncluido = Request.HasFormContentType
+                && Request.Form.ContainsKey(nameof(modelo.TipoFraccionamientoCodigo));
+            if (modelo.TipoFraccionamientoCodigoIncluido
+                && Request.Form[nameof(modelo.TipoFraccionamientoCodigo)].Count != 1)
+                ModelState.AddModelError(nameof(modelo.TipoFraccionamientoCodigo), "El tipo de fraccionamiento debe enviarse una sola vez.");
             string? correo = User.Identity?.Name;
             if (modelo.IdInmueble <= 0 || string.IsNullOrWhiteSpace(correo))
                 return NotFound();
@@ -144,6 +149,11 @@ namespace maps4.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> GuardarAntesDeFotos(BorradorEdicionViewModel modelo)
         {
+            modelo.TipoFraccionamientoCodigoIncluido = Request.HasFormContentType
+                && Request.Form.ContainsKey(nameof(modelo.TipoFraccionamientoCodigo));
+            if (modelo.TipoFraccionamientoCodigoIncluido
+                && Request.Form[nameof(modelo.TipoFraccionamientoCodigo)].Count != 1)
+                ModelState.AddModelError(nameof(modelo.TipoFraccionamientoCodigo), "El tipo de fraccionamiento debe enviarse una sola vez.");
             string? correo = User.Identity?.Name;
             if (modelo.IdInmueble <= 0 || string.IsNullOrWhiteSpace(correo))
                 return Unauthorized(new { success = false, message = "Tu sesion termino o la propiedad no es valida." });

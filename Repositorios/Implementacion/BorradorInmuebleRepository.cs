@@ -85,6 +85,7 @@ namespace maps4.Repositorios.Implementacion
                     AntiguedadAnos = dr["AntiguedadAnos"] == DBNull.Value ? null : Convert.ToInt32(dr["AntiguedadAnos"]),
                     Observaciones = dr["observaciones"] == DBNull.Value ? null : dr["observaciones"].ToString(),
                     NotasPrivadas = dr["NotasPrivadas"] == DBNull.Value ? null : dr["NotasPrivadas"].ToString(),
+                    TipoFraccionamientoCodigo = dr["TipoFraccionamientoCodigo"] == DBNull.Value ? null : dr["TipoFraccionamientoCodigo"].ToString(),
                     Imagenes = dr["Imagenes"] == DBNull.Value ? 0 : Convert.ToInt32(dr["Imagenes"]),
                     EstadoCodigo = dr["EstadoCodigo"] == DBNull.Value ? "BORRADOR" : dr["EstadoCodigo"].ToString() ?? "BORRADOR",
                     VisibilidadCodigo = dr["VisibilidadCodigo"] == DBNull.Value ? "CUENTA" : dr["VisibilidadCodigo"].ToString() ?? "CUENTA",
@@ -147,6 +148,11 @@ namespace maps4.Repositorios.Implementacion
 
                     cmd.Parameters.Add("@observaciones", SqlDbType.VarChar, -1).Value = string.IsNullOrWhiteSpace(modelo.Observaciones) ? DBNull.Value : modelo.Observaciones.Trim();
                     cmd.Parameters.Add("@notasPrivadas", SqlDbType.NVarChar, -1).Value = string.IsNullOrWhiteSpace(modelo.NotasPrivadas) ? DBNull.Value : modelo.NotasPrivadas.Trim();
+                    string? tipoFraccionamiento = modelo.TipoFraccionamientoCodigoIncluido
+                        ? TipoFraccionamientoCodigos.NormalizarParaPersistencia(modelo.TipoFraccionamientoCodigo)
+                        : null;
+                    cmd.Parameters.Add("@tipoFraccionamientoCodigo", SqlDbType.VarChar, 20).Value = tipoFraccionamiento is null ? DBNull.Value : tipoFraccionamiento;
+                    cmd.Parameters.Add("@actualizarTipoFraccionamiento", SqlDbType.Bit).Value = modelo.TipoFraccionamientoCodigoIncluido;
                     await cmd.ExecuteNonQueryAsync();
                 }
 

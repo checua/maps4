@@ -24,6 +24,11 @@ namespace maps4.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Publicar(BorradorEdicionViewModel modelo)
         {
+            modelo.TipoFraccionamientoCodigoIncluido = Request.HasFormContentType
+                && Request.Form.ContainsKey(nameof(modelo.TipoFraccionamientoCodigo));
+            if (modelo.TipoFraccionamientoCodigoIncluido
+                && Request.Form[nameof(modelo.TipoFraccionamientoCodigo)].Count != 1)
+                ModelState.AddModelError(nameof(modelo.TipoFraccionamientoCodigo), "El tipo de fraccionamiento debe enviarse una sola vez.");
             string? correo = User.Identity?.Name;
             if (string.IsNullOrWhiteSpace(correo))
                 return Challenge();

@@ -106,6 +106,15 @@ if (string.Equals(
 
 if (string.Equals(
     labMode,
+    "tipo-fraccionamiento-data-regression",
+    StringComparison.OrdinalIgnoreCase))
+{
+    TipoFraccionamientoDataRegression.Run();
+    return;
+}
+
+if (string.Equals(
+    labMode,
     "deep-links-regression",
     StringComparison.OrdinalIgnoreCase))
 {

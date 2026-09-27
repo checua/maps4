@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace maps4.Models
 {
@@ -61,6 +62,13 @@ namespace maps4.Models
         [Display(Name = "Notas privadas")]
         public string? NotasPrivadas { get; set; }
 
+        [RegularExpression("^(PRIVADO|ABIERTO)?$", ErrorMessage = "El tipo de fraccionamiento no es valido.")]
+        public string? TipoFraccionamientoCodigo { get; set; }
+
+        // Distingue un NULL elegido explicitamente de un formulario legacy que no envio el campo.
+        [BindNever]
+        public bool TipoFraccionamientoCodigoIncluido { get; set; }
+
         public bool CaracteristicasCargadas { get; set; }
         public List<string> AmenidadesSeleccionadas { get; set; } = new();
         public List<AmenidadOpcionViewModel> AmenidadesDisponibles { get; set; } = new();
@@ -80,5 +88,24 @@ namespace maps4.Models
         public bool TieneFotos => Imagenes > 0 || Fotos.Count > 0;
         public int PasosCompletos => new[] { TieneUbicacion, TieneTipo, TienePrecio, TieneSuperficie, TieneDescripcion, TieneFotos }.Count(x => x);
         public int ProgresoPorcentaje => (int)Math.Round(PasosCompletos / 6.0 * 100);
+    }
+
+    public static class TipoFraccionamientoCodigos
+    {
+        public const string Privado = "PRIVADO";
+        public const string Abierto = "ABIERTO";
+
+        public static string? NormalizarParaPersistencia(string? valor)
+        {
+            if (valor is null || valor.Length == 0)
+                return null;
+
+            return valor switch
+            {
+                Privado => Privado,
+                Abierto => Abierto,
+                _ => throw new ArgumentException("El tipo de fraccionamiento no es valido.", nameof(valor))
+            };
+        }
     }
 }
