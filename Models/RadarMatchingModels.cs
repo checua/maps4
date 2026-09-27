@@ -6,6 +6,7 @@ namespace maps4.Models
         public List<string> TiposPropiedad { get; set; } = new();
         public List<string> SubtiposPropiedad { get; set; } = new();
         public List<string> Zonas { get; set; } = new();
+        public string? TipoFraccionamiento { get; set; }
         public string? CondicionInmueble { get; set; }
         public string? EtapaInmueble { get; set; }
 

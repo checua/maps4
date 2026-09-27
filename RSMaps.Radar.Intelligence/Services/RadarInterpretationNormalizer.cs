@@ -21,7 +21,9 @@ public static class RadarInterpretationNormalizer
         "fraccionamiento privado",
         "fraccionamiento privada",
         "fracc privado",
-        "fracc privada"
+        "fracc privada",
+        "fraccionamiento cerrado",
+        "fraccionamiento cerrada"
     };
 
     private static readonly string[] MarcadoresRespuestaOferta =
@@ -42,6 +44,16 @@ public static class RadarInterpretationNormalizer
         RadarInterpretationResult resultado,
         RadarMessage mensaje)
     {
+        // La recuperación determinística usa el mensaje original antes de limpiar
+        // zonas. Así "fracc privado" no se pierde aunque también haya llegado como
+        // una zona genérica. Sólo es seguro hacerlo cuando existe una solicitud.
+        if (resultado.Solicitudes.Count == 1)
+        {
+            RecuperarTipoFraccionamientoDesdeMensaje(
+                resultado.Solicitudes[0],
+                mensaje.TextoOriginal);
+        }
+
         foreach (var solicitud in resultado.Solicitudes)
         {
             solicitud.Operacion = NormalizarOperacion(solicitud.Operacion);
@@ -98,15 +110,6 @@ public static class RadarInterpretationNormalizer
 
         if (solicitud.TiposPropiedad.Count == 0)
             solicitud.TiposPropiedad = ExtraerTiposRespaldados(texto);
-
-        if (string.IsNullOrWhiteSpace(solicitud.TipoFraccionamiento) &&
-            Regex.IsMatch(
-                texto,
-                @"\bfraccionamiento\s+privad[oa]\b",
-                RegexOptions.IgnoreCase))
-        {
-            solicitud.TipoFraccionamiento = "Privado";
-        }
 
         if (!solicitud.CocheraMinAutos.HasValue)
         {
@@ -170,6 +173,36 @@ public static class RadarInterpretationNormalizer
                 // Infonavit/Fovissste/Banjercito/hipotecario son señales fuertes de compra.
                 solicitud.Operacion = "Venta";
             }
+        }
+    }
+
+    private static void RecuperarTipoFraccionamientoDesdeMensaje(
+        SolicitudInmobiliaria solicitud,
+        string mensajeOriginal)
+    {
+        string texto = NormalizarTexto(mensajeOriginal);
+
+        bool negado = Regex.IsMatch(
+            texto,
+            @"(?:\bno\b(?:\s+\w+){0,5}\s+|\bsin\s+)(?:fracc|fraccionamiento)\s+privad[oa]\b|\bfraccionamiento\s+abiert[oa]\b|\bno\s+privad[oa]\b",
+            RegexOptions.IgnoreCase);
+
+        if (negado)
+        {
+            // El contrato actual sólo representa la preferencia positiva Privado.
+            // Una negación inequívoca se conserva sin estructurar antes que invertir
+            // su significado o inventar soporte de NoPrivado en la solicitud.
+            solicitud.TipoFraccionamiento = null;
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(solicitud.TipoFraccionamiento) &&
+            Regex.IsMatch(
+                texto,
+                @"\b(?:fracc|fraccionamiento)\s+(?:privad[oa]|cerrad[oa])\b",
+                RegexOptions.IgnoreCase))
+        {
+            solicitud.TipoFraccionamiento = "Privado";
         }
     }
 
@@ -313,7 +346,11 @@ public static class RadarInterpretationNormalizer
 
         var n = NormalizarTexto(valor);
         if (n == "privado" || n == "privada" ||
-            n == "fraccionamiento privado" || n == "fraccionamiento privada")
+            n == "cerrado" || n == "cerrada" ||
+            n == "fracc privado" || n == "fracc privada" ||
+            n == "fracc cerrado" || n == "fracc cerrada" ||
+            n == "fraccionamiento privado" || n == "fraccionamiento privada" ||
+            n == "fraccionamiento cerrado" || n == "fraccionamiento cerrada")
         {
             return "Privado";
         }

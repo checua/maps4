@@ -97,6 +97,15 @@ if (string.Equals(
 
 if (string.Equals(
     labMode,
+    "fracc-privado-regression",
+    StringComparison.OrdinalIgnoreCase))
+{
+    await FraccPrivadoRegression.RunAsync();
+    return;
+}
+
+if (string.Equals(
+    labMode,
     "deep-links-regression",
     StringComparison.OrdinalIgnoreCase))
 {

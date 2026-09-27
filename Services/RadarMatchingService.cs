@@ -80,6 +80,12 @@ namespace maps4.Services
                 return false;
             }
 
+            if (SolicitaFraccionamientoPrivado(solicitud.TipoFraccionamiento) &&
+                EsFraccionamientoExplicitamenteNoPrivado(inmueble.TipoFraccionamiento))
+            {
+                return false;
+            }
+
             if (solicitud.PrecioMaximo.HasValue)
             {
                 // PrecioMaximo es una restricción dura para alertas automáticas.
@@ -242,6 +248,18 @@ namespace maps4.Services
                 Agregar(25, evaluacionZona.Valor,
                     coincidenciaZona,
                     $"Zona no confirmada: {zonaCandidato}");
+            }
+
+            if (SolicitaFraccionamientoPrivado(solicitud.TipoFraccionamiento))
+            {
+                bool confirmado = EsFraccionamientoPrivado(inmueble.TipoFraccionamiento);
+                Agregar(
+                    8,
+                    confirmado ? 1 : 0,
+                    confirmado ? "Fraccionamiento privado" : null,
+                    confirmado
+                        ? null
+                        : "No consta información suficiente para verificar fraccionamiento privado");
             }
 
             if (solicitud.PrecioMinimo.HasValue ||
@@ -479,6 +497,14 @@ namespace maps4.Services
                 }
             }
 
+            if (SolicitaFraccionamientoPrivado(solicitud.TipoFraccionamiento) &&
+                !EsFraccionamientoPrivado(inmueble.TipoFraccionamiento))
+            {
+                motivos.Add(
+                    "Se solicitó fraccionamiento privado, pero el inventario disponible " +
+                    "no contiene información suficiente para verificar este requisito.");
+            }
+
             // Para recomendaciones automáticas no basta con la tolerancia
             // del 80% usada para descubrir alternativas.
             if (solicitud.TerrenoMinM2.HasValue)
@@ -546,6 +572,24 @@ namespace maps4.Services
             return motivos;
         }
 
+        private static bool SolicitaFraccionamientoPrivado(string? valor) =>
+            EsFraccionamientoPrivado(valor);
+
+        private static bool EsFraccionamientoPrivado(string? valor)
+        {
+            string normalizado = Normalizar(valor ?? string.Empty);
+            return normalizado is "PRIVADO" or "PRIVADA" or
+                "FRACCIONAMIENTO PRIVADO" or "FRACCIONAMIENTO PRIVADA";
+        }
+
+        private static bool EsFraccionamientoExplicitamenteNoPrivado(string? valor)
+        {
+            string normalizado = Normalizar(valor ?? string.Empty);
+            return normalizado is "ABIERTO" or "ABIERTA" or
+                "NO PRIVADO" or "NO PRIVADA" or
+                "NOPRIVADO" or "NOPRIVADA";
+        }
+
         private static bool EspecificidadSuficienteParaAutoRecomendar(
             RadarMatchingRequest solicitud)
         {
@@ -568,6 +612,7 @@ namespace maps4.Services
             if (solicitud.BanosMin.HasValue) categoriasAdicionales++;
             if (solicitud.TerrenoMinM2.HasValue || solicitud.ConstruccionMinM2.HasValue) categoriasAdicionales++;
             if (solicitud.CocheraMinAutos.HasValue) categoriasAdicionales++;
+            if (!string.IsNullOrWhiteSpace(solicitud.TipoFraccionamiento)) categoriasAdicionales++;
 
             return categoriasAdicionales >= 2 && (tieneZona || tienePrecio);
         }

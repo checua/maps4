@@ -28,6 +28,12 @@ namespace maps4.Models
         public int? AntiguedadAnos { get; set; }
         public string? AmenidadesCsv { get; set; }
 
+        // Contrato triestado para una futura fuente autoritativa:
+        // Privado | Abierto/NoPrivado | null (sin dato).
+        // El repositorio actual no lo llena porque la base no contiene
+        // todavía un dato estructurado equivalente.
+        public string? TipoFraccionamiento { get; set; }
+
         public string EstadoCodigo { get; set; } = string.Empty;
         public string VisibilidadCodigo { get; set; } = string.Empty;
         public DateTime? FechaPublicacionUtc { get; set; }

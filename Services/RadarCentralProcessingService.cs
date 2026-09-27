@@ -123,6 +123,7 @@ public sealed class RadarCentralProcessingService : IRadarCentralProcessingServi
             TiposPropiedad = [.. solicitud.TiposPropiedad],
             SubtiposPropiedad = [.. solicitud.SubtiposPropiedad],
             Zonas = [.. solicitud.Zonas],
+            TipoFraccionamiento = solicitud.TipoFraccionamiento,
             CondicionInmueble = solicitud.CondicionInmueble,
             EtapaInmueble = solicitud.EtapaInmueble,
             PrecioMinimo = solicitud.PrecioMinimo,
