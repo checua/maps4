@@ -97,7 +97,7 @@ El orden puede ajustarse, pero los principios anteriores deben conservarse.
 
 ## 6. Estado de referencia actual
 
-A 2026-09-24 ya existen, entre otros:
+A 2026-09-28 ya existen, entre otros:
 
 - Listener de WhatsApp funcional.
 - Matching contra inventario RSMaps.
@@ -119,12 +119,26 @@ A 2026-09-24 ya existen, entre otros:
 - Auto-B implementado, desplegado y validado productivamente: ser accionable no implica ser auto-recomendable. Exige Operación + Tipo + dos categorías comerciales adicionales, incluyendo Zona o Precio; conserva score, pesos y umbrales, y degrada a alternativa con `ESPECIFICIDAD_INSUFICIENTE`.
 - Deep Links implementados, desplegados y validados productivamente: `/i/{id}` y `/m/{id}` autenticados/autorizados por cuenta y equipo; RADAR agrega links estructurados de Inventario y Mapa a recomendaciones y alternativas.
 - Cache busting del mapa productivo en `1df55b0`; asset `index.js` servido con fingerprint y QA de Legacy Map, `/m/109` y `/i/109` aprobado sin rollback.
+- Tipo de fraccionamiento autoritativo productivo: `dbo.RSMAPS_Inmueble.TipoFraccionamientoCodigo varchar(20) NULL`, limitado por `CK_RSMAPS_Inmueble_TipoFraccionamientoCodigo` a `PRIVADO`, `ABIERTO` o `NULL`; constraint enabled/trusted, sin default ni backfill.
+- Contrato RADAR: `PRIVADO → Privado`, `ABIERTO → NoPrivado`, `NULL → SinDato`. Ante una solicitud privada, `PRIVADO` puede recomendar, `ABIERTO` se descarta y `NULL` sólo puede permanecer como alternativa no verificable; sin criterio de fraccionamiento, el dato es neutral.
+- Persistencia compatible: la omisión legacy conserva el valor; una presencia explícita vacía guarda `NULL`. La UI ofrece `Sin especificar`, `Privado / cerrado` y `No privado / abierto`.
+- No inferir esta clasificación desde amenidades, vigilancia, caseta, residencial, coto, calle privada ni descripción. Las negaciones como “no quiero fracc privado” no activan el criterio positivo.
 
-Acumulado productivo validado al 2026-09-24: `SolicitudAccionable`, integración durable, Auto-B y Deep Links desplegados; cache busting cerrado en `1df55b0`; Legacy Map, `/m/109` y `/i/109` aprobados sin rollback. El Listener permaneció estable durante el postcheck.
+Acumulado productivo validado al 2026-09-28: `SolicitudAccionable`, integración durable, Auto-B, Deep Links y `TIPO_FRACCIONAMIENTO_DATA_01` desplegados; Web en `93b9022`, Listener estable, CENTRAL activo y fallback local `0`. El hito preservó 81 inmuebles con 81 valores `NULL`, 0 clasificados y ningún backfill.
 
-La ruta inmediata es desplegar y ejecutar QA productivo de los cambios acumulados; después se abordará la deduplicación durable cross-chat.
+Cierre `TIPO_FRACCIONAMIENTO_DATA_01` — 2026-09-28: incorporar el tipo de fraccionamiento como dato autoritativo del inmueble y conectarlo de forma segura con RADAR.
 
-Continúan pendientes la captura del timestamp real, la política definitiva de alternativas y la revisión de tolerancias de requisitos mínimos. Estos puntos no deben considerarse resueltos por el deploy de `92b994e`.
+- SQL runtime local: schema real de producción reconstruido sin datos; script 56 ejecutado dos veces correctamente; idempotencia, CHECK runtime y compatibilidad legacy aprobadas.
+- SQL productivo: script 56 ejecutado una sola vez; 81 inmuebles preservados, 81 `NULL`, 0 valores clasificados y constraint enabled/trusted.
+- Web: deploy desde `93b9022`; Home, Login, Inventario, Editar, mapa y Deep Links aprobados; selector triestado visible y `Sin especificar` mostrado para el histórico `NULL`.
+- RADAR: Listener estable, WhatsApp autenticado, Intelligence CENTRAL activa, fallback `0` y regresiones del hito aprobadas.
+- No fue necesaria una escritura manual productiva mediante el selector: la persistencia fue validada materialmente en runtime SQL local reconstruido desde el schema real.
+
+El hito se compone de `650482a`, `aa0af44` y `93b9022`. Su cierre incluyó promover mediante fast-forward normal el baseline acumulado de `origin/master` desde `b19059e` hasta `93b9022` (413 commits), sin force-push.
+
+La ruta inmediata es la deduplicación durable cross-chat; después se decidirán la política final de alternativas y las restricciones comerciales pendientes.
+
+Continúan pendientes la captura del timestamp real, la política definitiva de alternativas y la revisión de tolerancias de requisitos mínimos. Estos puntos no deben considerarse resueltos por el cierre de `TIPO_FRACCIONAMIENTO_DATA_01`.
 
 ## 7. Criterio para decidir qué construir después
 

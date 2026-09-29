@@ -115,13 +115,14 @@ Cambios de avance con evidencia directa: Mapa **74→80** por Deep Links y cache
 - 🟡 Confianza, resiliencia, observabilidad y evolución futura.
 
 ## 7. 🟢 RADAR — Matching — 92% — peso 8%
-**Estado:** operativo; Auto-B desplegado y validado productivamente. **Responsable:** JJ + Codex.
+**Estado:** operativo; Auto-B y tipo de fraccionamiento autoritativo desplegados y validados productivamente. **Responsable:** JJ + Codex.
 - 🟢 Inventario, filtros, hard/payment constraints.
 - 🟡 Soft constraints, scoring y ranking.
 - 🟢 Recomendación, alternativa, cero coincidencias y explicación.
 - 🟢 `Accionable != AutoRecomendable`: Auto-B exige Operación + Tipo + dos categorías adicionales, incluyendo Zona o Precio.
-- 🟢 Categorías adicionales: Zona, Precio, Subtipo, Recámaras, Baños, Superficie y Cochera. No cuentan booleanos secundarios, requisitos libres, modalidades no verificables ni tipo de fraccionamiento no evaluado.
+- 🟢 Categorías adicionales: Zona, Precio, Subtipo, Recámaras, Baños, Superficie, Cochera y tipo de fraccionamiento cuando existe criterio estructurado evaluable. No cuentan booleanos secundarios, requisitos libres ni modalidades no verificables.
 - 🟢 Score, pesos y umbrales 55/85 sin cambios; `ESPECIFICIDAD_INSUFICIENTE` conserva el candidato como alternativa.
+- 🟢 `TipoFraccionamientoCodigo` es fuente autoritativa triestado: `PRIVADO → Privado`, `ABIERTO → NoPrivado`, `NULL → SinDato`. Para una solicitud privada, `ABIERTO` se descarta y `NULL` sólo puede ser alternativa fail-closed; sin criterio, el campo es neutral.
 - 🟡 Tolerancias de 80% terreno/construcción y otros mínimos.
 - 🟠 Multi-cuenta; 🔴 aprendizaje futuro.
 
@@ -183,7 +184,7 @@ Cambios de avance con evidencia directa: Mapa **74→80** por Deep Links y cache
 **Estado:** regresión avanzada y QA productivo aprobado; métricas parciales. **Responsable:** JJ + Codex.
 - 🟢 Builds, matching, payment constraints, Cynthia y Delivery regression.
 - 🟢 Intelligence E2E, Listener, recovery y colas.
-- 🟢 Regresiones de `SolicitudAccionable`, integración durable, Auto-B y Deep Links (incluidos múltiples resultados y normalización de URL).
+- 🟢 Regresiones de `SolicitudAccionable`, integración durable, Auto-B, Deep Links y TipoFraccionamiento (datos, integración, negaciones y fail-closed).
 - 🟠 Health y métricas; 🟡 logs y alertas técnicas.
 - 🟡 `e2e-hard-no-orillas` / “Lo más nuevo posible” sigue independiente.
 
@@ -222,6 +223,10 @@ Cambios de avance con evidencia directa: Mapa **74→80** por Deep Links y cache
 - ✅ Deep Links `/i/{id}` y `/m/{id}`, autorización cuenta/equipo y links RADAR por resultado desplegados y validados productivamente.
 - ✅ Cache busting del mapa cerrado en `1df55b0`: `index.js` servido con fingerprint remoto; Legacy Map, `/m/109` y `/i/109` aprobados; marker, modal, centro y zoom preservados; sin recenter observado; rollback no requerido.
 - ✅ Deploy / QA productivo del acumulado cerrado el 2026-09-24; Listener estable y colas productivas conservadas en estado sano.
+- ✅ **TIPO_FRACCIONAMIENTO_DATA_01 cerrado el 2026-09-28:** columna autoritativa nullable con `PRIVADO` / `ABIERTO`, constraint enabled/trusted, persistencia legacy compatible, selector triestado y matching fail-closed desplegados desde `93b9022`; 81 inmuebles preservados, 81 `NULL`, 0 clasificados y sin backfill.
+- ✅ Regresiones y QA del hito aprobados: schema productivo reconstruido localmente, script 56 idempotente, CHECK runtime, Web/Inventario/Editar/mapa/Deep Links, Listener estable, WhatsApp autenticado, CENTRAL activo y fallback `0`.
+- ✅ Commits del hito: `650482a` (restricción privada RADAR), `aa0af44` (persistencia) y `93b9022` (integración inventario/UI/RADAR).
+- ✅ Baseline productivo acumulado promovido de `b19059e` a `93b9022`: 413 commits mediante fast-forward normal, sin force-push; `master`, `origin/master`, feature y release comparten el tree `1755d05d`.
 
 # Pendientes conocidos
 

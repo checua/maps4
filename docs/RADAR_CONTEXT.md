@@ -184,14 +184,16 @@ Este caso debe repetirse después de integrar Zonas y sirve como prueba de regre
 - Recovery productivo validado: 11/11 pending-downstream históricos cerrados, 0 Delivery, 0 WhatsApp y colas finales en cero.
 - `WhatsAppProfile` productivo fue preservado.
 - Reply/quote validado con DOM real, regresiones y QA real WhatsApp: `TextoPropio` y `TextoCitado` se capturan por separado; la clasificación semántica usa exclusivamente `TextoPropio`; `TextoCitado` no origina por sí solo una solicitud; forwarded no se descarta automáticamente; una captura no confirmada conserva Retry.
-- `SolicitudAccionable` está implementada, validada localmente y versionada (`d5f1d43`, `d333b92`), todavía no desplegada. Estados: `Accionable`, `NecesitaMasDatos`, `Inconsistente`; política candidata: Operación + Tipo + consistencia. `null` conserva compatibilidad legacy.
-- Auto-B está implementado, validado y versionado (`28c1daa`), todavía no desplegado: Operación + Tipo + dos categorías adicionales, una de ellas Zona o Precio. No cambia score, pesos ni umbrales; `ESPECIFICIDAD_INSUFICIENTE` conserva alternativa y Delivery seguro termina en `ALTERNATIVA_PARA_REVISION`.
-- Deep Links están implementados, validados y versionados (`451c3d9`), todavía no desplegados: `/i/{id}` para Inventario autorizado y `/m/{id}` para mapa autorizado; ambos admiten propiedad propia/equipo y RADAR los agrega por `IdInmueble` a recomendaciones y alternativas.
+- `SolicitudAccionable` está implementada, desplegada y validada productivamente (`d5f1d43`, `d333b92`). Estados: `Accionable`, `NecesitaMasDatos`, `Inconsistente`; política Operación + Tipo + consistencia. `null` conserva compatibilidad legacy.
+- Auto-B está implementado, desplegado y validado productivamente (`28c1daa`): Operación + Tipo + dos categorías adicionales, una de ellas Zona o Precio. No cambia score, pesos ni umbrales; `ESPECIFICIDAD_INSUFICIENTE` conserva alternativa y Delivery seguro termina en `ALTERNATIVA_PARA_REVISION`.
+- Deep Links están implementados, desplegados y validados productivamente (`451c3d9`): `/i/{id}` para Inventario autorizado y `/m/{id}` para mapa autorizado; ambos admiten propiedad propia/equipo y RADAR los agrega por `IdInmueble` a recomendaciones y alternativas.
 - Base URL de Deep Links: web `RSMAPS_PUBLIC_BASE_URL → RSMaps:PublicBaseUrl → fallback configurado`; fallback del Listener mediante `RSMAPS_BASE_URL`.
+- `TIPO_FRACCIONAMIENTO_DATA_01` está cerrado productivamente desde `93b9022`: `TipoFraccionamientoCodigo` admite únicamente `PRIVADO`, `ABIERTO` o `NULL`; CHECK enabled/trusted, 81 registros preservados como `NULL` y sin backfill.
+- Semántica: `PRIVADO → Privado`, `ABIERTO → NoPrivado`, `NULL → SinDato`. Para solicitud privada, `ABIERTO` es hard reject y `NULL` sólo alternativa fail-closed; sin criterio, el campo es neutral. Las negaciones no activan `Privado`.
+- La captura futura debe ser explícita/autoritativa: no inferir desde amenidades, vigilancia, caseta, residencial, coto, calle privada ni descripción. La omisión legacy conserva el valor y una presencia explícita vacía guarda `NULL`.
 
 Pendientes conocidos:
 
-- deploy y QA productivo de `SolicitudAccionable`, Auto-B y Deep Links;
 - deduplicación durable de cross-posts entre chats;
 - capturar el timestamp real del mensaje;
 - decidir la política definitiva de alternativas;
@@ -232,17 +234,10 @@ El mensaje de commit debe describir lo realmente realizado durante la sesión.
 
 ## Estrategia actual de integración
 
-- `master` es la base a proteger porque contiene el trabajo reciente de Zonas.
-- `feature/rsmap-radar-matching` contiene Listener + matching y campos estructurados.
-- Ambas ramas divergieron considerablemente.
-- Rama creada para integración segura: **feature/radar-integration**.
-- No hacer merge bruto sin revisar archivos compartidos.
-- Archivos sensibles de integración:
-  - `Models/InventarioInmuebleViewModel.cs`
-  - `Repositorios/Implementacion/InventarioRepository.cs`
-  - `Program.cs`
-  - `maps4.csproj`
-- Objetivo: conservar simultáneamente **Zonas + datos estructurados + Radar + matching**.
+- Baseline canónico desde 2026-09-28: `master`, `origin/master`, `feature/tipo-fraccionamiento-data` y `release/radar-production-baseline-20260928` apuntan a `93b9022`, tree `1755d05d`.
+- La realineación de `origin/master` promovió 413 commits acumulados desde `b19059e` mediante fast-forward normal, sin force-push.
+- Las ramas feature/release y sus worktrees se conservan hasta autorizar el cierre y la limpieza por separado.
+- Todo trabajo nuevo debe partir del `master` canónico actualizado, no de worktrees históricos.
 
 ## Criterio de continuidad
 
