@@ -27,9 +27,9 @@ var context = await playwright.Chromium.LaunchPersistentContextAsync(
     });
 
 Console.WriteLine("WhatsApp Web abierto.");
-Console.WriteLine("Esperando que cargue la lista de chats...");
+Console.WriteLine("Esperando que WhatsApp alcance un estado Ready estable...");
 
-var page = await RadarWhatsAppSession.ObtenerPaginaActivaAsync(context);
+var page = await RadarWhatsAppSession.WaitUntilReadyAsync(context);
 
 await RadarWhatsAppChatDiscovery.DescubrirYReportarAsync(
     page,
@@ -129,7 +129,7 @@ while (true)
 {
     try
     {
-        page = await RadarWhatsAppSession.ObtenerPaginaActivaAsync(context, page);
+        page = await RadarWhatsAppSession.WaitUntilReadyAsync(context, page);
         await RadarWhatsAppChatDiscovery.ActualizarSiCorrespondeAsync(
             page,
             RadarSettings.ConfiguracionAgente);
@@ -210,7 +210,7 @@ while (true)
 
         try
         {
-            page = await RadarWhatsAppSession.ObtenerPaginaActivaAsync(
+            page = await RadarWhatsAppSession.WaitUntilReadyAsync(
                 context,
                 page,
                 mostrarRecuperacion: true);
