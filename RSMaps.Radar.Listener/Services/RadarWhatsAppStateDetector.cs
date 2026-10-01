@@ -198,6 +198,9 @@ public static class RadarWhatsAppStateDetector
                 CurrentUrl: string.Empty,
                 DiagnosticReason: "BROWSER_CONTEXT_UNAVAILABLE");
 
+    public static bool IsRecoverableNavigationFailure(Exception exception) =>
+        exception is PlaywrightException or TimeoutException;
+
     private static RadarWhatsAppStateSnapshot Snapshot(
         RadarWhatsAppOperationalState state,
         RadarWhatsAppObservedSignals signals,

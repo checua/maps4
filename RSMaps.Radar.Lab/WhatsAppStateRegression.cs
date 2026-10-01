@@ -20,6 +20,9 @@ internal static class WhatsAppStateRegression
         await VerifyCancellationPhasesAsync();
         await VerifyBackoffGrowthAndCapAsync();
         await VerifyContextFailureClassificationAsync();
+        await VerifyNavigationTimeoutRecoveryAsync();
+        await VerifyRepeatedNavigationTimeoutAsync();
+        VerifyPartialNavigationRecovery();
         await VerifyHistoryBoundaryAndNoAutomaticClickAsync();
         VerifyDiagnosticLogThrottling();
 
@@ -283,6 +286,81 @@ internal static class WhatsAppStateRegression
 
         Verify(escalated,
             "FatalFailure debe escalar una vez, sin loop creando pages inútiles.");
+
+        Console.WriteLine("CLOSED_CONTEXT_FATAL_OK");
+    }
+
+    private static async Task VerifyNavigationTimeoutRecoveryAsync()
+    {
+        Verify(RadarWhatsAppStateDetector.IsRecoverableNavigationFailure(
+                new TimeoutException("synthetic navigation timeout")),
+            "System.TimeoutException de navegación debe ser recuperable.");
+
+        var sequence = new Queue<RadarWhatsAppStateSnapshot>(
+            [
+                RadarWhatsAppStateDetector.ClassifyPlaywrightFailure(
+                    contextAvailable: true,
+                    exceptionType: nameof(TimeoutException)),
+                Waiting(),
+                Ready(),
+                Ready()
+            ]);
+
+        RadarWhatsAppStateSnapshot result = await RadarWhatsAppReadinessGate.WaitUntilReadyAsync(
+            _ => Task.FromResult(sequence.Dequeue()),
+            FastOptions);
+
+        Verify(result.CanSweep && sequence.Count == 0,
+            "Timeout transitorio debe poder recuperar Waiting y Ready estable.");
+        Console.WriteLine("NAVIGATION_TIMEOUT_RECOVERY_OK");
+    }
+
+    private static async Task VerifyRepeatedNavigationTimeoutAsync()
+    {
+        int transientCount = 0;
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(120));
+        try
+        {
+            await RadarWhatsAppReadinessGate.WaitUntilReadyAsync(
+                _ =>
+                {
+                    transientCount++;
+                    return Task.FromResult(
+                        RadarWhatsAppStateDetector.ClassifyPlaywrightFailure(
+                            contextAvailable: true,
+                            exceptionType: nameof(TimeoutException)));
+                },
+                new RadarWhatsAppReadinessOptions(
+                    TimeSpan.FromMilliseconds(5),
+                    TimeSpan.FromMilliseconds(20),
+                    TimeSpan.FromMilliseconds(5)),
+                cancellationToken: cancellation.Token);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+
+        Verify(transientCount is >= 5 and <= 9,
+            "Timeouts repetidos deben usar backoff limitado, sin busy-loop, y ser cancelables.");
+        Console.WriteLine("NAVIGATION_REPEATED_TIMEOUT_OK");
+    }
+
+    private static void VerifyPartialNavigationRecovery()
+    {
+        RadarWhatsAppStateSnapshot timeout =
+            RadarWhatsAppStateDetector.ClassifyPlaywrightFailure(
+                contextAvailable: true,
+                exceptionType: nameof(TimeoutException));
+        RadarWhatsAppStateSnapshot partialWaiting = RadarWhatsAppStateDetector.Classify(
+            Signals("https://web.whatsapp.com/"));
+        RadarWhatsAppStateSnapshot partialReady = RadarWhatsAppStateDetector.Classify(
+            Signals("https://web.whatsapp.com/", chatList: true));
+
+        Verify(timeout.State == RadarWhatsAppOperationalState.TransientFailure &&
+               partialWaiting.State == RadarWhatsAppOperationalState.WaitingForReady &&
+               partialReady.State == RadarWhatsAppOperationalState.Ready,
+            "Página parcial debe conservarse para detector/readiness tras timeout.");
+        Console.WriteLine("PARTIAL_NAVIGATION_RECOVERY_OK");
     }
 
     private static async Task VerifyHistoryBoundaryAndNoAutomaticClickAsync()

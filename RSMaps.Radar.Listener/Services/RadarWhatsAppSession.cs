@@ -48,9 +48,12 @@ public static class RadarWhatsAppSession
                     {
                         throw;
                     }
-                    catch (PlaywrightException ex)
+                    catch (Exception ex)
+                        when (RadarWhatsAppStateDetector.IsRecoverableNavigationFailure(ex))
                     {
-                        page = null;
+                        if (!IsUsableWhatsAppPage(page))
+                            page = null;
+
                         return RadarWhatsAppStateDetector.ClassifyPlaywrightFailure(
                             IsContextAvailable(context, contextLifetime),
                             ex.GetType().Name);
@@ -74,6 +77,18 @@ public static class RadarWhatsAppSession
                 trackedContext.Close += (_, _) => lifetime.MarkClosed();
                 return lifetime;
             });
+
+    private static bool IsUsableWhatsAppPage(IPage? page)
+    {
+        try
+        {
+            return page is not null && !page.IsClosed && IsWhatsApp(page.Url);
+        }
+        catch (PlaywrightException)
+        {
+            return false;
+        }
+    }
 
     private static bool IsContextAvailable(
         IBrowserContext context,
