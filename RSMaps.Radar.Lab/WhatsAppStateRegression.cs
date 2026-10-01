@@ -1,5 +1,6 @@
 using Microsoft.Playwright;
 using RSMaps.Radar.Listener.Services;
+using System.Reflection;
 
 internal static class WhatsAppStateRegression
 {
@@ -13,11 +14,31 @@ internal static class WhatsAppStateRegression
         VerifyLogoutHasPriorityOverResidualSidebar();
         await VerifyProlongedStatesRemainAliveAsync();
         await VerifyTwoStableObservationsAsync();
+        await VerifyUnstableReadyRequiresConsecutiveObservationsAsync();
         await VerifyNoSweepBeforeStableReadyAsync();
         await VerifyTransientRecoveryAndKnownIdsAsync();
+        await VerifyCancellationPhasesAsync();
+        await VerifyBackoffGrowthAndCapAsync();
+        await VerifyContextFailureClassificationAsync();
         await VerifyHistoryBoundaryAndNoAutomaticClickAsync();
+        VerifyDiagnosticLogThrottling();
 
         Console.WriteLine("WHATSAPP_STATE_REGRESSION_OK");
+    }
+
+    private static async Task VerifyUnstableReadyRequiresConsecutiveObservationsAsync()
+    {
+        var sequence = new Queue<RadarWhatsAppStateSnapshot>(
+            [Ready(), Waiting(), Ready(), Ready()]);
+        var observed = new List<RadarWhatsAppStateSnapshot>();
+
+        RadarWhatsAppStateSnapshot result = await RadarWhatsAppReadinessGate.WaitUntilReadyAsync(
+            _ => Task.FromResult(sequence.Dequeue()),
+            FastOptions,
+            observed.Add);
+
+        Verify(result.CanSweep && observed.Count == 4,
+            "Ready inestable debe reiniciar el contador y exigir dos observaciones consecutivas.");
     }
 
     private static void VerifyLogoutHasPriorityOverResidualSidebar()
@@ -48,7 +69,7 @@ internal static class WhatsAppStateRegression
     private static async Task VerifyProlongedStatesRemainAliveAsync()
     {
         int loggedOutObservations = 0;
-        using (var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(70)))
+        using (var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(180)))
         {
             bool cancelled = false;
             try
@@ -69,7 +90,7 @@ internal static class WhatsAppStateRegression
         }
 
         int waitingObservations = 0;
-        using (var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(70)))
+        using (var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(180)))
         {
             bool cancelled = false;
             try
@@ -150,6 +171,120 @@ internal static class WhatsAppStateRegression
             "K: el caller sólo debe alcanzar sweep después de dos Ready consecutivos.");
     }
 
+    private static async Task VerifyCancellationPhasesAsync()
+    {
+        await VerifyCancellationAsync(LoggedOut(), TimeSpan.FromMilliseconds(30),
+            "Cancellation durante LoggedOut debe ser rápida y limpia.");
+        await VerifyCancellationAsync(Waiting(), TimeSpan.FromMilliseconds(30),
+            "Cancellation durante WaitingForReady debe ser rápida y limpia.");
+
+        using var stabilityCancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(15));
+        bool stabilityCancelled = false;
+        try
+        {
+            await RadarWhatsAppReadinessGate.WaitUntilReadyAsync(
+                _ => Task.FromResult(Ready()),
+                new RadarWhatsAppReadinessOptions(
+                    TimeSpan.FromMilliseconds(5),
+                    TimeSpan.FromMilliseconds(20),
+                    TimeSpan.FromSeconds(5)),
+                cancellationToken: stabilityCancellation.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            stabilityCancelled = true;
+        }
+
+        Verify(stabilityCancelled,
+            "Cancellation debe interrumpir el stability delay sin esperar su duración completa.");
+    }
+
+    private static async Task VerifyCancellationAsync(
+        RadarWhatsAppStateSnapshot persistentState,
+        TimeSpan cancelAfter,
+        string message)
+    {
+        using var cancellation = new CancellationTokenSource(cancelAfter);
+        bool cancelled = false;
+        try
+        {
+            await RadarWhatsAppReadinessGate.WaitUntilReadyAsync(
+                _ => Task.FromResult(persistentState),
+                new RadarWhatsAppReadinessOptions(
+                    TimeSpan.FromSeconds(5),
+                    TimeSpan.FromSeconds(30),
+                    TimeSpan.FromMilliseconds(5)),
+                cancellationToken: cancellation.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            cancelled = true;
+        }
+
+        Verify(cancelled, message);
+    }
+
+    private static async Task VerifyBackoffGrowthAndCapAsync()
+    {
+        var observations = new List<DateTime>();
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(115));
+        try
+        {
+            await RadarWhatsAppReadinessGate.WaitUntilReadyAsync(
+                _ => Task.FromResult(Waiting()),
+                new RadarWhatsAppReadinessOptions(
+                    TimeSpan.FromMilliseconds(5),
+                    TimeSpan.FromMilliseconds(20),
+                    TimeSpan.FromMilliseconds(5)),
+                _ => observations.Add(DateTime.UtcNow),
+                cancellation.Token);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+
+        Verify(observations.Count is >= 5 and <= 9,
+            "Backoff debe crecer, quedar limitado y evitar busy-loop.");
+        double maximumObservedDelay = observations
+            .Zip(observations.Skip(1), (a, b) => (b - a).TotalMilliseconds)
+            .DefaultIfEmpty(0)
+            .Max();
+        Verify(maximumObservedDelay < 80,
+            "Backoff reducido de prueba no debe crecer indefinidamente sobre el cap.");
+    }
+
+    private static async Task VerifyContextFailureClassificationAsync()
+    {
+        RadarWhatsAppStateSnapshot transient =
+            RadarWhatsAppStateDetector.ClassifyPlaywrightFailure(
+                contextAvailable: true,
+                exceptionType: nameof(PlaywrightException));
+        RadarWhatsAppStateSnapshot fatal =
+            RadarWhatsAppStateDetector.ClassifyPlaywrightFailure(
+                contextAvailable: false,
+                exceptionType: nameof(PlaywrightException));
+
+        Verify(transient.State == RadarWhatsAppOperationalState.TransientFailure,
+            "Fallo de page con contexto sano debe seguir siendo transitorio.");
+        Verify(fatal.State == RadarWhatsAppOperationalState.FatalFailure,
+            "Contexto/browser desconectado debe clasificarse como fatal no recuperable.");
+
+        bool escalated = false;
+        try
+        {
+            await RadarWhatsAppReadinessGate.WaitUntilReadyAsync(
+                _ => Task.FromResult(fatal),
+                FastOptions);
+        }
+        catch (RadarWhatsAppFatalSessionException ex)
+        {
+            escalated = ex.DiagnosticReason == "BROWSER_CONTEXT_UNAVAILABLE";
+        }
+
+        Verify(escalated,
+            "FatalFailure debe escalar una vez, sin loop creando pages inútiles.");
+    }
+
     private static async Task VerifyHistoryBoundaryAndNoAutomaticClickAsync()
     {
         using IPlaywright playwright = await Playwright.CreateAsync();
@@ -177,6 +312,62 @@ internal static class WhatsAppStateRegression
                 "L: detector y gate no deben ejecutar acciones de sincronización.");
         }
     }
+
+    private static void VerifyDiagnosticLogThrottling()
+    {
+        Type sessionType = typeof(RadarWhatsAppSession);
+        MethodInfo observe = sessionType.GetMethod(
+            "ObserveState",
+            BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new InvalidOperationException("No se encontró ObserveState.");
+        FieldInfo lastState = RequiredField(sessionType, "_lastState");
+        FieldInfo lastReminder = RequiredField(sessionType, "_lastReminderUtc");
+        FieldInfo readyAnnounced = RequiredField(sessionType, "_readyAnnounced");
+        FieldInfo historyPresent = RequiredField(sessionType, "_historyBoundaryPresent");
+
+        TextWriter original = Console.Out;
+        using var captured = new StringWriter();
+        try
+        {
+            Console.SetOut(captured);
+            lastState.SetValue(null, null);
+            lastReminder.SetValue(null, DateTime.MinValue);
+            readyAnnounced.SetValue(null, false);
+            historyPresent.SetValue(null, false);
+
+            observe.Invoke(null, [LoggedOut()]);
+            observe.Invoke(null, [LoggedOut()]);
+            lastReminder.SetValue(null, DateTime.UtcNow - TimeSpan.FromMinutes(11));
+            observe.Invoke(null, [LoggedOut()]);
+
+            RadarWhatsAppStateSnapshot history = RadarWhatsAppStateDetector.Classify(
+                Signals(
+                    "https://web.whatsapp.com/",
+                    chatList: true,
+                    history: true));
+            observe.Invoke(null, [history]);
+            observe.Invoke(null, [history]);
+        }
+        finally
+        {
+            Console.SetOut(original);
+        }
+
+        string output = captured.ToString();
+        Verify(Count(output, "[WHATSAPP_LOGGED_OUT]") == 1 &&
+               Count(output, "[WHATSAPP_WAITING_FOR_LINK]") == 1 &&
+               Count(output, "[WHATSAPP_WAITING]") == 1,
+            "Estado persistente debe registrar inicio y sólo un recordatorio al vencer 10 minutos.");
+        Verify(Count(output, "[WHATSAPP_HISTORY_BOUNDARY_DETECTED]") == 1,
+            "HistoryBoundary persistente no debe repetir el evento en cada poll.");
+    }
+
+    private static FieldInfo RequiredField(Type type, string name) =>
+        type.GetField(name, BindingFlags.NonPublic | BindingFlags.Static)
+        ?? throw new InvalidOperationException($"No se encontró {name}.");
+
+    private static int Count(string text, string value) =>
+        text.Split(value, StringSplitOptions.None).Length - 1;
 
     private static RadarWhatsAppObservedSignals Signals(
         string url,

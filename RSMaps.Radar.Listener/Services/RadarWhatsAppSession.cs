@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using System.Runtime.CompilerServices;
 
 namespace RSMaps.Radar.Listener.Services;
 
@@ -7,6 +8,7 @@ public static class RadarWhatsAppSession
     private const string WhatsAppUrl = "https://web.whatsapp.com";
     private static readonly TimeSpan ReminderInterval = TimeSpan.FromMinutes(10);
     private static readonly object DiagnosticLock = new();
+    private static readonly ConditionalWeakTable<IBrowserContext, ContextLifetime> ContextLifetimes = new();
 
     private static RadarWhatsAppOperationalState? _lastState;
     private static DateTime _lastReminderUtc = DateTime.MinValue;
@@ -23,6 +25,7 @@ public static class RadarWhatsAppSession
     {
         ArgumentNullException.ThrowIfNull(context);
         LogStartingOnce();
+        ContextLifetime contextLifetime = TrackContextLifetime(context);
 
         IPage? page = actual;
         RadarWhatsAppStateSnapshot ready =
@@ -31,6 +34,13 @@ public static class RadarWhatsAppSession
                 {
                     try
                     {
+                        if (!IsContextAvailable(context, contextLifetime))
+                        {
+                            return RadarWhatsAppStateDetector.ClassifyPlaywrightFailure(
+                                contextAvailable: false,
+                                exceptionType: "BrowserDisconnected");
+                        }
+
                         page = await EnsureWhatsAppPageAsync(context, page, token);
                         return await RadarWhatsAppStateDetector.DetectAsync(page, token);
                     }
@@ -41,14 +51,9 @@ public static class RadarWhatsAppSession
                     catch (PlaywrightException ex)
                     {
                         page = null;
-                        return new RadarWhatsAppStateSnapshot(
-                            RadarWhatsAppOperationalState.TransientFailure,
-                            IsAuthenticated: false,
-                            HasFunctionalSidebar: false,
-                            HasHistoryBoundary: false,
-                            KnownSyncBlockingSignal: false,
-                            CurrentUrl: string.Empty,
-                            DiagnosticReason: $"PLAYWRIGHT_TRANSIENT:{ex.GetType().Name}");
+                        return RadarWhatsAppStateDetector.ClassifyPlaywrightFailure(
+                            IsContextAvailable(context, contextLifetime),
+                            ex.GetType().Name);
                     }
                 },
                 onObservation: ObserveState,
@@ -58,6 +63,43 @@ public static class RadarWhatsAppSession
         AnnounceReady(ready, mostrarRecuperacion);
         await CloseDuplicateWhatsAppPagesAsync(context, page!, cancellationToken);
         return page!;
+    }
+
+    private static ContextLifetime TrackContextLifetime(IBrowserContext context) =>
+        ContextLifetimes.GetValue(
+            context,
+            trackedContext =>
+            {
+                var lifetime = new ContextLifetime();
+                trackedContext.Close += (_, _) => lifetime.MarkClosed();
+                return lifetime;
+            });
+
+    private static bool IsContextAvailable(
+        IBrowserContext context,
+        ContextLifetime lifetime)
+    {
+        if (lifetime.IsClosed)
+            return false;
+
+        try
+        {
+            IBrowser? browser = context.Browser;
+            return browser is null || browser.IsConnected;
+        }
+        catch (PlaywrightException)
+        {
+            return false;
+        }
+    }
+
+    private sealed class ContextLifetime
+    {
+        private int _closed;
+
+        public bool IsClosed => Volatile.Read(ref _closed) != 0;
+
+        public void MarkClosed() => Interlocked.Exchange(ref _closed, 1);
     }
 
     private static async Task<IPage> EnsureWhatsAppPageAsync(

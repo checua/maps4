@@ -44,6 +44,17 @@ public sealed record RadarWhatsAppReadinessOptions(
         TimeSpan.FromSeconds(1));
 }
 
+public sealed class RadarWhatsAppFatalSessionException : InvalidOperationException
+{
+    public RadarWhatsAppFatalSessionException(string diagnosticReason)
+        : base($"WhatsApp session is not recoverable: {diagnosticReason}")
+    {
+        DiagnosticReason = diagnosticReason;
+    }
+
+    public string DiagnosticReason { get; }
+}
+
 public static class RadarWhatsAppStateDetector
 {
     private const string ChatListSelector = "[data-testid='chat-list']";
@@ -166,6 +177,27 @@ public static class RadarWhatsAppStateDetector
                 "SIDEBAR_NOT_READY");
     }
 
+    public static RadarWhatsAppStateSnapshot ClassifyPlaywrightFailure(
+        bool contextAvailable,
+        string exceptionType) =>
+        contextAvailable
+            ? new RadarWhatsAppStateSnapshot(
+                RadarWhatsAppOperationalState.TransientFailure,
+                IsAuthenticated: false,
+                HasFunctionalSidebar: false,
+                HasHistoryBoundary: false,
+                KnownSyncBlockingSignal: false,
+                CurrentUrl: string.Empty,
+                DiagnosticReason: $"PLAYWRIGHT_TRANSIENT:{exceptionType}")
+            : new RadarWhatsAppStateSnapshot(
+                RadarWhatsAppOperationalState.FatalFailure,
+                IsAuthenticated: false,
+                HasFunctionalSidebar: false,
+                HasHistoryBoundary: false,
+                KnownSyncBlockingSignal: false,
+                CurrentUrl: string.Empty,
+                DiagnosticReason: "BROWSER_CONTEXT_UNAVAILABLE");
+
     private static RadarWhatsAppStateSnapshot Snapshot(
         RadarWhatsAppOperationalState state,
         RadarWhatsAppObservedSignals signals,
@@ -233,6 +265,9 @@ public static class RadarWhatsAppReadinessGate
             cancellationToken.ThrowIfCancellationRequested();
             RadarWhatsAppStateSnapshot snapshot = await observeAsync(cancellationToken);
             onObservation?.Invoke(snapshot);
+
+            if (snapshot.State == RadarWhatsAppOperationalState.FatalFailure)
+                throw new RadarWhatsAppFatalSessionException(snapshot.DiagnosticReason);
 
             if (snapshot.CanSweep)
             {
