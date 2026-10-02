@@ -33,6 +33,23 @@ if (string.Equals(
 
 if (string.Equals(
     labMode,
+    "whatsapp-state-regression",
+    StringComparison.OrdinalIgnoreCase))
+{
+    try
+    {
+        await WhatsAppStateRegression.RunAsync();
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"WHATSAPP_STATE_REGRESSION_FAILED: {ex.Message}");
+        Environment.ExitCode = 1;
+    }
+    return;
+}
+
+if (string.Equals(
+    labMode,
     "matching-regression",
     StringComparison.OrdinalIgnoreCase))
 {
