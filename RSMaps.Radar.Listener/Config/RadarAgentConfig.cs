@@ -69,6 +69,7 @@ public static class RadarAgentConfigLoader
             }
 
             RadarAgentHeartbeat.Start(config);
+            RadarAgentHealthReporter.Start(config);
 
             return config;
         }

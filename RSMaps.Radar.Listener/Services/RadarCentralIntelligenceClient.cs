@@ -43,6 +43,9 @@ public static class RadarCentralIntelligenceClient
         RadarAgentConfig? config = RadarSettings.ConfiguracionAgente;
         if (!RadarAgentCredentialStore.TryLeerToken(config, out string token, out string detalle))
         {
+            RadarAgentRuntimeHealth.Current.SetCentralState(
+                "Degraded",
+                "CENTRAL_CREDENTIAL_UNAVAILABLE");
             Console.WriteLine($"  ⚠ Intelligence central sin credencial Agent: {Recortar(detalle, 160)}");
             return null;
         }
@@ -59,6 +62,9 @@ public static class RadarCentralIntelligenceClient
             using HttpResponseMessage response = await Http.SendAsync(request, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
+                RadarAgentRuntimeHealth.Current.SetCentralState(
+                    "Degraded",
+                    $"CENTRAL_HTTP_{(int)response.StatusCode}");
                 string body = await response.Content.ReadAsStringAsync(cancellationToken);
                 Console.WriteLine(
                     $"  ⚠ Intelligence central respondió {(int)response.StatusCode}: " +
@@ -66,16 +72,31 @@ public static class RadarCentralIntelligenceClient
                 return null;
             }
 
-            return await response.Content.ReadFromJsonAsync<RadarInterpretationResult>(
+            RadarInterpretationResult? result = await response.Content.ReadFromJsonAsync<RadarInterpretationResult>(
                 cancellationToken: cancellationToken);
+            RadarAgentRuntimeHealth.Current.SetCentralState(
+                result is null ? "Degraded" : "Healthy",
+                result is null ? "CENTRAL_INVALID_RESPONSE" : null,
+                result is null ? null : DateTime.UtcNow);
+            return result;
         }
         catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
+            RadarAgentRuntimeHealth.Current.SetCentralState("Degraded", "CENTRAL_TIMEOUT");
             Console.WriteLine("  ⚠ Intelligence central excedió el tiempo de espera.");
+            return null;
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            RadarAgentRuntimeHealth.Current.SetCentralState(
+                "Degraded",
+                "CENTRAL_INVALID_RESPONSE");
+            Console.WriteLine("  ⚠ Intelligence central devolvió una respuesta inválida.");
             return null;
         }
         catch (HttpRequestException ex)
         {
+            RadarAgentRuntimeHealth.Current.SetCentralState("Degraded", "CENTRAL_NETWORK");
             Console.WriteLine(
                 $"  ⚠ Intelligence central no disponible: {Recortar(ex.Message, 180)}");
             return null;

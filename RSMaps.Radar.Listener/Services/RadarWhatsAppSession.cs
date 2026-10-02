@@ -166,6 +166,15 @@ public static class RadarWhatsAppSession
 
     private static void ObserveState(RadarWhatsAppStateSnapshot snapshot)
     {
+        RadarAgentRuntimeHealth.Current.SetWhatsAppState(snapshot.State switch
+        {
+            RadarWhatsAppOperationalState.Ready => "Ready",
+            RadarWhatsAppOperationalState.WaitingForReady => "WaitingForReady",
+            RadarWhatsAppOperationalState.LoggedOut => "LoggedOut",
+            RadarWhatsAppOperationalState.Starting => "Starting",
+            _ => "Error"
+        });
+
         lock (DiagnosticLock)
         {
             DateTime now = DateTime.UtcNow;
@@ -228,6 +237,7 @@ public static class RadarWhatsAppSession
 
     private static void LogStartingOnce()
     {
+        RadarAgentRuntimeHealth.Current.SetWhatsAppState("Starting");
         lock (DiagnosticLock)
         {
             if (_startingLogged)
@@ -242,6 +252,7 @@ public static class RadarWhatsAppSession
         RadarWhatsAppStateSnapshot snapshot,
         bool mostrarRecuperacion)
     {
+        RadarAgentRuntimeHealth.Current.SetWhatsAppState("Ready");
         lock (DiagnosticLock)
         {
             if (!_readyAnnounced)

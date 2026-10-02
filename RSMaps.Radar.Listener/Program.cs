@@ -124,6 +124,7 @@ else
 }
 Console.WriteLine("CTRL+C para terminar.");
 Console.WriteLine();
+RadarAgentRuntimeHealth.Current.SetListenerState("Running");
 
 while (true)
 {
@@ -161,6 +162,9 @@ while (true)
             chatsCiclo,
             idsConocidosPorChat);
 
+        RadarAgentRuntimeHealth.Current.StartSweep(chatsCiclo.Length);
+        var chatsRevisados = 0;
+
         foreach (var chat in chatsCiclo)
         {
             // Un chat recién agregado primero absorbe su historial visible como línea base.
@@ -173,6 +177,8 @@ while (true)
                 Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] ⚠ No pude abrir {chat}.");
                 continue;
             }
+
+            chatsRevisados++;
 
             if (!idsConocidosPorChat.TryGetValue(chat, out var idsConocidos))
             {
@@ -203,6 +209,8 @@ while (true)
                 enviosConfirmadosPorSolicitud,
                 entregasLabFalladasUnaVez);
         }
+
+        RadarAgentRuntimeHealth.Current.CompleteSweep(chatsRevisados);
     }
     catch (PlaywrightException ex)
     {
