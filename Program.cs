@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +26,7 @@ builder.Services.AddScoped<IComentarioService, ComentarioService>();
 builder.Services.AddScoped<IInventarioRepository, InventarioRepository>();
 builder.Services.AddScoped<IRadarMatchingService, RadarMatchingService>();
 builder.Services.AddScoped<IRadarAgentPairingRepository, RadarAgentPairingRepository>();
+builder.Services.AddScoped<IRadarAgentHealthRepository, RadarAgentHealthRepository>();
 builder.Services.AddScoped<IRadarMessageProcessingRepository, RadarMessageProcessingRepository>();
 builder.Services.AddScoped<IRadarMessageDeliveryRepository, RadarMessageDeliveryRepository>();
 builder.Services.AddScoped<IRadarPendingDeliveryRepository, RadarPendingDeliveryRepository>();
@@ -38,6 +41,20 @@ builder.Services.AddScoped<IInmuebleFotoRepository, InmuebleFotoRepository>();
 builder.Services.AddScoped<IMarketplaceFiltroRepository, MarketplaceFiltroRepository>();
 builder.Services.AddScoped<IZonaRepository, ZonaRepository>();
 builder.Services.AddScoped<IMapaViewportRepository, MapaViewportRepository>();
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy("radar-agent-health", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 30,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            }));
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
 string imageStorageProvider = builder.Configuration["RSMaps:ImageStorageProvider"]?.Trim() ?? "Local";
 if (imageStorageProvider.Equals("AzureBlob", StringComparison.OrdinalIgnoreCase))
 {
@@ -83,6 +100,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+app.UseRateLimiter();
 
 // Configurar autenticación y autorización
 app.UseAuthentication();

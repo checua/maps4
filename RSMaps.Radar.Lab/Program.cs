@@ -131,6 +131,15 @@ if (string.Equals(
     return;
 }
 
+if (string.Equals(
+    labMode,
+    "radar-remote-health-regression",
+    StringComparison.OrdinalIgnoreCase))
+{
+    await RadarRemoteHealthRegression.RunAsync();
+    return;
+}
+
 var engine = (Environment.GetEnvironmentVariable("RADAR_LAB_INTERPRETER") ?? "rules")
     .Trim()
     .ToLowerInvariant();

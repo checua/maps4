@@ -1,0 +1,79 @@
+@model maps4.Models.RadarAgentHealthViewModel
+@using maps4.Models
+@{
+    ViewData["Title"] = "Salud de RADAR";
+}
+
+<style>
+    .radar-health { max-width: 1100px; margin: 1.5rem auto; padding: 0 1rem; }
+    .radar-health__header { display: flex; gap: 1rem; align-items: baseline; justify-content: space-between; flex-wrap: wrap; }
+    .radar-health__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-top: 1rem; }
+    .radar-health__card { border: 1px solid #d9dee7; border-radius: .75rem; padding: 1rem; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.05); }
+    .radar-health__status { display: inline-block; border-radius: 999px; padding: .25rem .65rem; font-weight: 700; }
+    .radar-health__status--online { color: #075d2a; background: #dff7e7; }
+    .radar-health__status--degraded { color: #744b00; background: #fff0c2; }
+    .radar-health__status--offline { color: #861b1b; background: #fde0e0; }
+    .radar-health__status--nodata { color: #445064; background: #e9edf3; }
+    .radar-health dl { display: grid; grid-template-columns: minmax(125px, 1fr) 1.25fr; gap: .45rem .75rem; margin: 1rem 0 0; }
+    .radar-health dt { color: #536174; font-weight: 600; }
+    .radar-health dd { margin: 0; overflow-wrap: anywhere; }
+    .radar-health__empty { padding: 1rem; border: 1px dashed #aeb8c7; border-radius: .75rem; }
+</style>
+
+<main class="radar-health">
+    <div class="radar-health__header">
+        <div>
+            <h1>Salud de RADAR</h1>
+            <p>Monitoreo de solo lectura. No permite controlar el equipo ni WhatsApp.</p>
+        </div>
+        <small>Servidor UTC: @Model.ServerUtc.ToString("yyyy-MM-dd HH:mm:ss")</small>
+    </div>
+
+    @if (Model.Agents.Count == 0)
+    {
+        <div class="radar-health__empty">No hay Agents activos accesibles para esta cuenta.</div>
+    }
+    else
+    {
+        <section class="radar-health__grid" aria-label="Estado de RADAR">
+            @foreach (var agent in Model.Agents)
+            {
+                string statusClass = agent.Level switch
+                {
+                    RadarAgentHealthLevel.Online => "online",
+                    RadarAgentHealthLevel.Degraded => "degraded",
+                    RadarAgentHealthLevel.NoCommunication => "offline",
+                    _ => "nodata"
+                };
+
+                <article class="radar-health__card">
+                    <h2>@agent.NombreAgent</h2>
+                    <span class="radar-health__status radar-health__status--@statusClass">@agent.LevelLabel</span>
+                    <dl>
+                        <dt>Última señal</dt>
+                        <dd>@(agent.ReceivedUtc?.ToString("yyyy-MM-dd HH:mm:ss 'UTC'") ?? "Sin datos")</dd>
+                        <dt>Listener</dt>
+                        <dd>@(agent.ListenerState ?? "Sin datos")</dd>
+                        <dt>WhatsApp</dt>
+                        <dd>@(agent.WhatsAppState ?? "Sin datos")</dd>
+                        <dt>Último sweep</dt>
+                        <dd>@(agent.LastSweepCompletedUtc?.ToString("yyyy-MM-dd HH:mm:ss 'UTC'") ?? "Sin datos")</dd>
+                        <dt>Chats</dt>
+                        <dd>@(agent.ChatsReviewed.HasValue ? $"{agent.ChatsReviewed}/{agent.ChatsConfigured}" : "Sin datos")</dd>
+                        <dt>CENTRAL</dt>
+                        <dd>@(agent.CentralState ?? "Sin datos")</dd>
+                        <dt>Fallback local</dt>
+                        <dd>@(agent.FallbackEnabled.HasValue ? (agent.FallbackEnabled.Value ? "Habilitado" : "Deshabilitado") : "Sin datos")</dd>
+                        <dt>Versión</dt>
+                        <dd>@(agent.Version ?? "Sin datos")</dd>
+                        @if (!string.IsNullOrWhiteSpace(agent.ErrorCode))
+                        {
+                            <dt>Código de estado</dt>
+                            <dd>@agent.ErrorCode</dd>
+                        }
+                    </dl>
+                </article>
+            }
+        </section>
+    }
+</main>
