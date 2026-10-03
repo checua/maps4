@@ -14,6 +14,8 @@ public sealed class RadarAgentRuntimeHealth
     private DateTime? _whatsAppStateSinceUtc;
     private DateTime? _lastSweepStartedUtc;
     private DateTime? _lastSweepCompletedUtc;
+    private DateTime? _activeSweepStartedUtc;
+    private int _activeSweepChatsConfigured;
     private int _chatsConfigured;
     private int _chatsReviewed;
     private string _centralState = "NotRecentlyUsed";
@@ -55,9 +57,9 @@ public sealed class RadarAgentRuntimeHealth
     {
         lock (_sync)
         {
-            _lastSweepStartedUtc = EnsureUtc(startedUtc ?? DateTime.UtcNow);
-            _chatsConfigured = Math.Max(0, chatsConfigured);
-            _chatsReviewed = 0;
+            // Do not overwrite the last completed sweep: a heartbeat may arrive mid-sweep.
+            _activeSweepStartedUtc = EnsureUtc(startedUtc ?? DateTime.UtcNow);
+            _activeSweepChatsConfigured = Math.Max(0, chatsConfigured);
         }
     }
 
@@ -65,8 +67,17 @@ public sealed class RadarAgentRuntimeHealth
     {
         lock (_sync)
         {
+            if (!_activeSweepStartedUtc.HasValue)
+                return;
+
+            DateTime completed = EnsureUtc(completedUtc ?? DateTime.UtcNow);
+            _lastSweepStartedUtc = _activeSweepStartedUtc.Value;
+            _lastSweepCompletedUtc = completed < _lastSweepStartedUtc.Value
+                ? _lastSweepStartedUtc.Value
+                : completed;
+            _chatsConfigured = _activeSweepChatsConfigured;
             _chatsReviewed = Math.Clamp(chatsReviewed, 0, _chatsConfigured);
-            _lastSweepCompletedUtc = EnsureUtc(completedUtc ?? DateTime.UtcNow);
+            _activeSweepStartedUtc = null;
         }
     }
 
