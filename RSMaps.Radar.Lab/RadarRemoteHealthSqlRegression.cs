@@ -8,7 +8,8 @@ internal static class RadarRemoteHealthSqlRegression
 {
     public static async Task RunAsync()
     {
-        const string server = @".\RSMAPSDEV";
+        string server = Environment.GetEnvironmentVariable("RADAR_HEALTH_SQL_TEST_SERVER")?.Trim()
+            ?? @".\RSMAPSDEV";
         string database = $"RSMaps_RadarHealth_Test_{Guid.NewGuid():N}";
         string masterConnection = BuildConnection(server, "master");
         string testConnection = BuildConnection(server, database);
@@ -187,8 +188,31 @@ INSERT dbo.RSMAPS_RadarAgentDevice(IdAgent) VALUES (@idAgent);", connection, tra
         await command.ExecuteNonQueryAsync();
     }
 
-    private static string BuildConnection(string server, string database) =>
-        $"Server={server};Database={database};Integrated Security=true;Encrypt=false;TrustServerCertificate=true;Connect Timeout=10";
+    private static string BuildConnection(string server, string database)
+    {
+        // Default: existing, isolated local RSMAPSDEV. CI: an ephemeral SQL container
+        // with an ephemeral password supplied via environment, never logged.
+        string? username = Environment.GetEnvironmentVariable("RADAR_HEALTH_SQL_TEST_USER")?.Trim();
+        string? password = Environment.GetEnvironmentVariable("RADAR_HEALTH_SQL_TEST_PASSWORD");
+        if (!string.IsNullOrEmpty(username) && string.IsNullOrEmpty(password))
+            throw new InvalidOperationException("SQL test credentials are incomplete.");
+
+        var builder = new SqlConnectionStringBuilder
+        {
+            DataSource = server,
+            InitialCatalog = database,
+            TrustServerCertificate = true, // test environment only, never production
+            ConnectTimeout = 10,
+            IntegratedSecurity = string.IsNullOrEmpty(username)
+        };
+        if (!string.IsNullOrEmpty(username))
+        {
+            builder.UserID = username;
+            builder.Password = password;
+        }
+
+        return builder.ConnectionString;
+    }
 
     private static string FindRepositoryRoot()
     {
