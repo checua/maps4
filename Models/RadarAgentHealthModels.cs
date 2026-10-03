@@ -185,7 +185,8 @@ public static class RadarAgentHealthPolicy
             && item.WhatsAppState.Equals("Ready", StringComparison.OrdinalIgnoreCase)
             && sweepFresh
             && !item.CentralState.Equals("Degraded", StringComparison.OrdinalIgnoreCase)
-            && item.ChatsReviewed <= item.ChatsConfigured;
+            && item.ChatsConfigured > 0
+            && item.ChatsReviewed == item.ChatsConfigured;
 
         return functional ? RadarAgentHealthLevel.Online : RadarAgentHealthLevel.Degraded;
     }
