@@ -1,0 +1,70 @@
+name: RADAR Remote Health - safe CI
+
+on:
+  push:
+    branches:
+      - fix/radar-remote-health-predeploy-guardrails
+  pull_request:
+    branches:
+      - feature/radar-remote-health
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-regressions:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    env:
+      DOTNET_NOLOGO: "true"
+      RADAR_SAFE_LAB: "1"
+      RADAR_INTELLIGENCE_MODE: central
+      RADAR_CENTRAL_FALLBACK_LOCAL: "0"
+      RADAR_AGENT_CONFIG_PATH: ""
+
+    steps:
+      - name: Checkout proposed changes
+        uses: actions/checkout@v4
+
+      - name: Install .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore dependencies (no secrets)
+        shell: pwsh
+        run: dotnet restore RSMaps.Radar.Lab/RSMaps.Radar.Lab.csproj
+
+      - name: Build Web, Listener and Lab
+        shell: pwsh
+        run: |
+          dotnet build maps4.csproj -c Release --no-restore
+          if ($LASTEXITCODE -ne 0) { throw "WEB_BUILD_FAILED" }
+          dotnet build RSMaps.Radar.Listener/RSMaps.Radar.Listener.csproj -c Release --no-restore
+          if ($LASTEXITCODE -ne 0) { throw "LISTENER_BUILD_FAILED" }
+          dotnet build RSMaps.Radar.Lab/RSMaps.Radar.Lab.csproj -c Release --no-restore
+          if ($LASTEXITCODE -ne 0) { throw "LAB_BUILD_FAILED" }
+
+      - name: Offline functional regressions
+        shell: pwsh
+        run: |
+          $modes = @(
+            'radar-remote-health-regression',
+            'radar-agent-health-reporter-regression',
+            'whatsapp-state-regression',
+            'whatsapp-capture-regression',
+            'delivery-flow-regression',
+            'solicitud-accionable-regression',
+            'solicitud-accionable-integration-regression',
+            'matching-regression',
+            'deep-links-regression'
+          )
+          foreach ($mode in $modes) {
+            Write-Host "RUNNING: $mode"
+            $env:RADAR_LAB_MODE = $mode
+            dotnet run --project RSMaps.Radar.Lab/RSMaps.Radar.Lab.csproj --no-build -c Release
+            if ($LASTEXITCODE -ne 0) { throw "REGRESSION_FAILED: $mode" }
+          }
+
+# No SQL, no remote access, no agent credentials, no WhatsApp session/profile.
+# SQL concurrency tests must run on an explicitly isolated Windows RSMAPSDEV environment.
