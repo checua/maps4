@@ -44,10 +44,12 @@ internal static class RadarAgentHealthReporterRegression
 
         runtime.StartSweep(7, new DateTime(2026, 10, 1, 12, 2, 0, DateTimeKind.Utc));
         RadarAgentHealthPayload interrupted = runtime.Snapshot(2);
-        Require(interrupted.LastSweepStartedUtc > completed.LastSweepStartedUtc,
-            "El nuevo barrido no registró inicio.");
+        Require(interrupted.LastSweepStartedUtc == completed.LastSweepStartedUtc,
+            "Un barrido en curso no debe sustituir el inicio del último barrido completado.");
         Require(interrupted.LastSweepCompletedUtc == completed.LastSweepCompletedUtc,
             "Un barrido interrumpido no debe aparecer como completado.");
+        Require(interrupted.ChatsConfigured == 7 && interrupted.ChatsReviewed == 7,
+            "Los conteos del último barrido completo deben conservarse durante el siguiente.");
 
         Parallel.For(0, 2_000, i =>
         {
@@ -59,6 +61,18 @@ internal static class RadarAgentHealthReporterRegression
 
         runtime.SetWhatsAppState("Ready");
         runtime.SetCentralState("Healthy", successfulUtc: DateTime.UtcNow);
+        runtime.CompleteSweep(7);
+
+        // A change in configured chats must not mix counts from two different sweeps.
+        runtime.StartSweep(3, DateTime.UtcNow);
+        RadarAgentHealthPayload changing = runtime.Snapshot(99);
+        Require(changing.ChatsConfigured == 7 && changing.ChatsReviewed == 7,
+            "El snapshot mezcló conteos de un barrido previo con nueva configuración.");
+        runtime.CompleteSweep(2);
+        RadarAgentHealthPayload partiallyReviewed = runtime.Snapshot(100);
+        Require(partiallyReviewed.ChatsConfigured == 3 && partiallyReviewed.ChatsReviewed == 2,
+            "La finalización parcial no conservó ambos conteos del mismo barrido.");
+        runtime.StartSweep(7);
         runtime.CompleteSweep(7);
 
         var handler = new CaptureHandler(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
@@ -155,6 +169,14 @@ internal static class RadarAgentHealthReporterRegression
             () => (false, string.Empty));
         Require(await noCredential.SendOnceAsync() == RadarAgentHealthSendResult.CredentialUnavailable,
             "La ausencia de credencial no se aisló correctamente.");
+
+        var throwingCredential = new RadarAgentHealthReporter(
+            new RadarAgentConfig(),
+            new RadarAgentRuntimeHealth(version: "test"),
+            new HttpClient(new CaptureHandler(_ => new HttpResponseMessage(HttpStatusCode.NoContent))),
+            () => throw new InvalidOperationException("simulated-secret-provider-failure"));
+        Require(await throwingCredential.SendOnceAsync() == RadarAgentHealthSendResult.UnexpectedFailure,
+            "Una excepción en el almacén de credenciales no debe terminar el reporter.");
     }
 
     private static async Task ValidateCancellationAsync()
