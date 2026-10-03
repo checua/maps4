@@ -1,0 +1,54 @@
+name: RADAR Remote Health - preflight static check
+
+on:
+  push:
+    branches:
+      - docs/radar-remote-health-preflight
+  pull_request:
+    branches:
+      - feature/radar-remote-health
+
+permissions:
+  contents: read
+
+jobs:
+  static-readonly-audit:
+    runs-on: windows-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout documentation branch
+        uses: actions/checkout@v4
+
+      - name: Parse PowerShell preflight without executing it
+        shell: pwsh
+        run: |
+          $path = 'tools/RadarRemoteHealthPreflight.ps1'
+          $tokens = $null
+          $parseErrors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path -LiteralPath $path).Path,
+            [ref]$tokens,
+            [ref]$parseErrors) | Out-Null
+          if ($parseErrors.Count -gt 0) {
+            foreach ($error in $parseErrors) {
+              Write-Host ("PS_PARSE_ERROR at line {0}: {1}" -f $error.Extent.StartLineNumber, $error.ErrorId)
+            }
+            throw 'RADAR_PREFLIGHT_POWERSHELL_SYNTAX_FAILED'
+          }
+          Write-Host 'RADAR_PREFLIGHT_POWERSHELL_PARSE_OK'
+
+      - name: Verify safety gates are documented
+        shell: pwsh
+        run: |
+          $text = Get-Content -LiteralPath 'docs/RADAR_REMOTE_HEALTH_PREFLIGHT.md' -Raw
+          $required = @(
+            'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7', 'G8',
+            'READY_TO_DEPLOY: NO',
+            'b08de0a00d8ff59fb3c13e5787d984b41cca75cc',
+            'a07c61baf388fc725ed40de2be1482db57829609'
+          )
+          foreach ($item in $required) {
+            if (-not $text.Contains($item)) { throw "MISSING_PREFLIGHT_GATE: $item" }
+          }
+          Write-Host 'RADAR_PREFLIGHT_MANIFEST_GATES_OK'
