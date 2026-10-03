@@ -1,0 +1,86 @@
+name: RADAR Remote Health - ephemeral SQL CI
+
+on:
+  push:
+    branches:
+      - fix/radar-remote-health-predeploy-guardrails
+  pull_request:
+    branches:
+      - feature/radar-remote-health
+
+permissions:
+  contents: read
+
+jobs:
+  sql-integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    env:
+      DOTNET_NOLOGO: "true"
+      RADAR_HEALTH_SQL_TEST_SERVER: "127.0.0.1,1433"
+      RADAR_HEALTH_SQL_TEST_USER: "sa"
+      # Never configure a real database endpoint or a production Agent token here.
+
+    steps:
+      - name: Checkout unmerged development branch
+        uses: actions/checkout@v4
+
+      - name: Install .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Launch disposable local SQL Server container
+        shell: bash
+        run: |
+          set -euo pipefail
+          PASSWORD="RadarCI_$(openssl rand -hex 18)_Aa1!"
+          echo "::add-mask::$PASSWORD"
+          echo "RADAR_HEALTH_SQL_TEST_PASSWORD=$PASSWORD" >> "$GITHUB_ENV"
+          docker run --detach --name radar-health-sql \
+            --publish 127.0.0.1:1433:1433 \
+            --env ACCEPT_EULA=Y \
+            --env "MSSQL_SA_PASSWORD=$PASSWORD" \
+            --memory 3g \
+            mcr.microsoft.com/mssql/server:2022-latest >/dev/null
+
+      - name: Wait for local SQL service
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 40); do
+            if docker exec radar-health-sql /opt/mssql-tools18/bin/sqlcmd \
+                 -S localhost -U sa -P "$RADAR_HEALTH_SQL_TEST_PASSWORD" \
+                 -C -b -Q "SELECT 1" >/dev/null 2>&1; then
+              echo "EPHEMERAL_SQL_READY"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "EPHEMERAL_SQL_STARTUP_FAILED"
+          exit 1
+
+      - name: Restore and build RADAR Lab
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet restore RSMaps.Radar.Lab/RSMaps.Radar.Lab.csproj
+          dotnet build RSMaps.Radar.Lab/RSMaps.Radar.Lab.csproj --configuration Release --no-restore
+
+      - name: Execute real SQL snapshot, restart and concurrency regression
+        shell: bash
+        env:
+          RADAR_LAB_MODE: radar-remote-health-sql-regression
+          RADAR_SAFE_LAB: "1"
+        run: |
+          set -euo pipefail
+          dotnet run --project RSMaps.Radar.Lab/RSMaps.Radar.Lab.csproj --no-build --configuration Release
+
+      - name: Remove disposable SQL server
+        if: always()
+        shell: bash
+        run: docker rm -f radar-health-sql >/dev/null 2>&1 || true
+
+# The SQL regression generates and deletes only its uniquely named test database.
+# This CI never connects to Azure, Somee or the Windows laptop.
