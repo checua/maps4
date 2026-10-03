@@ -101,15 +101,14 @@ public sealed class RadarAgentHealthReporter
     public async Task<RadarAgentHealthSendResult> SendOnceAsync(
         CancellationToken cancellationToken = default)
     {
-        (bool credentialAvailable, string token) = _tokenProvider();
-        if (!credentialAvailable || string.IsNullOrWhiteSpace(token))
-        {
-            token = string.Empty;
-            return Record(RadarAgentHealthSendResult.CredentialUnavailable);
-        }
-
+        string token = string.Empty;
         try
         {
+            (bool credentialAvailable, string acquiredToken) = _tokenProvider();
+            token = acquiredToken ?? string.Empty;
+            if (!credentialAvailable || string.IsNullOrWhiteSpace(token))
+                return Record(RadarAgentHealthSendResult.CredentialUnavailable);
+
             string baseUrl = RadarAgentBackendClient.BaseUrl;
             if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out Uri? baseUri)
                 || (baseUri.Scheme != Uri.UriSchemeHttps && !baseUri.IsLoopback))
