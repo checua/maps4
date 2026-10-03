@@ -66,7 +66,8 @@ SELECT
     (SELECT COUNT(*) FROM sys.key_constraints WHERE parent_object_id = OBJECT_ID('dbo.RSMAPS_RadarAgentHealth') AND type = 'PK'),
     (SELECT COUNT(*) FROM sys.foreign_keys WHERE parent_object_id = OBJECT_ID('dbo.RSMAPS_RadarAgentHealth')),
     (SELECT COUNT(*) FROM sys.check_constraints WHERE parent_object_id = OBJECT_ID('dbo.RSMAPS_RadarAgentHealth')),
-    (SELECT COUNT(*) FROM sys.indexes WHERE object_id = OBJECT_ID('dbo.RSMAPS_RadarAgentHealth') AND name = 'IX_RSMAPS_RadarAgentHealth_RecibidoUtc');";
+    (SELECT COUNT(*) FROM sys.indexes WHERE object_id = OBJECT_ID('dbo.RSMAPS_RadarAgentHealth') AND name = 'IX_RSMAPS_RadarAgentHealth_RecibidoUtc'),
+    (SELECT scale FROM sys.columns WHERE object_id = OBJECT_ID('dbo.RSMAPS_RadarAgentHealth') AND name = 'InstanceStartedUtc');";
 
         await using SqlConnection connection = new(connectionString);
         await connection.OpenAsync();
@@ -78,6 +79,7 @@ SELECT
         Assert(reader.GetInt32(2) == 1, "FK ausente.");
         Assert(reader.GetInt32(3) >= 7, "Checks incompletos.");
         Assert(reader.GetInt32(4) == 1, "Índice RecibidoUtc ausente.");
+        Assert(reader.GetByte(5) == 7, "InstanceStartedUtc debe preservar precisión subsegundo.");
     }
 
     private static async Task ValidateRepositoryAsync(string connectionString)
@@ -116,6 +118,15 @@ SELECT
         Assert(await firstRepository.UpsertAsync(agentId, delayedOld) == RadarAgentHealthWriteResult.PreviousInstance,
             "Instancia anterior tardía sobrescribió la nueva.");
 
+        // Restart within the same second must retain timestamp ordering in SQL Server.
+        Guid quickInstance = Guid.NewGuid();
+        RadarAgentHeartbeatRequest rapidRestart = CreateRequest(
+            quickInstance, 1, restarted.InstanceStartedUtc.AddTicks(1_000));
+        Assert(await firstRepository.UpsertAsync(agentId, rapidRestart) == RadarAgentHealthWriteResult.Accepted,
+            "Reinicio dentro del mismo segundo rechazado por pérdida de precisión SQL.");
+        Assert(await firstRepository.UpsertAsync(agentId, restarted) == RadarAgentHealthWriteResult.PreviousInstance,
+            "Heartbeat tardío del proceso anterior fue aceptado tras reinicio rápido.");
+
         await using SqlConnection connection = new(connectionString);
         await connection.OpenAsync();
         await using SqlCommand command = new(@"
@@ -126,7 +137,7 @@ WHERE IdAgent = @idAgent;", connection);
         command.Parameters.Add("@idAgent", SqlDbType.UniqueIdentifier).Value = agentId;
         await using SqlDataReader reader = await command.ExecuteReaderAsync();
         Assert(await reader.ReadAsync(), "Snapshot final ausente.");
-        Assert(reader.GetGuid(0) == secondInstance && reader.GetInt64(1) == 1,
+        Assert(reader.GetGuid(0) == quickInstance && reader.GetInt64(1) == 1,
             "Resultado final no determinista.");
         Assert(reader.GetInt32(2) <= 5, "RecibidoUtc no usa reloj del servidor.");
     }
