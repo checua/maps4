@@ -15,6 +15,9 @@ Console.WriteLine();
 
 using var instanceLock = RadarAgentInstanceLock.Acquire();
 
+// Begin config sync and the independent health reporter before WhatsApp can block on readiness.
+_ = RadarSettings.ConfiguracionAgente;
+
 var userDataDir = Path.Combine(AppContext.BaseDirectory, "WhatsAppProfile");
 
 using var playwright = await Playwright.CreateAsync();
