@@ -23,7 +23,7 @@ BEGIN TRY
             IdAgent                 uniqueidentifier NOT NULL,
             InstanceId              uniqueidentifier NOT NULL,
             Sequence                bigint NOT NULL,
-            InstanceStartedUtc      datetime2(0) NOT NULL,
+            InstanceStartedUtc      datetime2(7) NOT NULL,
             RecibidoUtc             datetime2(0) NOT NULL
                 CONSTRAINT DF_RSMAPS_RadarAgentHealth_RecibidoUtc DEFAULT (SYSUTCDATETIME()),
             AgentUtc                datetime2(0) NOT NULL,
