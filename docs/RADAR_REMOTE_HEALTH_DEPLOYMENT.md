@@ -5,11 +5,13 @@ Este documento es un runbook; no autoriza ni ejecuta cambios productivos. Cada f
 ## 1. SQL productivo autorizado explícitamente
 
 - Confirmar backup y proveedor/base de datos reales sin exponer la cadena de conexión.
-- Aplicar exclusivamente `SQL/57_RSMAPS_RadarAgentHealth.sql` mediante el mecanismo SQL aprobado.
+- Aplicar exclusivamente `sql/RSMaps2/57_radar_agent_health.sql` mediante el mecanismo SQL aprobado.
 - Verificar tabla, PK, FK, checks, índice y segunda ejecución idempotente.
 - No insertar heartbeats manuales ni modificar Agents existentes.
 
 Rollback: retirar sólo los objetos creados por el script si aún no existen datos útiles y existe autorización SQL específica. De lo contrario, conservar el esquema inerte.
+
+Nota predeploy: la marca `InstanceStartedUtc` debe conservar precisión `datetime2(7)` para diferenciar reinicios rápidos. El par `LastSweepStartedUtc` / `LastSweepCompletedUtc` siempre corresponde al último barrido terminado; un barrido activo no debe invalidar el snapshot persistido.
 
 ## 2. Web receptora y panel
 
