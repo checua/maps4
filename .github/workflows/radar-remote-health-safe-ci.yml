@@ -45,6 +45,12 @@ jobs:
           dotnet build RSMaps.Radar.Lab/RSMaps.Radar.Lab.csproj -c Release --no-restore
           if ($LASTEXITCODE -ne 0) { throw "LAB_BUILD_FAILED" }
 
+      - name: Install isolated Playwright Chromium (CI only)
+        shell: pwsh
+        run: |
+          pwsh RSMaps.Radar.Lab/bin/Release/net10.0/playwright.ps1 install chromium
+          if ($LASTEXITCODE -ne 0) { throw "PLAYWRIGHT_BROWSER_INSTALL_FAILED" }
+
       - name: Offline functional regressions
         shell: pwsh
         run: |
