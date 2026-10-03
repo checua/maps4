@@ -53,6 +53,9 @@ public static class RadarAgentConfigLoader
             Console.WriteLine($"  Archivo: {path}");
             RadarAgentBackendClient.MostrarEstado(config);
 
+            // Telemetry must keep reporting Starting/Waiting even when config synchronization is slow.
+            RadarAgentHealthReporter.Start(config);
+
             try
             {
                 bool sincronizada = RadarAgentBackendClient
@@ -69,7 +72,6 @@ public static class RadarAgentConfigLoader
             }
 
             RadarAgentHeartbeat.Start(config);
-            RadarAgentHealthReporter.Start(config);
 
             return config;
         }
