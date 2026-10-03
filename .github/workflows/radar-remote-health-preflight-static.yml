@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - docs/radar-remote-health-preflight
+  pull_request:
+    branches:
+      - feature/radar-remote-health
 
 permissions:
   contents: read
