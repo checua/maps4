@@ -35,6 +35,13 @@
 
 **Política:** un solo gate en PENDIENTE o FALLIDO significa **NO DEPLOY**. Sólo después de demostrar G1–G8 se realiza el siguiente bloque operativo, con parada ante error en cada fase.
 
+### Particularidades de Azure que debemos comprobar (fuentes oficiales)
+
+- **App Service:** las copias automáticas y personalizadas dependen del plan compatible (Basic, Standard, Premium o Isolated); comprobarlo en el portal, no asumir disponibilidad. Las copias automáticas **no se descargan** como ZIP; una copia personalizada configurada con Storage sí puede estar disponible como blobs. Restaurar en el mismo sitio **detiene temporalmente la aplicación**, y restaurar en un slot puede ser una alternativa si el plan lo permite. [Microsoft Learn: App Service backups](https://learn.microsoft.com/en-us/azure/app-service/manage-backup).
+- **Azure SQL Database:** las copias automáticas permiten restauración puntual dentro de retención configurada; **PITR crea una base NUEVA, no sobrescribe `mapsMarkers`**. Esto no es un `ROLLBACK TRANSACTION` inmediato ni un mecanismo para deshacer automáticamente nuestro script. [Microsoft Learn: restore from backup](https://learn.microsoft.com/en-us/azure/azure-sql/database/recovery-using-backups) y [automatic backups](https://learn.microsoft.com/en-us/azure/azure-sql/database/automated-backups-overview).
+- **Conclusión operativa:** para revertir esta publicación *aditiva*, recuperar paquetes Web/Listener y dejar la tabla nueva inerte; usar PITR de datos sólo ante corrupción demostrada y con un plan de migración/cambio de conexión separado, porque podría perder datos recientes de otras operaciones.
+- **Herramienta local:** el auditor PowerShell actualmente exige una copia descargable existente (`*.zip` o `*.nupkg`) del Web para aprobar ese gate. Si sólo está disponible un backup automático no descargable, mantener G4 pendiente hasta documentar y probar un mecanismo de recuperación equivalente. No fingir que un backup automático cumple la comprobación local de hash.
+
 ## 2. Auditoría local no destructiva desde Windows
 
 Herramienta preparada: `tools/RadarRemoteHealthPreflight.ps1`. **Sólo lee**, no exporta contraseñas, no crea backups, no inicia/detiene tareas ni realiza publicaciones.
