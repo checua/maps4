@@ -70,6 +70,15 @@ internal static class RadarRemoteHealthRegression
         item.LastSweepCompletedUtc = now.AddMinutes(-46);
         item.IntervaloRevisionMs = 1_200_000;
         Assert(RadarAgentHealthPolicy.Evaluate(item, now) == RadarAgentHealthLevel.Degraded, "Sweep vencido no detectado.");
+        item = CreateRecord(now);
+        item.ChatsReviewed = 4;
+        Assert(RadarAgentHealthPolicy.Evaluate(item, now) == RadarAgentHealthLevel.Degraded,
+            "Un barrido de 4/7 chats no debe mostrarse como Online.");
+        item = CreateRecord(now);
+        item.ChatsConfigured = 0;
+        item.ChatsReviewed = 0;
+        Assert(RadarAgentHealthPolicy.Evaluate(item, now) == RadarAgentHealthLevel.Degraded,
+            "Un Agent sin chats configurados no debe mostrarse como Online.");
     }
 
     private static void ValidateReplayAndRestart(DateTime now)
