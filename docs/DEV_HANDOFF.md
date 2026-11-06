@@ -1,3 +1,38 @@
+# RADAR — Hito 5F, seguridad integrada en poison
+
+Fecha 2026-11-06. Equipo DESKTOP-E32803V.
+Workspace C:\Users\tommy\source\repos\radar-office.
+Rama activa para continuar en ambas sedes fix/radar-poison-message-recovery.
+
+Relación verificada tras fetch, cero commits exclusivos en poison y uno en seguridad.
+Integración realizada con git merge --ff-only desde
+7fe755eb8eb8e8b777886679a5c48dd9e719e42d hasta
+bcdad28e3eb49425ed63318a7c20475e764db67f.
+El diff completo sólo contenía la referencia Pkcs 9.0.21 y documentación de 5E.
+Comparación explícita confirmó código, scripts SQL y regresiones poison idénticos.
+La integración pendiente descrita en 5E queda completada por este hito.
+Este informe añade un commit documental posterior al fast-forward.
+
+Validaciones ejecutadas nuevamente sobre la rama integrada
+
+- Restore de solución y Lab correcto.
+- Build Release de solución y Lab con cero errores y catorce advertencias heredadas
+  por compilación, CS8601, CS8602, CS8618 y CS8629. NU1902/NU1903 resueltas.
+- Poison messages, SQL, identidad y Delivery aprobados.
+- Timeout real aprobado, POISON_CONTROLLER_TIMEOUT_REGRESSION_OK en 75.1 segundos.
+- SQL aislado exclusivamente en RADAROfficeTests, con bases sintéticas.
+- Auditoría NuGet con dependencias transitivas sin vulnerabilidades conocidas reportadas
+  en Web, Lab, Listener e Intelligence con las fuentes configuradas.
+- Gitleaks sobre el historial integrado sin hallazgos; revisión de diff aprobada.
+
+Pkcs queda en 9.0.21 y Microsoft.Data.SqlClient en 7.0.2.
+Continuar esta rama usando Start y Prepare. La rama de seguridad conserva bcdad28.
+Identidad SQL productiva, PITR y condiciones finales siguen pendientes.
+READY_TO_DEPLOY=NO. La integración no autoriza despliegue. SQL 58 sigue excluido
+del primer despliegue. Persisten las advertencias heredadas de nulabilidad y el
+riesgo de rollback hacia un backend antiguo documentado por la regresión SQL.
+
+---
 # RADAR — Hito 5E, actualización de seguridad Pkcs
 
 Fecha 2026-11-06. Workspace C:\Users\tommy\source\repos\radar-office.
