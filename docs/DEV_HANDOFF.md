@@ -1,3 +1,24 @@
+# RADAR — Hito 5H.1, ficha PITR preparada
+
+Fecha 2026-11-06, DESKTOP-E32803V. Rama fix/radar-poison-message-recovery.
+Base f4097a2. Sólo lectura de metadatos Azure y documentación local.
+
+RADAR_PITR_AUTHORIZATION.md contiene origen, destino, punto UTC propuesto, costo,
+validaciones, condiciones de aislamiento y comandos de creación/eliminación sin ejecutar.
+Origen mapsMarkers en dpa6ecad46, northcentralus, Basic 5 DTU, 2 GiB, retención 7 días.
+Punto propuesto 2026-11-06T16:00:00Z, a revalidar al autorizar.
+Destino propuesto mapsMarkers-pitr-radar-20261106-1600-7c9e2a, inexistente al consultar.
+Costo retail estimado USD 0.161 por 24 horas Basic, antes de impuestos, con supuestos
+explicados. Conservación propuesta 24 horas después de completar la restauración.
+
+Existe firewall compartido con acceso público y permiso a servicios Azure. No se puede
+asegurar aislamiento de acceso de la copia sólo por su nombre; los usuarios se restauran.
+Faltan cerrar la identidad runtime y las comprobaciones de acceso/configuración descritas.
+La ficha queda condicionada a esas evidencias antes de solicitar creación efectiva.
+No se crearon recursos ni se ejecutaron Restore, DELETE o SQL.
+RESTORE_AUTHORIZED=NO. READY_TO_DEPLOY=NO.
+
+---
 # RADAR — Hito 5G.1, equivalencia worker/Kudu INCONCLUSA
 
 Fecha 2026-11-06. Equipo DESKTOP-E32803V. Base d118c54.
