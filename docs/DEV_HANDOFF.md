@@ -1,3 +1,53 @@
+# RADAR — Hito 5E, actualización de seguridad Pkcs
+
+Fecha 2026-11-06. Workspace C:\Users\tommy\source\repos\radar-office.
+Rama independiente fix/radar-pkcs-security, creada desde
+7fe755eb8eb8e8b777886679a5c48dd9e719e42d de fix/radar-poison-message-recovery.
+
+Se añadió una referencia directa a System.Security.Cryptography.Pkcs 9.0.21 en
+maps4.csproj. Antes Microsoft.Data.SqlClient 7.0.2 resolvía Pkcs 9.0.13; ahora
+resuelve 9.0.21. SqlClient permanece en 7.0.2. RSMaps.Radar.Lab hereda la versión
+corregida desde maps4. Listener e Intelligence no dependen de Pkcs según nuget why
+y sus project.assets.json. El cambio funcional consiste en una sola línea de proyecto.
+
+Validación de esta unidad
+
+- Restore de solución y Lab correcto, sin advertencias de versiones ni conflictos.
+- Build Release de solución y Lab, cero errores y catorce advertencias de nulabilidad
+  heredadas en cada compilación. Desaparecieron NU1902/NU1903, sin advertencias nuevas.
+- poison-message-regression, poison-message-sql-regression, sql-identity-regression
+  y delivery-flow-regression pasaron con Pkcs 9.0.21.
+- poison-controller-timeout-regression pasó con timeout real de 75.1 segundos.
+- Revisión de diff, git diff --check y Gitleaks sin hallazgos en los cambios.
+- SQL se ejecutó exclusivamente en RADAROfficeTests con bases sintéticas aisladas.
+  Confirmados presupuesto, leases, concurrencia, auditoría y Delivery idempotente.
+- dotnet list package --vulnerable --include-transitive --no-restore --format json
+  no reportó paquetes vulnerables en maps4, Lab, Listener ni Intelligence con las
+  fuentes configuradas, incluida https://api.nuget.org/v3/index.json.
+- Grafo restaurado verificado con dotnet nuget why y project.assets.json, una sola
+  versión Pkcs 9.0.21 en Web/Lab. No se actualizaron otras referencias de proyecto.
+
+Integración posterior
+
+Revisar el commit de esta rama contra su base 7fe755e. Con autorización específica,
+integrar por PR hacia fix/radar-poison-message-recovery o seleccionar ese commit,
+resolviendo manualmente cualquier cambio concurrente en DEV_HANDOFF. Repetir restore,
+build y regresiones SQL en la base integrada. La rama poison conserva su HEAD anterior
+hasta esa integración. No integrar directamente a master como parte de este hito.
+Para continuar esta actualización usar fix/radar-pkcs-security en ambas sedes.
+
+Las advertencias heredadas de nulabilidad siguen pendientes. El análisis NuGet refleja
+los avisos conocidos a la fecha y las fuentes consultadas. Continúan pendientes la
+identidad SQL productiva, el ensayo PITR y las condiciones de despliegue.
+READY_TO_DEPLOY=NO. La exclusión de SQL 58 del primer despliegue continúa vigente.
+
+Referencias del parche
+
+- https://github.com/dotnet/runtime/security/advisories/GHSA-846f-f764-76mx
+- https://github.com/dotnet/runtime/security/advisories/GHSA-2fmv-rv2c-59x7
+- https://www.nuget.org/packages/System.Security.Cryptography.Pkcs/9.0.21
+
+---
 # RADAR — Hito 5D, regresiones SQL de oficina desbloqueadas
 
 Fecha 2026-11-06. Equipo DESKTOP-E32803V.
