@@ -4,6 +4,19 @@ using RSMaps.Radar.Listener.Services;
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 var labMode = Environment.GetEnvironmentVariable("RADAR_LAB_MODE")?.Trim();
 
+if (labMode == "web-sql-identity-iis-harness")
+{
+    await WebSqlIdentityIisHarness.RunAsync();
+    return;
+}
+
+if (labMode == "web-sql-identity-regression")
+{
+    try { await WebSqlIdentityRegression.RunAsync(); }
+    catch (Exception ex) { Console.Error.WriteLine("WEB_SQL_IDENTITY_TEST_FAILED: " + ex.GetType().Name + " " + ex.Message); Environment.ExitCode = 1; }
+    return;
+}
+
 if (labMode is "sql-identity-diagnostic" or "sql-identity-regression")
 {
     try

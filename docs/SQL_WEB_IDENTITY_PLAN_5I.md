@@ -1,3 +1,7 @@
+> Implementación local 5J en rama diagnostic/radar-web-sql-identity: ver
+> SQL_WEB_IDENTITY_IMPLEMENTATION_5J.md. Pruebas sintéticas aprobadas; no paquete
+> productivo acreditado, no despliegue ni activación Azure. READY_TO_DEPLOY=NO.
+
 # RADAR — Hito 5I: procedimiento mínimo de identidad SQL del Web
 
 2026-11-06, DESKTOP-E32803V. Rama fix/radar-poison-message-recovery.

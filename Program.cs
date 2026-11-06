@@ -12,6 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Configurar servicios para el contenedor (Dependency Injection)
 builder.Services.AddControllersWithViews();
+builder.Services.AddHostedService<maps4.Diagnostics.WebSqlIdentityHostedService>();
 builder.Services.AddRazorPages();
 
 // Registrar repositorios y servicios (Inyección de dependencias)

@@ -21,6 +21,24 @@ public sealed class RadarMessageProcessingRepository : IRadarMessageProcessingRe
             throw new ArgumentOutOfRangeException(nameof(configuration), "Radar:Processing:MaxAttempts debe estar entre 1 y 100.");
     }
 
+    // Internal-only diagnostic hook: uses the SAME captured field as business methods.
+    // Never exposes the connection string through an HTTP contract or accepts an alternate one.
+    internal void AssertIdentityDiagnosticConfiguration(IConfiguration configuration)
+    {
+        if (!string.Equals(_cadenaSQL, configuration.GetConnectionString("cadenaSQL"), StringComparison.Ordinal))
+            throw new InvalidOperationException();
+    }
+
+    internal SqlConnection CreateIdentityDiagnosticConnection(IConfiguration configuration)
+    {
+        AssertIdentityDiagnosticConfiguration(configuration);
+        var settings = new SqlConnectionStringBuilder(_cadenaSQL)
+        {
+            ConnectTimeout = 10, ConnectRetryCount = 0, Pooling = false, PersistSecurityInfo = false
+        };
+        return new SqlConnection(settings.ConnectionString);
+    }
+
     public async Task<RadarMessageProcessingClaimResult> ReclamarAsync(
         Guid idAgent,
         RadarMessage mensaje,

@@ -1,3 +1,24 @@
+# RADAR — Hito 5J: diagnóstico interno implementado y probado sólo localmente
+
+2026-11-06, DESKTOP-E32803V. Rama diagnostic/radar-web-sql-identity.
+Base 6d737f7491238e71cdba4bbd4f844bf3022bb27c. Poison permanece sin integrar cambios.
+Servicio interno sin endpoints, apagado sin manifiesto privado; usa _cadenaSQL del
+repositorio real, SELECT fijo, caducidad/hash/instancia y marcador persistente.
+
+Restore/build Release, regresiones nuevas, poison/SQL/identidad/Delivery/timeout,
+IIS Express inprocess con base sintética, reinicio real y aislamiento HTTP aprobados.
+NuGet Web/Lab/Listener/Intelligence sin vulnerabilidades reportadas; sin cambios de
+paquetes. Cero errores; 14 advertencias Web heredadas. Evidencia Azure no reconsultada.
+
+SQL_WEB_IDENTITY_IMPLEMENTATION_5J.md detalla archivos, pruebas, límites y paquete
+propuesto. Falta fuente/manifiesto del Web desplegado y rollback correspondiente;
+este prototipo parte de poison y NO ES DESPLEGABLE tal cual. TLS/ACL efectivos y
+correlación con worker Azure siguen pendientes; la guardia no relaja TLS automáticamente.
+Antes de ejecutar: portado a base verificada, pruebas/paquetes con hashes y autorización
+específica de despliegue/activación/SELECT privado/retirada. Ningún acceso o cambio
+productivo realizado. PRODUCTION_PACKAGE_READY=NO. READY_TO_DEPLOY=NO.
+
+---
 # RADAR — Hito 5I: procedimiento de identidad Web preparado
 
 2026-11-06, DESKTOP-E32803V; rama fix/radar-poison-message-recovery.
