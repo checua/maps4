@@ -3,6 +3,16 @@
 Fecha 2026-11-05. Origen verificado en LAPTOP-JANETH, worktree maps4-radar-poison.
 Rama que debe continuarse: fix/radar-poison-message-recovery.
 Base 5299f15c88c67034bb1219bbe8a9750f61e8656a.
+Commit de implementación publicado y verificado local/remoto:
+991daee453037884c409479a03930d2487930eaa.
+Build solución Release y Lab PASS, 0 errores y 18 advertencias preexistentes.
+Cuatro modos de regresión enumerados abajo PASS y diez comprobaciones de
+sincronización local PASS. Se adaptó git init del fixture para Git antiguo de casa.
+Gitleaks 8.30.1, descargado del release oficial con SHA256 verificado, no encontró
+secretos en los archivos candidatos, el diff staged ni el historial nuevo.
+Esta validación cubre los cambios publicados; la base heredada conserva los
+hallazgos históricos de claves cliente Google documentados por oficina.
+ZIP de rollback comprobado como ignorado y excluido del index.
 Política importada selectivamente desde 10967c0710b02bec6e2e007a355bfb304abae441
 de diagnostic/radar-azure-readiness-office, sin merge de master.
 
