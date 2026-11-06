@@ -61,7 +61,7 @@ internal static class SqlIdentityDiagnostic
 
     public static async Task TestAsync()
     {
-        const string master = "Server=(localdb)\\MSSQLLocalDB;Database=master;Integrated Security=true;Encrypt=false";
+        string master = LocalSqlRegression.MasterConnectionString();
         string database = "RadarIdentityTest_" + Guid.NewGuid().ToString("N");
         await using var admin = new SqlConnection(master);
         await admin.OpenAsync();

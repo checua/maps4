@@ -1,3 +1,90 @@
+# RADAR — Hito 5D, regresiones SQL de oficina desbloqueadas
+
+Fecha 2026-11-06. Equipo DESKTOP-E32803V.
+Workspace C:\Users\tommy\source\repos\radar-office.
+Rama fix/radar-poison-message-recovery. Base de esta unidad 9044fad.
+
+## Causa y solución local
+
+El evento 527 de SQLLocalDB 17.0 informa literalmente
+"LocalDB parent instance version is invalid: MSSQL13E.LOCALDB".
+El evento 528 registra RegOpenKeyExW con error 2. MSSQLLocalDB y ProjectsV13
+están registrados contra MSSQL13E.LOCALDB, cuyo registro de motor falta.
+Los motores instalados son 15.0.4153.1 y 17.0.4025.3. El problema está en la
+referencia heredada de la instancia. No requiere cambiar el código productivo.
+
+Se creó una instancia privada nueva RADAROfficeTests con el motor instalado
+17.0.4025.3. Su arranque y conexión funcionaron. Los hashes SHA-256 de los diez
+archivos MDF/LDF de MSSQLLocalDB coinciden antes y después de la intervención.
+La instancia antigua sigue sin poder arrancar. Se resolvió el bloqueo de RADAR
+mediante aislamiento; recuperar esa instancia antigua exige una intervención aparte.
+No se modificaron componentes compartidos, registros heredados ni archivos existentes.
+
+LocalSqlRegression centraliza exclusivamente las conexiones de los dos fixtures.
+RADAR_SQL_TEST_INSTANCE admite exactamente MSSQLLocalDB o RADAROfficeTests.
+Sin variable mantiene MSSQLLocalDB para compatibilidad con casa. El servidor siempre
+es (localdb), autenticación integrada y catálogo master para crear bases sintéticas.
+Los nombres de bases continúan siendo únicos. La selección se captura una sola vez
+por ejecución, también para su limpieza. El diagnóstico real de Azure no usa este helper.
+
+En esta oficina, desde la raíz del repositorio, ejecutar
+
+```powershell
+SqlLocalDB start RADAROfficeTests
+$env:RADAR_SQL_TEST_INSTANCE = 'RADAROfficeTests'
+dotnet build RSMaps.Radar.Lab/RSMaps.Radar.Lab.csproj -c Release
+$env:RADAR_LAB_MODE = 'poison-message-sql-regression'
+dotnet RSMaps.Radar.Lab/bin/Release/net10.0/RSMaps.Radar.Lab.dll
+$env:RADAR_LAB_MODE = 'sql-identity-regression'
+dotnet RSMaps.Radar.Lab/bin/Release/net10.0/RSMaps.Radar.Lab.dll
+```
+
+Las variables son de la sesión actual. Para otra computadora crear esa instancia
+sólo si no existe y se necesita, usando SqlLocalDB create RADAROfficeTests 17.0 -s
+cuando la versión 17 esté instalada. Nunca recrear una instancia existente.
+
+## Evidencia local
+
+- Build Release del Lab y referencias, 0 errores, 18 advertencias heredadas.
+- POISON_MESSAGE_SQL_REGRESSION_OK.
+- SYNTHETIC_DELIVERY_IDEMPOTENCY_OK.
+- SQL_IDENTITY_ADMIN_AND_RESTRICTED_USER_OK.
+- SQL_IDENTITY_OUTPUT_ALLOWLIST_OK.
+- INVALID_INSTANCE_REJECTED_OK para una entrada con servidor TCP y catálogo externo.
+- LEGACY_DATABASE_HASHES_UNCHANGED, diez archivos verificados.
+
+La suite SQL cubre doce claims concurrentes con un ganador, presupuesto de cinco
+intentos, fencing y reemplazo de leases, replay sin consumo, exclusión de Recovery,
+auditoría única y rollback atómico ante fallo de auditoría, carreras de finalización,
+reactivación administrativa concurrente y entrega idempotente. SQL 57/58 se ejecutaron
+dos veces únicamente en la base sintética con marcador explícito de prueba.
+También confirmó LEGACY_BACKEND_ROLLBACK_UNSAFE_CONFIRMED, riesgo ya conocido
+al combinar el esquema nuevo con un escritor backend antiguo. SQL 58 sigue excluido
+del primer despliegue. Identidad productiva, PITR y despliegue siguen pendientes.
+READY_TO_DEPLOY=NO.
+
+## Investigación separada de Pkcs
+
+Dotnet nuget why confirmó maps4 -> Microsoft.Data.SqlClient 7.0.2 ->
+System.Security.Cryptography.Pkcs 9.0.13. El nuspec de SqlClient pide 9.0.13
+para el grupo de framework seleccionado. El Lab hereda esa referencia del Web.
+Los avisos NU1902 y NU1903 corresponden a dos denegaciones de servicio en CMS.
+Ambos advisories oficiales indican 9.0.21 como parche de la línea 9.
+
+Un proyecto temporal net10.0 con SqlClient 7.0.2 y referencia explícita Pkcs 9.0.21
+restauró sin errores ni avisos y resolvió ambas rutas a 9.0.21. Esto verifica resolución
+compatible, no sustituye las regresiones de una actualización real. Una unidad futura
+puede añadir esa referencia directa o evaluar un SqlClient que la incorpore.
+Los archivos de dependencias de RADAR permanecen intactos y las advertencias vigentes.
+
+Fuentes oficiales consultadas
+
+- https://learn.microsoft.com/en-us/sql/tools/sqllocaldb-utility
+- https://github.com/dotnet/runtime/security/advisories/GHSA-846f-f764-76mx
+- https://github.com/dotnet/runtime/security/advisories/GHSA-2fmv-rv2c-59x7
+- https://www.nuget.org/packages/System.Security.Cryptography.Pkcs/9.0.21
+
+---
 # RADAR — Hito 5C, oficina activada con bloqueo local de SQL
 
 Fecha 2026-11-06. Equipo comprobado DESKTOP-E32803V.

@@ -10,18 +10,17 @@ using static PoisonMessageRegression;
 
 internal static class PoisonMessageSqlRegression
 {
-    // Deliberately not configurable: this runner cannot accept a production connection string.
-    private const string LocalMaster = @"Server=(localdb)\MSSQLLocalDB;Database=master;Integrated Security=true;Encrypt=false;Connect Timeout=20";
 
     public static async Task RunAsync()
     {
+        string localMaster = LocalSqlRegression.MasterConnectionString();
         string database = "RadarPoisonRegression_" + Guid.NewGuid().ToString("N");
-        var builder = new SqlConnectionStringBuilder(LocalMaster) { InitialCatalog = database };
+        var builder = new SqlConnectionStringBuilder(localMaster) { InitialCatalog = database };
         string cs = builder.ConnectionString;
         bool created = false;
         try
         {
-            await Execute(LocalMaster, $"CREATE DATABASE [{database}];");
+            await Execute(localMaster, $"CREATE DATABASE [{database}];");
             created = true;
             await Execute(cs, "CREATE TABLE dbo.RSMAPS_RadarAgentDevice (IdAgent uniqueidentifier NOT NULL PRIMARY KEY);");
             string root = Environment.CurrentDirectory;
@@ -243,7 +242,7 @@ internal static class PoisonMessageSqlRegression
         finally
         {
             SqlConnection.ClearAllPools();
-            if (created) await Execute(LocalMaster, $"ALTER DATABASE [{database}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{database}];");
+            if (created) await Execute(localMaster, $"ALTER DATABASE [{database}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{database}];");
         }
     }
 
