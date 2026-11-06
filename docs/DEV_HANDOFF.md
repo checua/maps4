@@ -1,3 +1,21 @@
+# RADAR — Hito 5I: procedimiento de identidad Web preparado
+
+2026-11-06, DESKTOP-E32803V; rama fix/radar-poison-message-recovery.
+Base dc2c7b181cb1b1bd1b33c9b90e7adb756670e03c. Sólo revisión y documentación.
+Recomendación única: diagnóstico interno de una ejecución en worker Web, sin endpoint,
+con conexión capturada por el repositorio y salida privada. No repetir Lab/Kudu como
+prueba de identidad Web. Preparar parche desde versión desplegada verificable, nunca
+desplegar poison incidentalmente. Fuente/hash del artefacto activo aún no acreditados.
+
+SQL_WEB_IDENTITY_PLAN_5I.md especifica observación por instancia/PID, controles,
+matriz runtime ampliada, pruebas pendientes, retirada y rollback. Para ejecutar requiere
+autorización adicional del parche Web, activación privada, SELECT dentro del worker
+y retirada/rollback, con artefactos y hashes revisables. Preparación local ya autorizada.
+No se implementó ni desplegó instrumentación en este hito; no nuevas consultas Azure/SQL.
+PITR cerrado (copia eliminada). Identidad efectiva y permisos Web INCONCLUSOS.
+READY_TO_DEPLOY=NO. Revisión documental/secretos y sincronización antes de publicación.
+
+---
 # RADAR — Hito 5H.4: copia PITR eliminada y ensayo cerrado
 
 2026-11-06, DESKTOP-E32803V; rama fix/radar-poison-message-recovery.

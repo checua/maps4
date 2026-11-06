@@ -1,3 +1,9 @@
+> Hito 5I: procedimiento recomendado en SQL_WEB_IDENTITY_PLAN_5I.md.
+> Diagnóstico interno de una ejecución en worker Web, sin endpoint; diseño pendiente
+> de implementación/pruebas y autorización operativa de parche y retirada.
+> No repetir Lab/SCM como evidencia Web. Identidad INCONCLUSA; READY_TO_DEPLOY=NO.
+> Los procedimientos anteriores se conservan como historia, no como instrucción de ejecución.
+
 > Cierre 5H.4: copia temporal eliminada con autorización expresa el 2026-11-06.
 > GET posterior 404; producción Online y conexión de rsmap conservada.
 > Ver RADAR_PITR_CLOSEOUT_5H4.md. Los avisos de conservación/borrado pendiente
