@@ -1,3 +1,54 @@
+# RADAR — Hito 5C, oficina activada con bloqueo local de SQL
+
+Fecha 2026-11-06. Equipo comprobado DESKTOP-E32803V.
+Ruta definitiva de oficina C:\Users\tommy\source\repos\radar-office.
+Clon independiente desde https://github.com/checua/maps4.git.
+Rama fix/radar-poison-message-recovery, con upstream homónimo.
+HEAD inicial verificado exactamente d2f2182bcf6f95b8791016d5c0b0272d9d005878.
+El commit documental de esta activación avanza la rama sin cambiar código.
+Las copias anteriores de oficina se conservan.
+
+Recuperados desde GitHub SQL 57/58, PoisonMessageRegression, PoisonMessageSqlRegression,
+SqlIdentityDiagnostic, DeliveryFlowRegression, herramientas de sincronización y
+los cuatro documentos RADAR_POISON de implementación, preflight, despliegue y rollback.
+El ZIP privado de rollback y credenciales no forman parte de este clon.
+SQL 58 continúa excluido del primer despliegue.
+
+Validación realizada con SDK .NET 10.0.400
+
+- Start pasó sobre el SHA esperado con árbol limpio e igualdad local/remota.
+- Build Release maps4.sln pasó con 0 errores y 18 advertencias.
+- Build Release RSMaps.Radar.Lab pasó con 0 errores y 22 advertencias.
+- Test-RadarWorkspaceSync pasó sus diez comprobaciones aisladas.
+- poison-message-regression y delivery-flow-regression pasaron.
+- poison-controller-timeout-regression pasó con timeout real de 75.1 segundos.
+- Gitleaks 8.30.1 sobre 5299f15..HEAD inicial pasó sin hallazgos.
+- poison-message-sql-regression falló antes de crear su base de prueba porque
+  LocalDB no pudo abrir MSSQLLocalDB, error 50 / 0x89C50118.
+- sql-identity-regression devolvió SQL_IDENTITY_FAILED en el mismo entorno.
+
+LocalDB enumera MSSQLLocalDB y ProjectsV13, pero consultar e iniciar MSSQLLocalDB
+falla. Hay motores 15.0 y 17.0 instalados y registros de instancias vinculados a
+MSSQL13E.LOCALDB. El diagnóstico apunta a configuración heredada incompatible,
+pendiente de confirmar. No se recrearon ni eliminaron instancias o bases existentes.
+Para completar validación SQL se necesita reparar o aislar LocalDB preservando los
+archivos y bases anteriores, y repetir ambos modos. Los fixtures usan LocalDB fijo,
+bases sintéticas con nombre único y nunca admiten una cadena productiva.
+
+Las advertencias incluyen nulabilidad y NU1902/NU1903 de
+System.Security.Cryptography.Pkcs 9.0.13. Su actualización requiere una unidad
+separada con pruebas. Persisten los hallazgos históricos de claves cliente Google
+ya registrados en 5A. El análisis del historial nuevo no certifica toda la base.
+
+El código ya puede recuperarse y compilarse desde GitHub sin la computadora de casa.
+La validación SQL de oficina sigue bloqueada. Identidad efectiva de Azure, PITR real
+y condiciones finales productivas siguen pendientes. READY_TO_DEPLOY=NO.
+
+Para continuar, abrir esta ruta, ejecutar Sync-RadarWorkspace.ps1 -Action Start,
+consultar este documento y conservar la rama homónima. La igualdad final se comprueba
+con HEAD y origin/fix/radar-poison-message-recovery, después del push documental.
+
+---
 # RADAR — Hito 5B: entrega casa-oficina
 
 Fecha 2026-11-05. Origen verificado en LAPTOP-JANETH, worktree maps4-radar-poison.
