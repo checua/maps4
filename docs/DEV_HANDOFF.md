@@ -1,3 +1,27 @@
+# RADAR — Hito 5G, identidad SQL productiva INCONCLUSA
+
+Fecha 2026-11-06, DESKTOP-E32803V. Rama fix/radar-poison-message-recovery.
+Base 407c4e4. Acceso Azure de lectura comprobado mediante sesión CLI existente.
+Se verificaron metadatos y nombres de configuración del App Service rsmap.
+Existe conexión cadenaSQL de tipo SQLServer, sin alias competidor observado entre
+los nombres de app settings. Identidad administrada configurada no observada.
+Estos datos no prueban el principal SQL, la base efectiva ni el esquema de autenticación.
+
+La herramienta existente ahora incluye AuthScheme obtenido por CONNECTIONPROPERTY.
+La regresión local verifica 18 campos, esquema no vacío y permisos permitidos/denegados
+con usuario restringido en RADAROfficeTests. Esto es evidencia del diagnóstico local.
+Build Release del Lab aprobado, cero errores y catorce advertencias heredadas.
+SQL_IDENTITY_ADMIN_AND_RESTRICTED_USER_OK y SQL_IDENTITY_OUTPUT_ALLOWLIST_OK.
+La producción sigue sin diagnóstico SQL ejecutado ni equivalencia worker/Kudu acreditada.
+La matriz de requisitos runtime, SQL 57 y ruta 58, las limitaciones del resolver de
+entorno y el procedimiento con autorización previa están en AZURE_READINESS_OFFICE.md.
+
+La próxima acción requiere autorización para revisión del worker/Kudu y ejecución del
+SELECT productivo con su configuración efectiva, y eventualmente transferencia privada
+del diagnóstico si falta. No se concedieron permisos ni se modificó configuración Azure.
+READY_TO_DEPLOY=NO. Estado de todos los permisos productivos pendiente de comprobar.
+
+---
 # RADAR — Hito 5F, seguridad integrada en poison
 
 Fecha 2026-11-06. Equipo DESKTOP-E32803V.

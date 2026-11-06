@@ -7,6 +7,7 @@ internal static class SqlIdentityDiagnostic
     private const string Query = """
         SELECT CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) AS ServerName,
         DB_NAME() AS DatabaseName, ORIGINAL_LOGIN() AS OriginalLogin,
+        CONVERT(nvarchar(40), CONNECTIONPROPERTY('auth_scheme')) AS AuthScheme,
         SUSER_SNAME() AS ExecutionLogin, USER_NAME() AS DatabaseUser,
         IS_MEMBER('db_owner') AS DbOwner,
         HAS_PERMS_BY_NAME(DB_NAME(),'DATABASE','CONTROL') AS DatabaseControl,
@@ -88,10 +89,13 @@ internal static class SqlIdentityDiagnostic
             if (user.GetProperty("DatabaseUser").GetString() != "IdentityAppTest" ||
                 user.GetProperty("DbOwner").GetInt32() != 0 ||
                 user.GetProperty("ProcessingUpdate").GetInt32() != 1 ||
+                user.GetProperty("EventInsert").GetInt32() != 1 ||
+                user.GetProperty("DeliveryInsert").GetInt32() != 0 ||
                 user.GetProperty("ProcessingAlter").GetInt32() != 0 ||
                 user.GetProperty("DatabaseControl").GetInt32() != 0)
                 throw new InvalidOperationException();
-            if (user.EnumerateObject().Count() != 17 || output.Contains("Integrated Security", StringComparison.OrdinalIgnoreCase))
+            if (user.EnumerateObject().Count() != 18 ||
+                string.IsNullOrWhiteSpace(user.GetProperty("AuthScheme").GetString()) || output.Contains("Integrated Security", StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException();
             Console.WriteLine("SQL_IDENTITY_ADMIN_AND_RESTRICTED_USER_OK");
             Console.WriteLine("SQL_IDENTITY_OUTPUT_ALLOWLIST_OK");
