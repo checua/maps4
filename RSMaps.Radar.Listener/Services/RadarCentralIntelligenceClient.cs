@@ -22,6 +22,8 @@ public static class RadarCentralIntelligenceClient
     {
         get
         {
+            // Durable central claims and local fallback cannot share the processing budget.
+            if (Habilitada) return false;
             string? valor = Environment.GetEnvironmentVariable("RADAR_CENTRAL_FALLBACK_LOCAL")?.Trim();
             if (string.Equals(valor, "0", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(valor, "false", StringComparison.OrdinalIgnoreCase))
@@ -57,17 +59,7 @@ public static class RadarCentralIntelligenceClient
             request.Content = JsonContent.Create(mensaje);
 
             using HttpResponseMessage response = await Http.SendAsync(request, cancellationToken);
-            if (!response.IsSuccessStatusCode)
-            {
-                string body = await response.Content.ReadAsStringAsync(cancellationToken);
-                Console.WriteLine(
-                    $"  ⚠ Intelligence central respondió {(int)response.StatusCode}: " +
-                    Recortar(body, 220));
-                return null;
-            }
-
-            return await response.Content.ReadFromJsonAsync<RadarInterpretationResult>(
-                cancellationToken: cancellationToken);
+            return await LeerRespuestaAsync(response, cancellationToken, mensaje);
         }
         catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
@@ -84,6 +76,30 @@ public static class RadarCentralIntelligenceClient
         {
             token = string.Empty;
         }
+    }
+
+    public static async Task<RadarInterpretationResult?> LeerRespuestaAsync(
+        HttpResponseMessage response, CancellationToken cancellationToken = default, RadarMessage? mensaje = null)
+    {
+        if (response.StatusCode == System.Net.HttpStatusCode.UnprocessableEntity &&
+            response.Headers.TryGetValues("X-Radar-Processing", out var values) &&
+            values.SequenceEqual(new[] { "permanent-failure" }))
+        {
+            try
+            {
+                RadarCentralFailure? failure = await response.Content.ReadFromJsonAsync<RadarCentralFailure>(cancellationToken);
+                if (failure?.Code == RadarCentralFailure.PermanentCode && failure.Permanent && !failure.Retry)
+                    throw new RadarCentralPermanentFailureException();
+            }
+            catch (System.Text.Json.JsonException) { return null; }
+        }
+        if (!response.IsSuccessStatusCode)
+        {
+            Console.WriteLine($"  [CENTRAL RETRY] HTTP {(int)response.StatusCode}.");
+            return null;
+        }
+        string json = await response.Content.ReadAsStringAsync(cancellationToken);
+        return RadarCentralResultReader.TryRead(json, out var result, mensaje?.MessageId, mensaje?.ChatOrigen) ? result : null;
     }
 
     private static string Recortar(string texto, int max)

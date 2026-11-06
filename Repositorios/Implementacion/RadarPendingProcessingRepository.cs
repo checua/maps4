@@ -29,6 +29,7 @@ public sealed class RadarPendingProcessingRepository : IRadarPendingProcessingRe
         await conexion.OpenAsync(cancellationToken);
 
         const string sql = @"
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
 SELECT TOP (@max)
     IdRadarMessageProcessing,
     ChatOrigen,
@@ -41,8 +42,9 @@ SELECT TOP (@max)
     DetectadoUtc,
     ReintentarDespuesUtc,
     LeaseHastaUtc
-FROM dbo.RSMAPS_RadarMessageProcessing WITH (READPAST)
+FROM dbo.RSMAPS_RadarMessageProcessing WITH (READPAST, READCOMMITTEDLOCK)
 WHERE IdAgent = @idAgent
+  AND Estado <> N'FALLIDO_PERMANENTE'
   AND ResultadoCentralJson IS NULL
   AND
   (
@@ -50,6 +52,7 @@ WHERE IdAgent = @idAgent
           Estado = N'FALLIDO_REINTENTABLE'
           AND (ReintentarDespuesUtc IS NULL OR ReintentarDespuesUtc <= SYSUTCDATETIME())
       )
+      OR Estado = N'DETECTADO'
       OR
       (
           Estado = N'PROCESANDO'
@@ -107,6 +110,7 @@ ORDER BY
         await conexion.OpenAsync(cancellationToken);
 
         const string sql = @"
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
 SELECT TOP (@max)
     IdRadarMessageProcessing,
     ChatOrigen,
@@ -118,7 +122,7 @@ SELECT TOP (@max)
     ResultadoCentralJson,
     DetectadoUtc,
     MatchingCompletadoUtc
-FROM dbo.RSMAPS_RadarMessageProcessing WITH (READPAST)
+FROM dbo.RSMAPS_RadarMessageProcessing WITH (READPAST, READCOMMITTEDLOCK)
 WHERE IdAgent = @idAgent
   AND Estado = N'COMPLETADO'
   AND ResultadoCentralJson IS NOT NULL

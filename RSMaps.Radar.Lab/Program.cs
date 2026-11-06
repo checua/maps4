@@ -4,6 +4,36 @@ using RSMaps.Radar.Listener.Services;
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 var labMode = Environment.GetEnvironmentVariable("RADAR_LAB_MODE")?.Trim();
 
+if (labMode is "sql-identity-diagnostic" or "sql-identity-regression")
+{
+    try
+    {
+        if (labMode == "sql-identity-regression") await SqlIdentityDiagnostic.TestAsync();
+        else await SqlIdentityDiagnostic.RunAsync();
+    }
+    catch { Console.Error.WriteLine("SQL_IDENTITY_FAILED"); Environment.ExitCode = 1; }
+    return;
+}
+
+if (string.Equals(labMode, "poison-message-regression", StringComparison.OrdinalIgnoreCase))
+{
+    try { await PoisonMessageRegression.RunAsync(); }
+    catch (Exception ex) { Console.Error.WriteLine("POISON_MESSAGE_REGRESSION_FAILED: " + ex); Environment.ExitCode = 1; }
+    return;
+}
+if (string.Equals(labMode, "poison-message-sql-regression", StringComparison.OrdinalIgnoreCase))
+{
+    try { await PoisonMessageSqlRegression.RunAsync(); }
+    catch (Exception ex) { Console.Error.WriteLine("POISON_MESSAGE_SQL_REGRESSION_FAILED: " + ex); Environment.ExitCode = 1; }
+    return;
+}
+if (string.Equals(labMode, "poison-controller-timeout-regression", StringComparison.OrdinalIgnoreCase))
+{
+    try { await PoisonMessageRegression.RunTimeoutAsync(); }
+    catch (Exception ex) { Console.Error.WriteLine("POISON_CONTROLLER_TIMEOUT_REGRESSION_FAILED: " + ex); Environment.ExitCode = 1; }
+    return;
+}
+
 if (string.Equals(
     labMode,
     "whatsapp-dom-lab",

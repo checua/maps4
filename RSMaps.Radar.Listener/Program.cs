@@ -537,7 +537,16 @@ static async Task RecuperarProcesamientosDurablesPendientesAsync(
                     : pendiente.DetectadoUtc
             };
 
-            RadarInterpretationResult interpretacion = await interpreter.InterpretarAsync(radarMessage);
+            RadarInterpretationResult interpretacion;
+            try { interpretacion = await interpreter.InterpretarAsync(radarMessage); }
+            catch (RadarCentralPermanentFailureException)
+            {
+                if (!idsConocidosPorChat.TryGetValue(pendiente.ChatOrigen, out var fallidos))
+                    idsConocidosPorChat[pendiente.ChatOrigen] = fallidos = new(StringComparer.OrdinalIgnoreCase);
+                fallidos.Add(pendiente.MessageId);
+                Console.WriteLine("  [PROCESSING FAILED PERMANENTLY] No Delivery or success ACK.");
+                continue;
+            }
 
             Console.WriteLine(
                 $"  [PROCESSING RECOVERY] {pendiente.MessageId}: central processing recovered with {interpretacion.Solicitudes.Count} request(s). Motor: {interpretacion.Motor}.");
@@ -610,14 +619,10 @@ static async Task RecuperarWorkflowsDurablesPendientesAsync(
     {
         try
         {
-            RadarInterpretationResult? interpretacion = JsonSerializer.Deserialize<RadarInterpretationResult>(
-                pendiente.ResultadoCentralJson,
-                new JsonSerializerOptions(JsonSerializerDefaults.Web));
-
-            if (interpretacion is null)
+            if (!RadarCentralResultReader.TryRead(pendiente.ResultadoCentralJson, out var interpretacion, pendiente.MessageId, pendiente.ChatOrigen))
             {
                 Console.WriteLine(
-                    $"  [WORKFLOW RECOVERY PENDING] {pendiente.MessageId}: persisted central result could not be reconstructed.");
+                    $"  [WORKFLOW INVESTIGATION] {pendiente.MessageId}: invalid persisted central result; no Delivery or ACK.");
                 continue;
             }
 
@@ -1196,7 +1201,16 @@ static async Task<(int Revisados, List<SolicitudInmobiliaria> Solicitudes, HashS
         };
 
         // Demand messages are only acknowledged after all terminal downstream work finishes.
-        var interpretacion = await interpreter.InterpretarAsync(radarMessage);
+        RadarInterpretationResult interpretacion;
+        try { interpretacion = await interpreter.InterpretarAsync(radarMessage); }
+        catch (RadarCentralPermanentFailureException)
+        {
+            // Local suppression is not a workflow ACK. The backend owns the durable terminal state.
+            knownIds.Add(id);
+            revisados++;
+            Console.WriteLine("  [PROCESSING FAILED PERMANENTLY] No Delivery or success ACK.");
+            continue;
+        }
 
         demandasInterpretadas.Add(id);
         revisados++;

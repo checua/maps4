@@ -2,6 +2,7 @@ using maps4.Models;
 using maps4.Repositorios.Contrato;
 using Microsoft.Data.SqlClient;
 using System.Data;
+using RSMaps.Radar.Listener.Services;
 
 namespace maps4.Repositorios.Implementacion;
 
@@ -47,7 +48,8 @@ public sealed class RadarMessageDeliveryRepository : IRadarMessageDeliveryReposi
         const string sqlProcessing = @"
 SELECT TOP (1)
     IdRadarMessageProcessing,
-    Estado
+    Estado,
+    ResultadoCentralJson
 FROM dbo.RSMAPS_RadarMessageProcessing WITH (UPDLOCK, HOLDLOCK)
 WHERE IdAgent = @idAgent
   AND ChatOrigen = @chatOrigen
@@ -55,6 +57,7 @@ WHERE IdAgent = @idAgent
 
         long idProcessing;
         string estadoProcessing;
+        string? resultadoCentralJson;
 
         await using (SqlCommand cmd = new(sqlProcessing, conexion, tx))
         {
@@ -71,12 +74,19 @@ WHERE IdAgent = @idAgent
 
             idProcessing = Convert.ToInt64(dr["IdRadarMessageProcessing"]);
             estadoProcessing = dr["Estado"].ToString() ?? string.Empty;
+            resultadoCentralJson = dr["ResultadoCentralJson"] == DBNull.Value ? null : dr["ResultadoCentralJson"].ToString();
         }
 
         if (!string.Equals(estadoProcessing, "COMPLETADO", StringComparison.OrdinalIgnoreCase))
         {
             await tx.RollbackAsync(cancellationToken);
             throw new InvalidOperationException("La entrega no puede prepararse hasta que Intelligence y Matching estén COMPLETADOS.");
+        }
+
+        if (!RadarCentralResultReader.TryRead(resultadoCentralJson, out _, messageId, chatOrigen))
+        {
+            await tx.RollbackAsync(cancellationToken);
+            throw new InvalidOperationException("El resultado central requiere investigación; no se prepara Delivery.");
         }
 
         const string sqlDelivery = @"

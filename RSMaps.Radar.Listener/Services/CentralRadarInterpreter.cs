@@ -26,7 +26,7 @@ public sealed class CentralRadarInterpreter : IRadarInterpreter
             return central;
         }
 
-        if (_fallbackLocal is not null)
+        if (_fallbackLocal is not null && !RadarCentralIntelligenceClient.Habilitada)
         {
             Console.WriteLine("  ↳ Intelligence central no disponible; usando fallback local temporal.");
             RadarInterpretationResult local =

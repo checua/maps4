@@ -38,8 +38,10 @@ public sealed class RadarCentralProcessingService : IRadarCentralProcessingServi
         RadarMessage mensaje,
         CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         RadarInterpretationResult interpretacion =
             await _intelligence.InterpretarAsync(mensaje, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (!RadarInterpretationValidator.ValidarCoberturaGlobal(
                 interpretacion,
@@ -51,6 +53,7 @@ public sealed class RadarCentralProcessingService : IRadarCentralProcessingServi
 
         for (int indice = 0; indice < interpretacion.Solicitudes.Count; indice++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             SolicitudInmobiliaria solicitud = interpretacion.Solicitudes[indice];
             bool interpretacionValida = RadarInterpretationValidator.InterpretacionEstructuralValida(
                 solicitud,
@@ -74,12 +77,14 @@ public sealed class RadarCentralProcessingService : IRadarCentralProcessingServi
 
         foreach (SolicitudInmobiliaria solicitud in interpretacion.Solicitudes)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (solicitud.Accionabilidad?.Estado != RadarSolicitudAccionabilidadEstado.Accionable)
                 continue;
 
             RadarMatchingResponse resultado = await _matching.CompararAsync(
                 correo,
                 CrearMatchingRequest(solicitud));
+            cancellationToken.ThrowIfCancellationRequested();
 
             RadarMatchingResultado? mejorRecomendado =
                 resultado.Resultados

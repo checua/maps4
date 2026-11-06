@@ -2,6 +2,7 @@ using maps4.Models;
 using maps4.Repositorios.Contrato;
 using Microsoft.Data.SqlClient;
 using RSMaps.Radar.Listener.Models;
+using RSMaps.Radar.Listener.Services;
 using System.Data;
 
 namespace maps4.Repositorios.Implementacion;
@@ -9,10 +10,15 @@ namespace maps4.Repositorios.Implementacion;
 public sealed class RadarMessageProcessingRepository : IRadarMessageProcessingRepository
 {
     private readonly string _cadenaSQL;
+    private readonly int _maxIntentos;
 
     public RadarMessageProcessingRepository(IConfiguration configuration)
     {
         _cadenaSQL = configuration.GetConnectionString("cadenaSQL") ?? string.Empty;
+        string? configured = configuration["Radar:Processing:MaxAttempts"];
+        _maxIntentos = configured is null ? 5 : int.Parse(configured, System.Globalization.CultureInfo.InvariantCulture);
+        if (_maxIntentos is < 1 or > 100)
+            throw new ArgumentOutOfRangeException(nameof(configuration), "Radar:Processing:MaxAttempts debe estar entre 1 y 100.");
     }
 
     public async Task<RadarMessageProcessingClaimResult> ReclamarAsync(
@@ -53,6 +59,7 @@ SELECT TOP (1)
     IdRadarMessageProcessing,
     Estado,
     IntentosProcesamiento,
+    MaxIntentosProcesamiento,
     ResultadoCentralJson,
     LeaseHastaUtc,
     ReintentarDespuesUtc,
@@ -65,6 +72,7 @@ WHERE IdAgent = @idAgent
         long? idProcessing = null;
         string estado = string.Empty;
         int intentos = 0;
+        int maxIntentos = _maxIntentos;
         string? resultadoCentralJson = null;
         DateTime? leaseHastaUtc = null;
         DateTime? reintentarDespuesUtc = null;
@@ -82,6 +90,7 @@ WHERE IdAgent = @idAgent
                 idProcessing = Convert.ToInt64(dr["IdRadarMessageProcessing"]);
                 estado = dr["Estado"].ToString() ?? string.Empty;
                 intentos = Convert.ToInt32(dr["IntentosProcesamiento"]);
+                maxIntentos = Convert.ToInt32(dr["MaxIntentosProcesamiento"]);
                 resultadoCentralJson = dr["ResultadoCentralJson"] == DBNull.Value
                     ? null
                     : dr["ResultadoCentralJson"].ToString();
@@ -108,6 +117,7 @@ INSERT dbo.RSMAPS_RadarMessageProcessing
     MensajeOriginal,
     Estado,
     IntentosProcesamiento,
+    MaxIntentosProcesamiento,
     UltimoIntentoUtc,
     DetectadoUtc,
     CreadoUtc,
@@ -126,6 +136,7 @@ VALUES
     @mensajeOriginal,
     N'PROCESANDO',
     1,
+    @maxIntentos,
     SYSUTCDATETIME(),
     SYSUTCDATETIME(),
     SYSUTCDATETIME(),
@@ -145,6 +156,7 @@ VALUES
                 cmd.Parameters.Add("@mensajeOriginal", SqlDbType.NVarChar, -1).Value = mensaje.TextoOriginal ?? string.Empty;
                 cmd.Parameters.Add("@leaseToken", SqlDbType.UniqueIdentifier).Value = leaseToken;
                 cmd.Parameters.Add("@leaseSeconds", SqlDbType.Int).Value = leaseSeconds;
+                cmd.Parameters.Add("@maxIntentos", SqlDbType.Int).Value = _maxIntentos;
 
                 object? scalar = await cmd.ExecuteScalarAsync(cancellationToken);
                 nuevoId = Convert.ToInt64(scalar);
@@ -170,8 +182,8 @@ VALUES
             };
         }
 
-        if (string.Equals(estado, "COMPLETADO", StringComparison.OrdinalIgnoreCase) &&
-            !string.IsNullOrWhiteSpace(resultadoCentralJson))
+        // COMPLETADO never becomes a new claim, even if its cached JSON is damaged.
+        if (string.Equals(estado, "COMPLETADO", StringComparison.OrdinalIgnoreCase))
         {
             await InsertarEventoAsync(
                 conexion,
@@ -194,6 +206,16 @@ VALUES
         }
 
         DateTime? disponibleDespuesUtc = null;
+        if (string.Equals(estado, "FALLIDO_PERMANENTE", StringComparison.OrdinalIgnoreCase))
+        {
+            await tx.CommitAsync(cancellationToken);
+            return new RadarMessageProcessingClaimResult
+            {
+                Status = RadarMessageProcessingClaimStatus.PermanentFailure,
+                IdRadarMessageProcessing = idProcessing.Value,
+                IntentosProcesamiento = intentos
+            };
+        }
         if (leaseHastaUtc.HasValue && leaseHastaUtc.Value > ahoraUtc)
             disponibleDespuesUtc = leaseHastaUtc;
         if (reintentarDespuesUtc.HasValue &&
@@ -215,6 +237,23 @@ VALUES
             };
         }
 
+        // Respect an in-flight last attempt. Only an expired owner can be superseded.
+        if (intentos >= maxIntentos)
+        {
+            await FinalizarFalloAsync(conexion, tx, idProcessing.Value, estado,
+                "Presupuesto de intentos centrales agotado.", cancellationToken);
+            await tx.CommitAsync(cancellationToken);
+            return new RadarMessageProcessingClaimResult
+            {
+                Status = RadarMessageProcessingClaimStatus.PermanentFailure,
+                IdRadarMessageProcessing = idProcessing.Value,
+                IntentosProcesamiento = intentos
+            };
+        }
+
+        if (estado is not ("DETECTADO" or "FALLIDO_REINTENTABLE" or "PROCESANDO"))
+            throw new InvalidOperationException("Estado central desconocido; no se permite reclamarlo.");
+
         const string sqlReclamar = @"
 UPDATE dbo.RSMAPS_RadarMessageProcessing
 SET Estado = N'PROCESANDO',
@@ -230,14 +269,18 @@ SET Estado = N'PROCESANDO',
     ActualizadoUtc = SYSUTCDATETIME(),
     LeaseToken = @leaseToken,
     LeaseHastaUtc = DATEADD(SECOND, @leaseSeconds, SYSUTCDATETIME())
-WHERE IdRadarMessageProcessing = @idProcessing;";
+WHERE IdRadarMessageProcessing = @idProcessing
+  AND Estado IN (N'DETECTADO', N'FALLIDO_REINTENTABLE', N'PROCESANDO')
+  AND IntentosProcesamiento < MaxIntentosProcesamiento
+  AND (LeaseHastaUtc IS NULL OR LeaseHastaUtc <= SYSUTCDATETIME());";
 
         await using (SqlCommand cmd = new(sqlReclamar, conexion, tx))
         {
             cmd.Parameters.Add("@leaseToken", SqlDbType.UniqueIdentifier).Value = leaseToken;
             cmd.Parameters.Add("@leaseSeconds", SqlDbType.Int).Value = leaseSeconds;
             cmd.Parameters.Add("@idProcessing", SqlDbType.BigInt).Value = idProcessing.Value;
-            await cmd.ExecuteNonQueryAsync(cancellationToken);
+            if (await cmd.ExecuteNonQueryAsync(cancellationToken) != 1)
+                throw new InvalidOperationException("El claim central perdió su condición transaccional.");
         }
 
         await InsertarEventoAsync(
@@ -295,7 +338,8 @@ SET Estado = N'COMPLETADO',
     LeaseHastaUtc = NULL
 WHERE IdRadarMessageProcessing = @idProcessing
   AND Estado = N'PROCESANDO'
-  AND LeaseToken = @leaseToken;";
+  AND LeaseToken = @leaseToken
+  AND LeaseHastaUtc > SYSUTCDATETIME();";
 
         int afectados;
         await using (SqlCommand cmd = new(sql, conexion, tx))
@@ -371,7 +415,8 @@ WHERE IdAgent = @idAgent
         const string sqlFind = @"
 SELECT TOP (1)
     IdRadarMessageProcessing,
-    DownstreamAckUtc
+    DownstreamAckUtc,
+    ResultadoCentralJson
 FROM dbo.RSMAPS_RadarMessageProcessing WITH (UPDLOCK, HOLDLOCK)
 WHERE IdAgent = @idAgent
   AND ChatOrigen = @chatOrigen
@@ -380,6 +425,7 @@ WHERE IdAgent = @idAgent
   AND ResultadoCentralJson IS NOT NULL;";
 
         bool yaTerminado = false;
+        string? cacheJson = null;
         await using (SqlCommand find = new(sqlFind, conexion, tx))
         {
             find.Parameters.Add("@idAgent", SqlDbType.UniqueIdentifier).Value = idAgent;
@@ -391,10 +437,11 @@ WHERE IdAgent = @idAgent
             {
                 idProcessing = Convert.ToInt64(dr["IdRadarMessageProcessing"]);
                 yaTerminado = dr["DownstreamAckUtc"] != DBNull.Value;
+                cacheJson = dr["ResultadoCentralJson"].ToString();
             }
         }
 
-        if (!idProcessing.HasValue)
+        if (!idProcessing.HasValue || !RadarCentralResultReader.TryRead(cacheJson, out _, id, chat))
         {
             await tx.CommitAsync(cancellationToken);
             return false;
@@ -434,15 +481,16 @@ WHERE IdAgent = @idAgent
         await tx.CommitAsync(cancellationToken);
         return true;
     }
-    public async Task<bool> MarcarFalloReintentableAsync(
+    public async Task<RadarMessageProcessingFailureStatus> RegistrarFalloAsync(
         long idRadarMessageProcessing,
         Guid leaseToken,
         string error,
         TimeSpan retryDelay,
+        bool permanente = false,
         CancellationToken cancellationToken = default)
     {
         if (idRadarMessageProcessing <= 0 || leaseToken == Guid.Empty)
-            return false;
+            return RadarMessageProcessingFailureStatus.LeaseLost;
 
         int retrySeconds = (int)Math.Clamp(Math.Ceiling(retryDelay.TotalSeconds), 1d, 3600d);
         string detalle = string.IsNullOrWhiteSpace(error)
@@ -452,6 +500,31 @@ WHERE IdAgent = @idAgent
         await using SqlConnection conexion = new(_cadenaSQL);
         await conexion.OpenAsync(cancellationToken);
         await using SqlTransaction tx = (SqlTransaction)await conexion.BeginTransactionAsync(cancellationToken);
+
+        const string sqlOwner = @"
+SELECT IntentosProcesamiento, MaxIntentosProcesamiento
+FROM dbo.RSMAPS_RadarMessageProcessing WITH (UPDLOCK, HOLDLOCK)
+WHERE IdRadarMessageProcessing = @idProcessing
+  AND Estado = N'PROCESANDO' AND LeaseToken = @leaseToken
+  AND LeaseHastaUtc > SYSUTCDATETIME();";
+        int intentos;
+        int maxIntentos;
+        await using (SqlCommand owner = new(sqlOwner, conexion, tx))
+        {
+            owner.Parameters.Add("@idProcessing", SqlDbType.BigInt).Value = idRadarMessageProcessing;
+            owner.Parameters.Add("@leaseToken", SqlDbType.UniqueIdentifier).Value = leaseToken;
+            await using SqlDataReader reader = await owner.ExecuteReaderAsync(cancellationToken);
+            if (!await reader.ReadAsync(cancellationToken))
+                return RadarMessageProcessingFailureStatus.LeaseLost;
+            intentos = reader.GetInt32(0);
+            maxIntentos = reader.GetInt32(1);
+        }
+        if (permanente || intentos >= maxIntentos)
+        {
+            await FinalizarFalloAsync(conexion, tx, idRadarMessageProcessing, "PROCESANDO", detalle, cancellationToken);
+            await tx.CommitAsync(cancellationToken);
+            return RadarMessageProcessingFailureStatus.PermanentFailure;
+        }
 
         const string sql = @"
 UPDATE dbo.RSMAPS_RadarMessageProcessing
@@ -489,7 +562,26 @@ WHERE IdRadarMessageProcessing = @idProcessing
         }
 
         await tx.CommitAsync(cancellationToken);
-        return afectados == 1;
+        return afectados == 1 ? RadarMessageProcessingFailureStatus.Retryable : RadarMessageProcessingFailureStatus.LeaseLost;
+    }
+
+    private static async Task FinalizarFalloAsync(
+        SqlConnection conexion, SqlTransaction tx, long id, string estadoAnterior,
+        string error, CancellationToken cancellationToken)
+    {
+        const string sql = @"
+UPDATE dbo.RSMAPS_RadarMessageProcessing
+SET Estado = N'FALLIDO_PERMANENTE', UltimoError = @error,
+    TerminadoUtc = SYSUTCDATETIME(), ActualizadoUtc = SYSUTCDATETIME(),
+    ReintentarDespuesUtc = NULL, LeaseToken = NULL, LeaseHastaUtc = NULL
+WHERE IdRadarMessageProcessing = @id AND Estado IN (N'DETECTADO', N'PROCESANDO', N'FALLIDO_REINTENTABLE');";
+        await using SqlCommand command = new(sql, conexion, tx);
+        command.Parameters.Add("@id", SqlDbType.BigInt).Value = id;
+        command.Parameters.Add("@error", SqlDbType.NVarChar, 2000).Value = error;
+        if (await command.ExecuteNonQueryAsync(cancellationToken) != 1)
+            throw new InvalidOperationException("No se pudo terminalizar el procesamiento.");
+        await InsertarEventoAsync(conexion, tx, id, "PROCESAMIENTO_FALLIDO_PERMANENTE",
+            estadoAnterior, "FALLIDO_PERMANENTE", error, cancellationToken);
     }
 
     private static async Task InsertarEventoAsync(

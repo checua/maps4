@@ -25,10 +25,11 @@ public interface IRadarMessageProcessingRepository
         string disposicionTerminal,
         CancellationToken cancellationToken = default);
 
-    Task<bool> MarcarFalloReintentableAsync(
+    Task<RadarMessageProcessingFailureStatus> RegistrarFalloAsync(
         long idRadarMessageProcessing,
         Guid leaseToken,
         string error,
         TimeSpan retryDelay,
+        bool permanente = false,
         CancellationToken cancellationToken = default);
 }

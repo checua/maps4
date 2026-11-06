@@ -4,7 +4,8 @@ public enum RadarMessageProcessingClaimStatus
 {
     Acquired = 0,
     Completed = 1,
-    Busy = 2
+    Busy = 2,
+    PermanentFailure = 3
 }
 
 public sealed class RadarMessageProcessingClaimResult
@@ -15,4 +16,11 @@ public sealed class RadarMessageProcessingClaimResult
     public string? ResultadoCentralJson { get; init; }
     public int IntentosProcesamiento { get; init; }
     public DateTime? DisponibleDespuesUtc { get; init; }
+}
+
+public enum RadarMessageProcessingFailureStatus
+{
+    LeaseLost,
+    Retryable,
+    PermanentFailure
 }
