@@ -1,3 +1,8 @@
+> Cierre 5H.4: copia temporal eliminada con autorización expresa el 2026-11-06.
+> GET posterior 404; producción Online y conexión de rsmap conservada.
+> Ver RADAR_PITR_CLOSEOUT_5H4.md. Los avisos de conservación/borrado pendiente
+> siguientes son históricos. READY_TO_DEPLOY=NO.
+
 # RADAR — Hito 5H.3: aislamiento acotado y PITR completado
 
 2026-11-06, DESKTOP-E32803V. Rama fix/radar-poison-message-recovery.

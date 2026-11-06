@@ -1,3 +1,8 @@
+> Cierre 5H.4: copia temporal eliminada con autorización expresa el 2026-11-06.
+> GET posterior 404; producción Online y conexión de rsmap conservada.
+> Ver RADAR_PITR_CLOSEOUT_5H4.md. Los avisos de conservación/borrado pendiente
+> siguientes son históricos. READY_TO_DEPLOY=NO.
+
 > Actualización 5H.3 (2026-11-06): ensayo APTO bajo riesgo acotado y única copia PITR
 > completada/validada. Ver RADAR_PITR_RESULT_5H3.md; los bloqueos PITR siguientes son
 > históricos. Identidad runtime pendiente, READY_TO_DEPLOY=NO. Copia conservada;

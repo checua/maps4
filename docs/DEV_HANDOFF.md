@@ -1,3 +1,20 @@
+# RADAR — Hito 5H.4: copia PITR eliminada y ensayo cerrado
+
+2026-11-06, DESKTOP-E32803V; rama fix/radar-poison-message-recovery.
+Base d53551edc85fb9f55a3c62f4a51d66de7c5bb825. Con autorización expresa se eliminó
+únicamente mapsMarkers-pitr-radar-20261106-1600-7c9e2a mediante Azure CLI después
+de verificar ID ARM completo contra recibo privado y ausencia de referencias conocidas.
+CLI terminó 17:27:44Z. GET posterior: 404 ResourceNotFound. mapsMarkers sigue Online
+y la conexión configurada de rsmap conserva servidor y base productivos.
+
+PITR_REHEARSAL=CLOSED. Copia ya eliminada; no hay borrado pendiente.
+Conservación facturable aproximada 12-13 minutos; reserva orientativa USD 0.007 por
+una hora, no factura. Recibo y validación agregada privados conservados fuera de Git.
+Ver RADAR_PITR_CLOSEOUT_5H4.md. Sólo evidencia sanitizada publicada; ningún otro
+recurso eliminado o configuración modificada. READY_TO_DEPLOY=NO.
+No recrear la copia: la autorización de una restauración ya se consumió.
+
+---
 # RADAR — Hito 5H.3: APTO y restauración PITR exitosa
 
 2026-11-06, DESKTOP-E32803V; rama fix/radar-poison-message-recovery.
