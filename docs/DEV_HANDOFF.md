@@ -1,3 +1,19 @@
+# RADAR — Hito 5L.2: almacenamiento dimensionado, captura pendiente
+
+2026-11-06, DESKTOP-E32803V; diagnostic/radar-web-sql-identity.
+Base 0efc240642ff1491e789d4b13b09e063a4fba485. Sólo metadatos Azure y documentación.
+45 directorios, 347 archivos candidatos, 31,150,541 bytes (29.71 MiB); excluida
+copia histórica publish-rsmaps. Sin descargas de contenidos ni cambios productivos.
+Captura + ZIP + extracción + auxiliares + 25% = 132.15 MiB presupuestados.
+Recomendación: VHDX fijo de 2 GiB. Ver ENCRYPTED_STORAGE_SIZING_5L2.md.
+C: descifrado según evidencia aportada por propietario en 5L.1; sustituye la
+incertidumbre histórica inferior. Pendiente autorizar creación/cifrado/ACL del
+contenedor, acreditar protección y tratar residuos de pagefile/hibernación en C:.
+No se creó almacenamiento ni se activó BitLocker. No repetir recuperación hasta
+acreditar condiciones. Validación documental y escaneo dedicado antes de publicar.
+CAPTURE=BLOCKED_BEFORE_DOWNLOAD. PRODUCTION_PACKAGE_READY=NO. READY_TO_DEPLOY=NO.
+
+---
 # RADAR — Hito 5L: recuperación autorizada, bloqueada por verificación de cifrado
 
 2026-11-06, DESKTOP-E32803V; rama diagnostic/radar-web-sql-identity.

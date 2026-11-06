@@ -1,3 +1,10 @@
+> Actualización posterior 5L.1/5L.2 (2026-11-06): el propietario acreditó C:
+> FullyDecrypted / ProtectionStatus Off / 0% / EncryptionMethod None. La
+> incertidumbre de este informe histórico ya no es el estado vigente de C:.
+> ENCRYPTED_STORAGE_SIZING_5L2.md mide 29.71 MiB de archivos candidatos y recomienda
+> VHDX fijo de 2 GiB, pendiente de autorización/preparación y controles. No hubo
+> descargas privadas. READY_TO_DEPLOY=NO.
+
 # RADAR — Hito 5L: recuperación detenida antes de descargar
 
 2026-11-06, DESKTOP-E32803V. Rama diagnostic/radar-web-sql-identity.
