@@ -1,7 +1,7 @@
 # Diagnóstico Azure pendiente
 
-Base revisada 407c4e4, Hito 5G del 2026-11-06. Resultado INCONCLUSO. READY_TO_DEPLOY=NO.
-La inspección de oficina es estática. La identidad efectiva, configuración del App Service,
+Base local revisada d118c54. Hito 5G.1 del 2026-11-06. Resultado INCONCLUSO. READY_TO_DEPLOY=NO.
+La inspección incluye código local y metadatos privados de ARM/Kudu. La identidad efectiva,
 slot, publicación instalada y restauración real requieren evidencia del entorno autorizado.
 
 maps4.csproj usa net10.0 y Microsoft.Data.SqlClient 7.0.2. Program.cs carga la configuración
@@ -17,7 +17,7 @@ versionados no prueban qué credencial o proveedor prevalece en Azure.
    variables de entorno completas, archivos appsettings o perfiles de publicación.
    Comprobar posibles overrides de ConnectionStrings__cadenaSQL y conexiones de App Service.
 3. Revisar sql-identity-diagnostic, ya recuperado en el Lab, y comprobar su equivalencia con la configuración
-   y usa Microsoft.Data.SqlClient como el Web desplegado. Ejecutarlo requiere autorización
+   y el uso de Microsoft.Data.SqlClient del Web desplegado. Ejecutarlo requiere autorización
    para ese entorno. Usar directorio temporal privado y la conexión resuelta en memoria.
    No pasar contraseñas en argumentos ni abrir un endpoint público.
 4. En esa conexión ejecutar únicamente la consulta de metadatos siguiente. Guardar la
@@ -149,3 +149,68 @@ Fuentes de configuración y autenticación
 
 - https://learn.microsoft.com/aspnet/core/fundamentals/configuration/?view=aspnetcore-10.0
 - https://learn.microsoft.com/en-us/sql/t-sql/functions/connectionproperty-transact-sql
+## Hito 5G.1 — inspección privada autorizada
+
+El propietario autorizó lectura privada del App Service y SELECT de diagnóstico,
+condicionados a demostrar equivalencia worker/Kudu y utilizar un diagnóstico ya
+presente. La autorización prohíbe transferir artefactos, instalar o cambiar configuración.
+La autorización SQL permanece vigente dentro de esas condiciones; falta evidencia técnica.
+
+Equipo DESKTOP-E32803V, rama fix/radar-poison-message-recovery y HEAD d118c54,
+árbol limpio y sincronizado antes de la inspección. Se usó Azure CLI existente y
+GET autenticados a ARM y Kudu con token sólo en memoria. Ningún valor sensible
+se imprimió ni se persistió como evidencia. Las variables de cada proceso local
+se liberaron al terminar. No se ejecutó /api/command ni un proceso remoto.
+
+Evidencia observada
+
+- Una instancia App Service enumerada por ARM.
+- GET /api/deployments/latest devolvió active=true y status=4. Su fecha registrada
+  es 2026-09-24T04:17:19.6326076Z. Ese registro no demuestra que un SHA local sea
+  el binario actualmente cargado ni acredita cambios posteriores mediante otros mecanismos.
+- web.config publicado configura hostingModel=inprocess, processPath=dotnet y
+  argumentos que referencian maps4.dll. No contiene environmentVariables ni overrides
+  de cadenaSQL/ConnectionStrings en los argumentos inspeccionados.
+- Kudu /api/processes enumeró un único w3wp. Su detalle indica is_scm_site=true,
+  sin hijos. ARM /processes devolvió el mismo PID. No apareció un worker Web
+  independiente cuyo entorno y configuración efectiva pudieran compararse.
+- El entorno de ese proceso SCM contiene SQLCONNSTR_cadenaSQL. Sólo se emitió el
+  nombre. Esto es evidencia del entorno SCM, no del proveedor ganador del Web.
+- El diagnóstico RSMaps.Radar.Lab no se localizó en la raíz wwwroot ni en
+  wwwroot/publish-rsmaps. No hubo candidatos Radar/SQL/identity en data o site/Diagnostics.
+  La revisión fue acotada; no acredita ausencia absoluta en todo el App Service.
+- La lectura del DLL para calcular su hash falló por un error de descifrado del
+  transporte TLS. No se obtuvo hash verificable ni se degradó la validación TLS.
+
+| Comprobación | Clasificación | Evidencia |
+| --- | --- | --- |
+| Acceso privado de lectura a Kudu | CONFIRMADO | GET de deployment, archivos y procesos |
+| Hosting inprocess y ausencia de overrides en web.config revisado | CONFIRMADO | XML publicado analizado en memoria |
+| Proveedor ganador del Web | INCONCLUSO | Falta configuración efectiva del worker |
+| Equivalencia worker/Kudu | INCONCLUSO | Sólo SCM visible |
+| Diagnóstico revisado disponible para ejecución | NO CONFIRMADO | No localizado en ubicaciones revisadas |
+| Base SQL efectiva mapsMarkers | INCONCLUSO | No se abrió conexión SQL |
+| Principal y auth_scheme SQL | INCONCLUSO | No se abrió conexión SQL |
+| Processing SELECT/INSERT/UPDATE | INCONCLUSO | SELECT de permisos sin ejecutar |
+| MessageEvent INSERT | INCONCLUSO | SELECT de permisos sin ejecutar |
+| MessageDelivery SELECT/INSERT/UPDATE | INCONCLUSO | SELECT de permisos sin ejecutar |
+| Permisos administrativos para SQL 57 | INCONCLUSO | Requieren evaluación separada del runtime |
+
+Se detuvo la fase SQL al no satisfacerse la condición de equivalencia. No se probó
+una conexión alternativa ni se atribuyó al Web la identidad de Windows, Azure CLI o SSMS.
+El worker podría estar ocioso o fuera de la visibilidad obtenida; esta observación
+no demuestra que la aplicación esté detenida ni determina por sí sola la causa.
+
+Próxima acción segura
+
+Obtener evidencia de lectura del worker real en ejecución y localizar un artefacto
+preexistente del diagnóstico cuya versión e integridad puedan verificarse. Si no existe,
+sería necesaria una autorización adicional de transferencia privada, explícitamente
+excluida de 5G.1. Cualquier cambio de visibilidad, configuración o arranque requiere
+revisar su alcance antes de actuar. No se requiere volver a autorizar el SELECT ya
+permitido si llegan a satisfacerse todas las condiciones originales sin modificaciones.
+Mantener READY_TO_DEPLOY=NO. El registro histórico de 5G se conserva como antecedente.
+
+Referencia de la propiedad usada para distinguir SCM del Web
+
+- https://github.com/projectkudu/kudu/wiki/Process-Threads-list-and-minidump-gcdump-diagsession

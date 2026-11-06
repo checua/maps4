@@ -1,3 +1,25 @@
+# RADAR — Hito 5G.1, equivalencia worker/Kudu INCONCLUSA
+
+Fecha 2026-11-06. Equipo DESKTOP-E32803V. Base d118c54.
+Rama fix/radar-poison-message-recovery, workspace estable de oficina.
+
+Con autorización expresa se inspeccionaron deployment, web.config, procesos y
+ubicaciones pertinentes mediante GET privados de ARM/Kudu. Un único w3wp visible
+fue identificado como SCM; faltó el worker Web para demostrar equivalencia efectiva.
+El diagnóstico revisado no se localizó en las ubicaciones inspeccionadas. La lectura
+del DLL para obtener hash tuvo un error de transporte TLS. No se acreditó versión cargada.
+
+La condición previa no se cumplió y se detuvo la fase SQL. Base efectiva, principal,
+auth_scheme y permisos siguen INCONCLUSOS. La autorización de lectura SQL ya existe,
+pero no autoriza transferir binarios ni modificar producción para habilitarla.
+AZURE_READINESS_OFFICE.md contiene evidencia, matriz y siguiente paso seguro.
+No hubo ejecución SQL, procesos remotos, uploads, cambios Azure ni cambios de permisos.
+
+Esta unidad modifica sólo documentación. Validación mediante revisión del diff,
+git diff --check y análisis de secretos antes de publicar. No corresponde repetir
+regresiones de código para este cambio documental. READY_TO_DEPLOY=NO.
+
+---
 # RADAR — Hito 5G, identidad SQL productiva INCONCLUSA
 
 Fecha 2026-11-06, DESKTOP-E32803V. Rama fix/radar-poison-message-recovery.
