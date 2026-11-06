@@ -1,3 +1,8 @@
+> Hito 5L: recuperación privada autorizada para la raíz 5L, pero detenida antes
+> de descargar por cifrado del volumen no acreditado (consulta requiere administrador).
+> Ver PRIVATE_RECOVERY_PREFLIGHT_5L.md. No renovar autorización ya concedida;
+> acreditar primero seguridad del destino. READY_TO_DEPLOY=NO.
+
 # RADAR — Hito 5K: procedencia productiva y propuesta de rollback privado
 
 2026-11-06, DESKTOP-E32803V. Rama diagnostic/radar-web-sql-identity.

@@ -1,3 +1,21 @@
+# RADAR — Hito 5L: recuperación autorizada, bloqueada por verificación de cifrado
+
+2026-11-06, DESKTOP-E32803V; rama diagnostic/radar-web-sql-identity.
+Base ae120e1bc211a35cc0a660e4f28a3e146395a3ec. Autorización de recuperación privada
+recibida para carpeta única bajo %LOCALAPPDATA%\RSMapsPrivate\5L, condicionada a
+cifrado activo/ACL/privacidad acreditados antes de descargar.
+Get-BitLockerVolume falló; manage-bde -status C: confirmó acceso denegado, token
+Windows no elevado. El cifrado está INCONCLUSO, no demostrado ausente.
+
+Se detuvo en fase 1: 0 archivos, 0 bytes, sin carpeta de captura/ZIP ni consultas Azure.
+PRIVATE_RECOVERY_PREFLIGHT_5L.md documenta evidencia y comando de estado que debe
+facilitar un administrador local (sin claves). No hace falta volver a autorizar la
+descarga: falta acreditar la condición. Después verificar ACL y almacenamiento y
+retomar inventario/hash/descarga dentro del alcance vigente. No activar BitLocker,
+UAC o cambios del sistema como alternativa automática.
+CAPTURE=BLOCKED_BEFORE_DOWNLOAD. PRODUCTION_PACKAGE_READY=NO. READY_TO_DEPLOY=NO.
+
+---
 # RADAR — Hito 5K: deployment identificado, paquete productivo no acreditado
 
 2026-11-06, DESKTOP-E32803V. Rama diagnostic/radar-web-sql-identity.
