@@ -1,3 +1,7 @@
+> Evidencia productiva 5K en PRODUCTION_ARTIFACT_RECOVERY_5K.md: registro OneDeploy
+> anterior a fechas de archivos actuales; paquete/commit no acreditados. TLS ARM
+> requiere revisión. Prototipo aún no desplegable, READY_TO_DEPLOY=NO.
+
 # RADAR — Hito 5J: prototipo local de identidad Web
 
 2026-11-06, DESKTOP-E32803V. Rama diagnostic/radar-web-sql-identity.

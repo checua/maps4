@@ -1,3 +1,26 @@
+# RADAR — Hito 5K: deployment identificado, paquete productivo no acreditado
+
+2026-11-06, DESKTOP-E32803V. Rama diagnostic/radar-web-sql-identity.
+Base d1c5c60255a8c3d72e72e5dea5ec8cc39976678c; sólo metadatos y documentación.
+Kudu activo: 9127bde49b9e469d9d5231c09b2b40df, OneDeploy, fin 2026-09-24T04:17:19Z.
+HEAD maps4.dll: 1,033,216 bytes, Last-Modified 2026-09-28T03:01:04Z, cero bytes de
+cuerpo descargados. web.config tiene mtime posterior; registro activo no acredita
+versión actual. Sin repo/branch ARM, SHA Git o paquete original localizado.
+
+PRODUCTION_ARTIFACT_RECOVERY_5K.md clasifica evidencia y propone captura privada sin
+recompilar, con hashes servidor/local y estabilidad verificada. Necesita autorización
+de comandos remotos de lectura/hash/ACL y descarga runtime acotada a almacenamiento
+cifrado privado, incluyendo tratamiento explícito de configuraciones sensibles.
+No descargar ni desplegar hasta esa autorización. Posterior portado requiere fuente
+exacta y rollback íntegro; no usar poison como sustituto de producción.
+
+ARM confirma TrustServerCertificate=true y Encrypt omitido; no inferir Encrypt=false
+del parser legacy ni identidad efectiva Web. Si ese ajuste prevalece, guardia 5J bloquea.
+ACL real pendiente. Cambios TLS/ACL y despliegue/retirada requieren aprobaciones separadas.
+No archivos privados descargados, comandos remotos, SQL, cambios Azure o reinicios.
+PRODUCTION_PACKAGE_READY=NO. READY_TO_DEPLOY=NO.
+
+---
 # RADAR — Hito 5J: diagnóstico interno implementado y probado sólo localmente
 
 2026-11-06, DESKTOP-E32803V. Rama diagnostic/radar-web-sql-identity.
