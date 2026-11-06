@@ -1,3 +1,8 @@
+> Actualización 5H.3 (2026-11-06): ensayo APTO bajo riesgo acotado y única copia PITR
+> completada/validada. Ver RADAR_PITR_RESULT_5H3.md; los bloqueos PITR siguientes son
+> históricos. Identidad runtime pendiente, READY_TO_DEPLOY=NO. Copia conservada;
+> eliminación requiere autorización independiente. No repetir Restore.
+
 > Actualización 5H.2, 2026-11-06: el propietario autorizó una única restauración
 > condicionada al preflight y lectura de la copia. PREFLIGHT=BLOCKED por aislamiento
 > no acreditado; Restore NO INICIADO. Ver RADAR_PITR_PREFLIGHT_5H2.md.

@@ -1,3 +1,27 @@
+# RADAR — Hito 5H.3: APTO y restauración PITR exitosa
+
+2026-11-06, DESKTOP-E32803V; rama fix/radar-poison-message-recovery.
+Base 6e918391237729f6cc379964a096e6cbc6d33751. Evidencia nueva permitió aceptar riesgo
+acotado: conexión oficina autenticada/TLS validado sin cambiar firewall, Listener HTTP,
+cero WebJobs conocidos y destino explícito sin referencias en configuración del Web.
+No se exige exclusión absoluta de administradores ni se acredita identidad runtime.
+
+Una única restauración autorizada completada, Succeeded/Online observado 17:16:09Z.
+Copia mapsMarkers-pitr-radar-20261106-1600-7c9e2a; punto 2026-11-06T16:00:00Z.
+Basic 5 DTU/2 GiB/Local; USD 0.161 por 24 h estimados. Validación SELECT pasó:
+Processing 425, Event 1992, Delivery 32; índices y restricciones habilitados,
+sin inconsistencias agregadas detectadas, TDE Enabled. No SQL 57/58 ni escrituras.
+Origen Online y configuración Web apuntando a mapsMarkers. Identidad Web sigue pendiente.
+
+RADAR_PITR_RESULT_5H3.md contiene alcance, evidencia, corrección de comprobación 5H.2,
+limitaciones y procedimiento de eliminación. Copia lista para borrar, NO ELIMINADA;
+requiere autorización independiente. Revisar antes de 2026-11-07T17:15Z para limitar
+conservación a aproximadamente 24 h; no hay tarea de borrado programada.
+Recibo con ID exacto en %LOCALAPPDATA%\Temp\radar-pitr-20261106-7c9e2a-receipt.json,
+fuera de Git. NO repetir Restore: autorización de una copia consumida.
+RESTORE=SUCCEEDED. READY_TO_DEPLOY=NO. Sólo documentación modificada y publicada.
+
+---
 # RADAR — Hito 5H.2, PITR no iniciado por preflight
 
 2026-11-06, DESKTOP-E32803V. Rama fix/radar-poison-message-recovery.

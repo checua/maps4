@@ -1,3 +1,8 @@
+> Actualización 5H.3 (2026-11-06): ensayo APTO bajo riesgo acotado y única copia PITR
+> completada/validada. Ver RADAR_PITR_RESULT_5H3.md; los bloqueos PITR siguientes son
+> históricos. Identidad runtime pendiente, READY_TO_DEPLOY=NO. Copia conservada;
+> eliminación requiere autorización independiente. No repetir Restore.
+
 # Diagnóstico Azure pendiente
 
 Base local revisada d118c54. Hito 5G.1 del 2026-11-06. Resultado INCONCLUSO. READY_TO_DEPLOY=NO.
