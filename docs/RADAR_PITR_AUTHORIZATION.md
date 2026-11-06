@@ -1,3 +1,8 @@
+> Actualización 5H.2, 2026-11-06: el propietario autorizó una única restauración
+> condicionada al preflight y lectura de la copia. PREFLIGHT=BLOCKED por aislamiento
+> no acreditado; Restore NO INICIADO. Ver RADAR_PITR_PREFLIGHT_5H2.md.
+> No autorizó borrado ni modificaciones de acceso. El texto 5H.1 siguiente conserva
+> la propuesta histórica; RESTORE_AUTHORIZED=NO describe sólo aquel momento.
 # RADAR — Ficha de autorización PITR, Hito 5H.1
 
 Preparada el 2026-11-06 en DESKTOP-E32803V. Sólo se consultaron metadatos Azure,

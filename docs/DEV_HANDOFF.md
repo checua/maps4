@@ -1,3 +1,22 @@
+# RADAR — Hito 5H.2, PITR no iniciado por preflight
+
+2026-11-06, DESKTOP-E32803V. Rama fix/radar-poison-message-recovery.
+Base 16b2172764d67632b6fe75351e13cad60037210b; Start aprobado y árbol limpio.
+Autorización de una copia recibida, condicionada a aislamiento comprobado.
+RESTORE_AUTHORIZED=YES_CONDITIONAL. PREFLIGHT=BLOCKED. READY_TO_DEPLOY=NO.
+
+Origen Online, destino ausente, punto 2026-11-06T16:00:00Z dentro de retención,
+Basic disponible y tarifa USD 0.161/24 h revalidados. El nombre temporal no aparece
+en conexiones/ajustes ARM de rsmap consultados ni en archivos locales fuera de docs.
+No está acreditado el conjunto de accesos ni todas las automatizaciones; no se puede
+asegurar aislamiento. Se detuvo antes de Restore por la condición expresa del propietario.
+No se creó base, no hubo consultas SQL y no existe operación de restauración o borrado.
+Costo incremental de base temporal: USD 0. Detalles y próximos pasos en
+RADAR_PITR_PREFLIGHT_5H2.md. Completar evidencia de acceso y tareas, después revalidar
+el preflight; cambiar permisos/firewall o eliminar recursos requeriría otra autorización.
+Validación de esta unidad: diff, escaneo de secretos y sincronización; sólo documentación.
+
+---
 # RADAR — Hito 5H.1, ficha PITR preparada
 
 Fecha 2026-11-06, DESKTOP-E32803V. Rama fix/radar-poison-message-recovery.
