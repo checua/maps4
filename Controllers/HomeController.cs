@@ -16,6 +16,7 @@ namespace maps4.Controllers
         private readonly IGenericRepository<Inmueble> _inmuebleRepository;
         private readonly IMarketplaceFiltroRepository _marketplaceFiltroRepository;
         private readonly IMapaViewportRepository _mapaViewportRepository;
+        private readonly IConfiguration _configuration;
 
         public HomeController(
             ILogger<HomeController> logger,
@@ -23,7 +24,8 @@ namespace maps4.Controllers
             IGenericRepository<Usuario> usuarioRepository,
             IGenericRepository<Inmueble> inmuebleRepository,
             IMarketplaceFiltroRepository marketplaceFiltroRepository,
-            IMapaViewportRepository mapaViewportRepository)
+            IMapaViewportRepository mapaViewportRepository,
+            IConfiguration configuration)
         {
             _logger = logger;
             _tipoPropiedadRepository = tipoPropiedadRepository;
@@ -31,12 +33,17 @@ namespace maps4.Controllers
             _inmuebleRepository = inmuebleRepository;
             _marketplaceFiltroRepository = marketplaceFiltroRepository;
             _mapaViewportRepository = mapaViewportRepository;
+            _configuration = configuration;
         }
 
         public IActionResult Index()
         {
             var userEmail = User.FindFirstValue(ClaimTypes.Email);
             ViewData["CorreoUsuario"] = userEmail;
+            // La clave de Google Maps ya no va en el JS. Se lee de configuración
+            // (appsettings.json en local / App Settings en Azure) y solo se
+            // expone a esta vista. Sin clave, el mapa muestra un aviso.
+            ViewData["GoogleMapsApiKey"] = _configuration["RSMaps:GoogleMapsApiKey"];
             return View();
         }
 

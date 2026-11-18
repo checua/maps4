@@ -2,6 +2,10 @@
 @using System.Text.Json
 @{
     ViewData["Title"] = "Administrador de zonas";
+    if (ViewData["GoogleMapsApiKey"] is string googleMapsApiKey && !string.IsNullOrWhiteSpace(googleMapsApiKey))
+    {
+        <meta name="rsmaps-google-maps-api-key" content="@googleMapsApiKey" />
+    }
     var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
     string inmueblesJson = JsonSerializer.Serialize(Model.Inmuebles, jsonOptions);
     var coberturaPendiente = Model.Inmuebles

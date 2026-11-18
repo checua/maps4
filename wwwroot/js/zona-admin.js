@@ -27,7 +27,11 @@
         if (existente) return;
 
         const script = document.createElement('script');
-        const apiKey = 'AIzaSyAZ7HVHi9uywPRyEgtb9U-0Ul0C_v5zQXg';
+        const apiKey = document.querySelector('meta[name="rsmaps-google-maps-api-key"]')?.content?.trim();
+        if (!apiKey) {
+            setStatus('Falta la clave de Google Maps en la configuración (RSMaps:GoogleMapsApiKey).');
+            return;
+        }
         const callbackName = '__rsMapsZonaGoogleReady';
 
         window[callbackName] = () => {

@@ -241,14 +241,25 @@ document.addEventListener('DOMContentLoaded', () => {
         loadInmueble(queryParams.inmuebleId, inventoryEndpoint);
     }
 
-    const apiKey = 'AIzaSyAZ7HVHi9uywPRyEgtb9U-0Ul0C_v5zQXg';
-    loadGoogleMapsAPI(apiKey)
-        .then(() => {
-            console.log('Google Maps API loaded successfully');
-        })
-        .catch(error => {
-            console.error('Error loading Google Maps API:', error);
-        });
+    // La clave ya no va quemada en el JS. Llega desde el servidor
+    // (HomeController -> ViewData -> meta rsmaps-google-maps-api-key)
+    // y en Azure se pone en App Settings: RSMaps__GoogleMapsApiKey.
+    const apiKey = document.querySelector('meta[name="rsmaps-google-maps-api-key"]')?.content?.trim();
+    if (!apiKey) {
+        console.error('Google Maps: falta RSMaps:GoogleMapsApiKey en configuración.');
+        const mapEl = document.getElementById('map_canvas');
+        if (mapEl) {
+            mapEl.innerHTML = '<div style="padding:24px;font-family:sans-serif;">No se pudo cargar el mapa: falta la clave de Google Maps en la configuración.</div>';
+        }
+    } else {
+        loadGoogleMapsAPI(apiKey)
+            .then(() => {
+                console.log('Google Maps API loaded successfully');
+            })
+            .catch(error => {
+                console.error('Error loading Google Maps API:', error);
+            });
+    }
 
 });
 
@@ -315,7 +326,7 @@ function loadInmueble(inmuebleId, explicitEndpoint = null) {
                 selectedInmuebleId = inmuebleId;
                 
                 var nom_tel = `${inmueble[0].refUsuario?.nombres || ''} ${inmueble[0].refUsuario?.aPaterno || ''}`.trim();
-                GetCode1(inmueble[0].idTipo, inmueble[0].idInmueble, nom_tel, inmueble[0].telefono, inmueble[0].terreno, inmueble[0].construccion, inmueble[0].precio, inmueble[0].observaciones, inmueble[0].contacto, inmueble[0].imagenes);
+                GetCode1(inmueble[0].idTipo, inmueble[0].idInmueble, nom_tel, inmueble[0].telefono, inmueble[0].terreno, inmueble[0].construccion, inmueble[0].precio, inmueble[0].observaciones, inmueble[0].contacto, inmueble[0].imagenes, inmueble[0].recamaras ?? inmueble[0].Recamaras, inmueble[0].banosCompletos ?? inmueble[0].BanosCompletos, inmueble[0].estacionamientos ?? inmueble[0].Estacionamientos);
 
             } else {
                 throw new Error('La respuesta del inmueble no contiene una colección válida.');
@@ -383,6 +394,13 @@ function fetchMarkers() {
         .then(responseJson => {
             if (responseJson.length > 0) {
                 responseJson.forEach((item) => {
+                    // Ocultar el registro de prueba de RADAR en el mapa público.
+                    // Borrado definitivo: eliminar la fila en la BD (ver NOTAS-VERSION-HOY.md).
+                    const obsPrueba = String(item.observaciones || '').toLowerCase();
+                    const contactoPrueba = String(item.contacto || '');
+                    if (obsPrueba.includes('validación radar') || obsPrueba.includes('prueba para validación') || contactoPrueba.includes('Radar Prueba')) {
+                        return;
+                    }
                     let imageIcon;
                     switch (item.idTipo) {
                         case 2: imageIcon = "images/icon/casa_che.png"; typeofp = "Casa en venta"; break;
@@ -573,7 +591,7 @@ function fetchMarkers() {
                             selectedInmuebleId = item.idInmueble;
                             clikeado = 1;
                             var nom_tel = item.refUsuario.nombres + " " + item.refUsuario.aPaterno;
-                            GetCode1(item.idTipo, item.idInmueble, nom_tel, item.telefono, item.terreno, item.construccion, item.precio, item.observaciones, item.contacto, item.imagenes);
+                            GetCode1(item.idTipo, item.idInmueble, nom_tel, item.telefono, item.terreno, item.construccion, item.precio, item.observaciones, item.contacto, item.imagenes, item.recamaras ?? item.Recamaras, item.banosCompletos ?? item.BanosCompletos, item.estacionamientos ?? item.Estacionamientos);
                         }
                     });
 
@@ -776,22 +794,40 @@ function shareItem() {
         const textToShare = `${descripcion}\n\n${url}`;
 
         // Verificar si el navegador soporta la API de compartir (navigator.share)
+        const showShareFeedback = (message) => {
+            if (typeof Swal !== 'undefined' && Swal.fire) {
+                Swal.fire('Compartir', message, 'success');
+            } else {
+                alert(message);
+            }
+        };
         if (navigator.share) {
             navigator.share({
                 title: 'Compartir Inmueble',
                 text: descripcion,
                 url: url
             }).then(() => {
-                console.log('Inmueble compartido con éxito.');
+                showShareFeedback('Inmueble compartido con éxito.');
             }).catch((error) => {
+                // Si el usuario cancela el diálogo, no es un error.
+                if (error && error.name === 'AbortError') return;
                 console.error('Error al compartir:', error);
+                showShareFeedback('No se pudo abrir el menú para compartir. Enlace copiado al portapapeles.');
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(textToShare).catch(() => {});
+                }
             });
         } else {
             // Copiar al portapapeles si la API de compartir no está disponible
             navigator.clipboard.writeText(textToShare).then(function () {
-                console.log('Inmueble copiado al portapapeles.');
+                showShareFeedback('Enlace copiado al portapapeles: ' + url);
             }).catch(function (error) {
                 console.error('Error al copiar el inmueble:', error);
+                if (typeof Swal !== 'undefined' && Swal.fire) {
+                    Swal.fire('Error', 'No se pudo copiar el enlace.', 'error');
+                } else {
+                    alert('No se pudo copiar el enlace.');
+                }
             });
         }
     } else {
@@ -898,7 +934,7 @@ function panel(imgElement) {
     $('#modalImagenCompleta').modal('show');
 }
 
-function GetCode1(a, b, c, d, e, f, g, h, i, j) {
+function GetCode1(a, b, c, d, e, f, g, h, i, j, recamaras, banosCompletos, estacionamientos) {
 
     currentInmuebleId = b; // Guarda el id del inmueble actual
 
@@ -911,6 +947,12 @@ function GetCode1(a, b, c, d, e, f, g, h, i, j) {
         $('#descripcion').val(h);
     else
         $('#descripcion').val("");
+    // Características que ya existen en la BD pero no se veían en la ficha
+    const fmtNum = (v) => (v === null || v === undefined || v === '') ? '—' : v;
+    const resumenEl = document.getElementById('caracteristicasResumen');
+    if (resumenEl) {
+        resumenEl.textContent = `Recámaras: ${fmtNum(recamaras)} • Baños: ${fmtNum(banosCompletos)} • Estacionamientos: ${fmtNum(estacionamientos)}`;
+    }
 
     // Llamar a autoResize para ajustar la altura del textarea
     autoResize(document.getElementById('descripcion'));

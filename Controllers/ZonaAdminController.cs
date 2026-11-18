@@ -14,15 +14,18 @@ namespace maps4.Controllers
         private readonly IZonaRepository _zonaRepository;
         private readonly IInventarioRepository _inventarioRepository;
         private readonly ILogger<ZonaAdminController> _logger;
+        private readonly IConfiguration _configuration;
 
         public ZonaAdminController(
             IZonaRepository zonaRepository,
             IInventarioRepository inventarioRepository,
-            ILogger<ZonaAdminController> logger)
+            ILogger<ZonaAdminController> logger,
+            IConfiguration configuration)
         {
             _zonaRepository = zonaRepository;
             _inventarioRepository = inventarioRepository;
             _logger = logger;
+            _configuration = configuration;
         }
 
         [HttpGet]
@@ -66,6 +69,7 @@ namespace maps4.Controllers
                         .ToList()
                 };
 
+                ViewData["GoogleMapsApiKey"] = _configuration["RSMaps:GoogleMapsApiKey"];
                 return View(modelo);
             }
             catch (SqlException ex) when (ex.Number is 53840 or 53841)
