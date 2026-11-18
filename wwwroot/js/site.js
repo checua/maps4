@@ -3,9 +3,11 @@
 document.addEventListener('DOMContentLoaded', () => {
     const path = window.location.pathname.toLowerCase();
 
+    const isHome = path === '/' || path === '/home' || path === '/home/index';
+
     // Flujo moderno de captura desde el mapa. Se carga solo en Home para no
     // mezclar el nuevo módulo con el index.js legacy más de lo necesario.
-    if (path === '/' || path === '/home' || path === '/home/index') {
+    if (isHome) {
         const script = document.createElement('script');
         script.src = '/js/draft.js';
         script.defer = true;
@@ -15,7 +17,9 @@ document.addEventListener('DOMContentLoaded', () => {
         marketplaceFilters.src = '/js/marketplace-filters.js';
         marketplaceFilters.defer = true;
         document.body.appendChild(marketplaceFilters);
+    }
 
+    if (isHome || /^\/m\/\d+\/?$/.test(path)) {
         // Navegación privada visible desde el mismo menú flotante del mapa.
         // Las rutas protegidas conservan la autorización del servidor.
         const menu = document.getElementById('menu-flotante');
@@ -37,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    if (path === '/inventario' || path === '/inventario/index') {
+    if (path === '/inventario' || path === '/inventario/index' || /^\/i\/\d+\/?$/.test(path)) {
         const inventoryDraftScript = document.createElement('script');
         inventoryDraftScript.src = '/js/draft-inventory.js';
         inventoryDraftScript.defer = true;

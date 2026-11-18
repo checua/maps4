@@ -326,7 +326,7 @@ function loadInmueble(inmuebleId, explicitEndpoint = null) {
                 selectedInmuebleId = inmuebleId;
                 
                 var nom_tel = `${inmueble[0].refUsuario?.nombres || ''} ${inmueble[0].refUsuario?.aPaterno || ''}`.trim();
-                GetCode1(inmueble[0].idTipo, inmueble[0].idInmueble, nom_tel, inmueble[0].telefono, inmueble[0].terreno, inmueble[0].construccion, inmueble[0].precio, inmueble[0].observaciones, inmueble[0].contacto, inmueble[0].imagenes, inmueble[0].recamaras ?? inmueble[0].Recamaras, inmueble[0].banosCompletos ?? inmueble[0].BanosCompletos, inmueble[0].estacionamientos ?? inmueble[0].Estacionamientos);
+                renderMapPropertyCard(inmueble[0], nom_tel);
 
             } else {
                 throw new Error('La respuesta del inmueble no contiene una colección válida.');
@@ -387,20 +387,27 @@ function gotoLocation() {
 let accumulatedUrls = []; // Variable para acumular los enlaces de los inmuebles
 let accumulatedIds = []; // Variable para acumular los IDs de los inmuebles
 
-//function fetchMarkers pruebas
+function isRadarTestMapListing(item) {
+    // Identificador textual exacto de la ficha de prueba documentada.
+    const description = String(item.observaciones ?? item.Observaciones ?? '')
+        .normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase();
+    return description === 'casa en renta de prueba para validación radar';
+}
+
+function renderMapPropertyCard(item, advisorName) {
+    GetCode1(item.idTipo, item.idInmueble, advisorName, item.telefono, item.terreno,
+        item.construccion, item.precio, item.observaciones, item.contacto, item.imagenes,
+        item.recamaras ?? item.Recamaras, item.banosCompletos ?? item.BanosCompletos,
+        item.estacionamientos ?? item.Estacionamientos);
+}
+
 function fetchMarkers() {
     fetch("/Home/listaInmuebles")
         .then(response => response.ok ? response.json() : Promise.reject(response))
         .then(responseJson => {
             if (responseJson.length > 0) {
                 responseJson.forEach((item) => {
-                    // Ocultar el registro de prueba de RADAR en el mapa público.
-                    // Borrado definitivo: eliminar la fila en la BD (ver NOTAS-VERSION-HOY.md).
-                    const obsPrueba = String(item.observaciones || '').toLowerCase();
-                    const contactoPrueba = String(item.contacto || '');
-                    if (obsPrueba.includes('validación radar') || obsPrueba.includes('prueba para validación') || contactoPrueba.includes('Radar Prueba')) {
-                        return;
-                    }
+                    if (isRadarTestMapListing(item)) return;
                     let imageIcon;
                     switch (item.idTipo) {
                         case 2: imageIcon = "images/icon/casa_che.png"; typeofp = "Casa en venta"; break;
@@ -591,7 +598,7 @@ function fetchMarkers() {
                             selectedInmuebleId = item.idInmueble;
                             clikeado = 1;
                             var nom_tel = item.refUsuario.nombres + " " + item.refUsuario.aPaterno;
-                            GetCode1(item.idTipo, item.idInmueble, nom_tel, item.telefono, item.terreno, item.construccion, item.precio, item.observaciones, item.contacto, item.imagenes, item.recamaras ?? item.Recamaras, item.banosCompletos ?? item.BanosCompletos, item.estacionamientos ?? item.Estacionamientos);
+                            renderMapPropertyCard(item, nom_tel);
                         }
                     });
 

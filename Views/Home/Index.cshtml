@@ -14,7 +14,11 @@
     <meta name="rsmaps-focused-property-id" content="@mapaObjetivoId" />
     <meta name="rsmaps-focused-property-endpoint" content="@(ViewData["MapaObjetivoEndpoint"])" />
 }
-@if (ViewData["GoogleMapsApiKey"] is string googleMapsApiKey && !string.IsNullOrWhiteSpace(googleMapsApiKey))
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+@{
+    var googleMapsApiKey = Configuration["RSMaps:GoogleMapsApiKey"];
+}
+@if (!string.IsNullOrWhiteSpace(googleMapsApiKey))
 {
     <meta name="rsmaps-google-maps-api-key" content="@googleMapsApiKey" />
 }

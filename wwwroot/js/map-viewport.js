@@ -127,7 +127,12 @@
             const items = Array.isArray(payload.items) ? payload.items : [];
             items.forEach(item => {
                 const id = Number(item.idInmueble);
-                if (Number.isFinite(id)) propertyCache.set(id, item);
+                if (!Number.isFinite(id)) return;
+                if (isRadarTestMapListing(item)) {
+                    propertyCache.delete(id);
+                    return;
+                }
+                propertyCache.set(id, item);
             });
 
             lastViewportWasTruncated = Boolean(payload.truncated);
@@ -270,17 +275,7 @@
         selectedInmuebleId = item.idInmueble;
         if (typeof clikeado !== 'undefined') clikeado = 1;
         const nomTel = `${item.refUsuario?.nombres || ''} ${item.refUsuario?.aPaterno || ''}`.trim();
-        GetCode1(
-            item.idTipo,
-            item.idInmueble,
-            nomTel,
-            item.telefono,
-            item.terreno,
-            item.construccion,
-            item.precio,
-            item.observaciones,
-            item.contacto,
-            item.imagenes);
+        renderMapPropertyCard(item, nomTel);
     }
 
     function copyPropertyToMemory(item) {
