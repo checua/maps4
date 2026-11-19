@@ -961,6 +961,22 @@ function GetCode1(a, b, c, d, e, f, g, h, i, j, recamaras, banosCompletos, estac
         resumenEl.textContent = `Recámaras: ${fmtNum(recamaras)} • Baños: ${fmtNum(banosCompletos)} • Estacionamientos: ${fmtNum(estacionamientos)}`;
     }
 
+    // Precio por m² (solo cuando hay precio y superficie). Ej. id 187:
+    // $1,750,000 / 208 m² terreno = $8,413/m²; / 130 m² construcción = $13,462/m².
+    const precioNum = Number(g);
+    const terrenoNum = Number(e);
+    const construccionNum = Number(f);
+    const fmtPrecioM2 = (v) => '$' + numberWithCommas(Math.round(v)) + ' /m²';
+    const partesM2 = [];
+    if (precioNum > 0 && terrenoNum > 0) partesM2.push('Terreno ' + fmtPrecioM2(precioNum / terrenoNum));
+    if (precioNum > 0 && construccionNum > 0) partesM2.push('Construcción ' + fmtPrecioM2(precioNum / construccionNum));
+    const precioM2El = document.getElementById('precioM2Resumen');
+    if (precioM2El) {
+        precioM2El.textContent = partesM2.length > 0
+            ? 'Precio por m²: ' + partesM2.join(' • ')
+            : 'Precio por m² no disponible.';
+    }
+
     // Llamar a autoResize para ajustar la altura del textarea
     autoResize(document.getElementById('descripcion'));
 

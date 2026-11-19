@@ -263,6 +263,8 @@
                         <div class="property-meta">
                             @if (item.Terreno.HasValue && item.Terreno.Value > 0) { <span>Terreno: @item.Terreno.Value.ToString("N0") m²</span> }
                             @if (item.Construccion.HasValue && item.Construccion.Value > 0) { <span>Construcción: @item.Construccion.Value.ToString("N0") m²</span> }
+                            @if (item.TienePrecio && item.Terreno.HasValue && item.Terreno.Value > 0) { <span>Precio/m² terreno: @((item.Precio!.Value / item.Terreno.Value).ToString("C0", cultura))</span> }
+                            @if (item.TienePrecio && item.Construccion.HasValue && item.Construccion.Value > 0) { <span>Precio/m² construcción: @((item.Precio!.Value / item.Construccion.Value).ToString("C0", cultura))</span> }
                             <span>@item.Imagenes foto@(item.Imagenes == 1 ? "" : "s")</span>
                         </div>
 
