@@ -256,10 +256,12 @@
             id: item.idInmueble
         };
 
-        const logged = String(document.getElementById('lnkAcceso')?.innerText || '').toUpperCase();
-        const owner = String(item.refUsuario?.correo || '').toUpperCase();
+        // El servidor ya no envía el correo del asesor en la respuesta
+        // pública; la decisión de editar la trae puedeEditar, calculada
+        // en el servidor con el usuario autenticado.
+        const esPropio = item.puedeEditar === true;
 
-        if (logged !== owner) {
+        if (!esPropio) {
             $('.boton-eliminar-inmueble').css('display', 'none');
             $('#contacto_a').hide();
             $('.boton-guardar-inmueble').css('display', 'none');

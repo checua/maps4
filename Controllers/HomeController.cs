@@ -93,9 +93,15 @@ namespace maps4.Controllers
                 maxResultados,
                 cancellationToken);
 
+            // La respuesta pública no lleva correo ni teléfono del asesor:
+            // el teléfono solo se incluye con sesión iniciada y la decisión
+            // de editar la calcula el servidor (PuedeEditar).
+            var correo = InmueblePublico.CorreoAutenticado(User);
+            bool mostrarTelefono = !InmueblePublico.TelefonoSoloAutenticados || User.Identity?.IsAuthenticated == true;
+
             return Ok(new
             {
-                items = resultado.Items,
+                items = resultado.Items.Select(i => InmueblePublico.Proyectar(i, correo, mostrarTelefono)),
                 truncated = resultado.Truncated,
                 maxResultados,
                 zoom
@@ -138,7 +144,15 @@ namespace maps4.Controllers
         public async Task<IActionResult> listaInmuebles()
         {
             List<Inmueble> _lista = await _inmuebleRepository.Lista();
-            return StatusCode(StatusCodes.Status200OK, _lista);
+
+            // La respuesta pública no lleva correo ni teléfono del asesor:
+            // el teléfono solo se incluye con sesión iniciada y la decisión
+            // de editar la calcula el servidor (PuedeEditar).
+            var correo = InmueblePublico.CorreoAutenticado(User);
+            bool mostrarTelefono = !InmueblePublico.TelefonoSoloAutenticados || User.Identity?.IsAuthenticated == true;
+            var publica = _lista.Select(i => InmueblePublico.Proyectar(i, correo, mostrarTelefono));
+
+            return StatusCode(StatusCodes.Status200OK, publica);
         }
     }
 }

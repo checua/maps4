@@ -291,13 +291,12 @@ function loadInmueble(inmuebleId, explicitEndpoint = null) {
                     idTipo: inmueble[0].idTipo
                 };
 
-                const str = document.getElementById("lnkAcceso").innerText;
-                const str2 = (inmueble[0].refUsuario?.correo || '').toString();
+                // El servidor ya no envía el correo del asesor en la respuesta
+                // pública; la decisión de editar la trae puedeEditar,
+                // calculada en el servidor con el usuario autenticado.
+                const esPropio = inmueble[0].puedeEditar === true;
 
-                const res = str.toUpperCase();
-                const res2 = str2.toUpperCase();
-
-                if (res != res2) {
+                if (!esPropio) {
                     $('.boton-eliminar-inmueble').css('display', "none");
                     $("#contacto_a").hide();
                     $('.boton-guardar-inmueble').css('display', "none");
@@ -569,13 +568,12 @@ function fetchMarkers() {
                                 id: item.idInmueble
                             };
 
-                            const str = document.getElementById("lnkAcceso").innerText;
-                            const str2 = item.refUsuario.correo.toString();
+                            // El servidor ya no envía el correo del asesor en la
+                            // respuesta pública; la decisión de editar la trae
+                            // puedeEditar, calculada en el servidor.
+                            const esPropio = item.puedeEditar === true;
 
-                            const res = str.toUpperCase();
-                            const res2 = str2.toUpperCase();
-
-                            if (res != res2) {
+                            if (!esPropio) {
                                 $('.boton-eliminar-inmueble').css('display', "none");
                                 $("#contacto_a").hide();
                                 $('.boton-guardar-inmueble').css('display', "none");
@@ -946,7 +944,10 @@ function GetCode1(a, b, c, d, e, f, g, h, i, j, recamaras, banosCompletos, estac
     currentInmuebleId = b; // Guarda el id del inmueble actual
 
     $('#tipo').val(a);
-    document.getElementById("telefono").innerHTML = c + " " + d;
+    // El teléfono solo viene en la respuesta cuando hay sesión iniciada;
+    // sin sesión se invita a iniciar sesión en vez de exponer el número.
+    const telefonoTexto = (d === null || d === undefined || d === '') ? '— Inicia sesión para ver el teléfono' : d;
+    document.getElementById("telefono").innerHTML = c + " " + telefonoTexto;
     $('#terreno').val(numberWithCommas(e));
     $('#construccion').val(numberWithCommas(f));
     $('#precio').val("$ " + numberWithCommas(g));

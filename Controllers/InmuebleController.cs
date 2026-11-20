@@ -3,6 +3,7 @@ using maps4.Repositorios.Contrato;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
+using System.Security.Claims;
 
 namespace maps4.Controllers
 {
@@ -197,7 +198,12 @@ namespace maps4.Controllers
                 return NotFound("Inmueble not found");
             }
 
-            return Ok(lista);
+            // Lectura pública: sin correo del asesor; el teléfono solo se
+            // incluye con sesión iniciada y la decisión de editar la calcula
+            // el servidor (PuedeEditar).
+            var correo = InmueblePublico.CorreoAutenticado(User);
+            bool mostrarTelefono = !InmueblePublico.TelefonoSoloAutenticados || User.Identity?.IsAuthenticated == true;
+            return Ok(lista.Select(i => InmueblePublico.Proyectar(i, correo, mostrarTelefono)));
         }
 
         // Lectura privada: el servidor obtiene la identidad de la sesión y SQL
