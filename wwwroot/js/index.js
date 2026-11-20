@@ -1030,7 +1030,7 @@ function GetCode1(a, b, c, d, e, f, g, h, i, j, recamaras, banosCompletos, estac
 
     if (j != 0) {
         for (var x = 1; x <= j; x++) {
-            var imgSrc = `Cargas/${b}_${x}.jpg`;
+            var imgSrc = `/Cargas/${b}_${x}.jpg`;
             var imgElement = `
         <div id="images${x}" class="item" style="display: inline-block; height: 100%;">
             <img src="${imgSrc}" onclick="panel(this);" id="_${b}_${x}" style="margin-left:2px; height:100%; object-fit: contain;">
